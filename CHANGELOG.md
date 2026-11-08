@@ -1,3 +1,21 @@
+# 0.9.6 - 2026-11-08
+
+- Keep native-anchored flat skins out of theme dimension calculations, so
+  applying a setup theme cannot read restricted frame geometry.
+- Add a fifth guided setup step: Layout 1, Compact, Classic and Keep current.
+  Recommend Layout 1 only for new setups without saved mover placements.
+- Add a neutral schematic preview with generic labels. No user screenshot,
+  chat text, names, guild details or copied personal settings are distributed.
+- Fit addon positions/scales to the current viewport; keep bars separated on
+  smaller UI viewports and preserve custom placements when Keep current is used.
+- Optionally create a separate named character game layout via copied public
+  layout data and C_EditMode APIs. Never modify native action-button anchors,
+  runtime systemInfo, flags, methods or secure action mappings directly.
+- Preserve personal game layouts, check available slots/readiness and roll back
+  on activation failure. Block layout commits in combat or vendor actions.
+- Store the addon layout in the current profile and back up prior placements.
+  Include the 0.9.5 fix for blank Welcome/text previews with disabled modules.
+
 # 0.9.5 - 2026-11-08
 
 - Keep Welcome and text/size preview examples visible independently of live

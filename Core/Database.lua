@@ -28,6 +28,7 @@ FS.defaults = {
 }
 
 function FS:InitializeDatabase()
+    if self.firstInstallation==nil then self.firstInstallation=type(ForeverSuiteDB)~="table" or next(ForeverSuiteDB)==nil end
     if type(ForeverSuiteDB) ~= "table" then ForeverSuiteDB = {} end
     -- Only an explicit saved choice may skip onboarding; partial settings are not completion.
     if type(ForeverSuiteDB.setup)~="table" then ForeverSuiteDB.setup={completed=false,dismissed=false} end

@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.5",lines={"Guided setup: Welcome and text/size previews stay visible even when live modules are disabled.","Only the module-choice page hides examples for disabled choices. An explanatory message appears when all choices are off.","All ten styles and text/size examples remain available without enabling live modules or applying draft settings.","Includes Move Frames Save, Disable all modules and updated Enabled/Disabled captions from 0.9.4."}},
+    {version="0.9.6",lines={"Guided setup now has five steps, including Layout 1, Compact, Classic and Keep current with neutral layout previews.","Layout 1 follows the reference arrangement. Positions fit your screen; existing mover placements default to Keep current.","Optional game-bar/chat placement creates a separate character game layout. Existing personal game layouts are kept.","Changes apply only on finish and save in your profile. No private chat, player names or user screenshots are included. Disabled modules no longer blank the text/size preview."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

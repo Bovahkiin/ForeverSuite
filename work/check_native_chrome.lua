@@ -408,7 +408,7 @@ ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); local f=I.wi
 TEST.combat=true; assert(not I:Apply() and not I:Show() and FS.db.actionBars.style=='Minimal'); TEST.combat=false
 FS.modules.Vendor.busy=true; assert(not I:Apply() and not FS.db.setup.completed); FS.modules.Vendor.busy=false
 FS.db.typography.global.size=24; FS.Typography:Apply()
-for step=1,4 do
+for step=1,5 do
     I.step=step; I:Refresh()
     assert(f:GetHeight()*f:GetScale()<=UIParent:GetHeight()-47 and f:GetWidth()*f:GetScale()<=UIParent:GetWidth()-47)
     local point={f.next:GetPoint()}; local bottom=point[5] or point[3]; assert(-bottom+f.next:GetHeight()+20<=f:GetHeight())

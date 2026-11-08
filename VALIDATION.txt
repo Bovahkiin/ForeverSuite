@@ -1,3 +1,14 @@
+ForeverSuite 0.9.6 - 2026-11-08
+PASS: 58 service groups including ten new layout-preset scenarios.
+PASS: full 357-group regression run plus 58 focused groups after the added
+first-install fallback case. Release CI target: all 358 scenarios.
+PASS: six pipeline checks; 154-file package CRC and source validation.
+Covers reference positions, viewport scales, preview isolation, native copied
+layout data, slot/API readiness, rollback, combat guards, Keep current,
+profile storage and large-font five-step layout. Client integration still
+requires live verification after updating through WoWUp.
+No source user screenshot or saved account data is shipped.
+
 ForeverSuite 0.9.5 - 2026-11-08
 PASS: 48 service groups including three new preview scenarios.
 PASS: all 348 scenarios, Lua startup, metadata and artwork checks.

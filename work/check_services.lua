@@ -429,3 +429,109 @@ for i,name in ipairs(FS.Themes.names) do
 end
 for _,name in ipairs(FS.window.moduleOrder) do assert(not FS:IsModuleEnabled(name),name) end
 f:Hide()
+
+-- TEST: Fresh installs recommend Layout 1 while existing mover placements default to Keep current
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); assert(I.draft.layout=='Layout 1')
+FS.db.layout.frames.Clock={x=10,y=300,scale=1}; I:Show(); assert(I.draft.layout=='Keep current')
+I.window:Hide()
+
+-- TEST: Layout choices and neutral schematic preview never write live positions before finish
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.step=4; I:Refresh(); I.window.next:Click()
+assert(I.step==5 and I.window.next:GetText()=='Apply & finish' and I.window.layoutPreview:IsShown())
+for i,name in ipairs(FS.LayoutPresets.names) do
+    I.window.choices[i]:Click(); assert(I.draft.layout==name and next(FS.db.layout.frames)==nil)
+    local preview=I.window.layoutPreview; assert(preview.notice:IsShown()==(name=='Keep current'))
+    if name~='Keep current' then assert(preview.parts['Unit:player'].frame:IsShown() and preview.parts['Unit:target'].frame:IsShown()) end
+end
+I:Dismiss(); assert(next(FS.db.layout.frames)==nil)
+
+-- TEST: Layout 1 follows the reference and every preset fits supported viewport scales without stacked game bars
+ResetTest(); local FS=ForeverSuite; local P=FS.LayoutPresets
+local reference=P:Plan('Layout 1',2133.3333,1200)
+assert(math.abs(reference.frames['Unit:player'].x+349.86)<1 and math.abs(reference.frames['Unit:target'].y-428.4)<1)
+assert(reference.frames['Unit:pet'].y<reference.frames['Unit:player'].y and reference.native.ChatFrame1.x<0)
+for _,size in ipairs({{1280,720},{1920,1080},{3440,1440},{640,360}}) do
+    for _,name in ipairs({'Layout 1','Compact','Classic'}) do
+        local plan=P:Plan(name,size[1],size[2]); assert(plan)
+        for _,p in pairs(plan.frames) do assert(p.scale>=.6 and p.scale<=1.4 and p.y>0 and p.y<size[2]) end
+        assert(plan.native.MainActionBar.y-plan.native.MultiBarBottomLeft.y>=43.999)
+        assert(plan.native.MultiBarBottomLeft.y-plan.native.MultiBarBottomRight.y>=43.999)
+    end
+end
+assert(not P:Plan('invalid',1920,1080) and not P:Plan('Layout 1',0,0))
+
+-- TEST: Game layout creation uses copied public data and never writes native frame anchors or runtime flags
+function NativeLayoutFixture()
+    local FS=ForeverSuite; local old={api=C_EditMode,presets=EditModePresetLayoutManager,enum=Enum,constants=Constants,frames={}}
+    Enum=Enum or {}; old.types=Enum.EditModeLayoutType; Enum.EditModeLayoutType={Preset=0,Account=1,Character=2}
+    Constants=Constants or {}; old.limits=Constants.EditModeConsts; Constants.EditModeConsts={EditModeMaxLayoutsPerType=5}
+    local systems={}; local names={'MainActionBar','MultiBarBottomLeft','MultiBarBottomRight','PetActionBar','ChatFrame1'}
+    for i,name in ipairs(names) do
+        old.frames[name]=_G[name] or false; local f=CreateFrame('Frame',nil,UIParent); _G[name]=f
+        f.system=0; f.systemIndex=i; f.systemInfo={untouched=true}; f.SetPoint=function() error('Native anchor write') end
+        systems[#systems+1]={system=0,systemIndex=i,settings={{setting=1,value=100}},isInDefaultPosition=true,anchorInfo={point='CENTER',relativeTo='UIParent',relativePoint='CENTER',offsetX=0,offsetY=0}}
+    end
+    local preset={layoutName='Modern',layoutType=0,systems=systems}; local custom={layoutName='Personal',layoutType=2,systems={}}
+    local data={activeLayout=2,layouts={custom}}; local state={saves=0,activations=0,preset=preset,data=data}
+    EditModePresetLayoutManager={GetCopyOfPresetLayouts=function() return {preset} end}
+    C_EditMode={GetLayouts=function() return data end,SaveLayouts=function(value) state.saves=state.saves+1; state.saved=value; return not state.failSave end,
+        SetActiveLayout=function(index) state.activations=state.activations+1; state.active=index; if state.failActivate and index~=2 then return false end end}
+    function state.restore()
+        C_EditMode=old.api; EditModePresetLayoutManager=old.presets
+        Enum.EditModeLayoutType=old.types; Enum=old.enum; Constants.EditModeConsts=old.limits; Constants=old.constants
+        for name,f in pairs(old.frames) do _G[name]=f or nil end
+    end
+    return state
+end
+ResetTest(); local FS=ForeverSuite; local P=FS.LayoutPresets; local state=NativeLayoutFixture()
+local plan,reason=P:Prepare('Layout 1',true); assert(plan,reason); assert(state.saves==0 and #state.data.layouts==1 and state.preset.systems[1].isInDefaultPosition)
+assert(P:Commit('Layout 1',plan) and state.saves==1 and state.active==3)
+assert(state.saved.layouts[2].layoutName=='Personal' and state.saved.layouts[3].layoutName=='ForeverSuite Layout 1')
+assert(not state.saved.layouts[3].systems[1].isInDefaultPosition and MainActionBar.systemInfo.untouched)
+assert(state.preset.systems[1].anchorInfo.relativePoint=='CENTER'); state.restore()
+
+-- TEST: Failed game layout saves and activation preserve existing addon positions and restore the previous game choice
+ResetTest(); local FS=ForeverSuite; local P=FS.LayoutPresets; local state=NativeLayoutFixture()
+FS.db.layout.frames.Clock={x=17,y=300,scale=1}; local plan=P:Prepare('Compact',true); state.failSave=true
+assert(not P:Commit('Compact',plan) and FS.db.layout.frames.Clock.x==17 and state.activations==0)
+state.failSave=false; state.failActivate=true; assert(not P:Commit('Compact',plan) and FS.db.layout.frames.Clock.x==17 and state.active==2)
+state.restore()
+
+-- TEST: Game layout availability slot limits and combat guards fail before applying any staged settings
+ResetTest(); local FS=ForeverSuite; local P=FS.LayoutPresets; local state=NativeLayoutFixture()
+Constants.EditModeConsts.EditModeMaxLayoutsPerType=1; assert(not P:Prepare('Classic',true))
+Constants.EditModeConsts.EditModeMaxLayoutsPerType=5; local plan=P:Prepare('Classic',true); TEST.combat=true
+assert(not P:Commit('Classic',plan) and state.saves==0); TEST.combat=false; FS.modules.Vendor.busy=true
+assert(not P:Commit('Classic',plan) and state.saves==0); FS.modules.Vendor.busy=false
+state.restore(); local api=C_EditMode; C_EditMode=nil; assert(not P:Prepare('Classic',true)); assert(P:Prepare('Classic',false)); C_EditMode=api
+
+-- TEST: Finishing a selected layout saves fitted addon positions in the current profile and Keep current preserves them
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.step=5; I.draft.layout='Layout 1'; I.draft.nativeLayout=false
+I:Refresh(); I.window.next:Click(); assert(FS.db.setup.completed and FS.db.layout.preset=='Layout 1')
+local frames=FS.db.profiles.saved[FS.db.profiles.current].layout.frames; assert(frames['Unit:player'] and frames['Unit:target'])
+local x=FS.db.layout.frames['Unit:player'].x; FS:InitializeDatabase(); assert(FS.db.layout.frames['Unit:player'].x==x)
+I:Show(); assert(I.draft.layout=='Keep current'); I.draft.nativeLayout=true; assert(I:Apply())
+assert(FS.db.layout.frames['Unit:player'].x==x)
+
+-- TEST: Five installer steps and layout controls fit large text and never include personal screenshot data
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); FS.db.typography.global.size=24; FS.Typography:Apply()
+for step=1,5 do I.step=step; I:Refresh(); local f=I.window; assert(f:GetHeight()*f:GetScale()<=UIParent:GetHeight()-47) end
+local f=I.window; assert(f.nativeLayout:IsShown() and -f.next.point[3]+f.next:GetHeight()<f:GetHeight())
+local allowed={Player=true,Target=true,Pet=true,Map=true,Quests=true,Chat=true,Meter=true,Menu=true,Bags=true,XP=true,Waypoint=true,['1 2 3 4 5 6 7 8 9 0']=true,['Action bar 2']=true,['Action bar 3']=true}
+for _,part in pairs(f.layoutPreview.parts) do assert(allowed[part.frame.label:GetText()]) end
+FS.db.typography.global.size=0; FS.Typography:Apply(); f:Hide()
+
+-- TEST: Applying a setup theme never reads dimensions from native anchored secret skins
+ResetTest(); local FS=ForeverSuite; local frame=CreateFrame('Frame',nil,UIParent,'BackdropTemplate')
+frame.GetWidth=function() error('Secret skin width must not be read') end
+frame.GetHeight=function() error('Secret skin height must not be read') end
+FS.HUD:Skin(frame,true); assert(frame.fsThemeBorderOnly and not FS.Themes.frames[frame])
+FS.db.appearance.theme='Celestial Forge'; assert(FS.Themes:Refresh() and frame.fsFlatSkin)
+FS.db.appearance.theme='Legacy'; assert(FS.Themes:Refresh())
+
+-- TEST: Automatic menu avoidance on a first install does not suppress the recommended starter layout
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; local oldFresh,oldOpened=FS.firstInstallation,I.hasOpenedSetup
+FS.firstInstallation=true; I.hasOpenedSetup=nil; FS.db.layout.frames.MainMenu={x=400,y=30,scale=1}
+I:Show(); assert(I.draft.layout=='Layout 1')
+FS.db.layout.frames['Unit:player']={x=-200,y=300,scale=1}; I:Show(); assert(I.draft.layout=='Keep current')
+FS.firstInstallation=oldFresh; I.hasOpenedSetup=oldOpened; I.window:Hide()

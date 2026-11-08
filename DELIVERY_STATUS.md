@@ -1,4 +1,11 @@
-# Current patch - 0.9.5
+# Current patch - 0.9.6
+
+Guided layout selection with reference-based Layout 1, Compact, Classic and
+Keep current. Neutral previews contain no private screenshot/chat/name data.
+Optional native layout uses copied data and public game APIs with rollback.
+Release includes 0.9.5's blank-preview fix. Publish after full/package checks.
+
+# Patch - 0.9.5
 
 Fix blank guided setup previews when live modules are disabled. Separate the
 illustrative Welcome/text examples from the staged module-choice preview.

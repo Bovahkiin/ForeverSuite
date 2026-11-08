@@ -5,6 +5,11 @@ H.texture = "Interface\\Buttons\\WHITE8X8"
 -- width/height arithmetic, unlike BackdropTemplate's tiled edge calculation.
 function H:FlatSkin(f)
     if f.fsFlatSkin then return end
+    f.fsThemeBorderOnly=true
+    if FS.Themes and FS.Themes.frames[f] then
+        for _,part in ipairs(FS.Themes.frames[f].parts or {}) do part:Hide() end
+        FS.Themes.frames[f]=nil
+    end
     f:SetBackdrop(nil)
     local bg=f:CreateTexture(nil,"BACKGROUND"); bg:SetAllPoints(); bg.fsSuiteStyle=true; bg.ignoreInLayout=true
     local edges={}

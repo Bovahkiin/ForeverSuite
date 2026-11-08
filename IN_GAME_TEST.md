@@ -1,3 +1,19 @@
+## 0.9.6 Layout selection
+
+1. On a clean install, reach step 5. Layout 1 should be selected; all four
+   choices should update a schematic preview without moving any live frames.
+2. Compare Layout 1 with the reference arrangement at different screen sizes.
+   Check player/target, pet, centered bars, chat, minimap, quests, menu and bags.
+3. Apply with Game bars and chat enabled. Verify a separate ForeverSuite
+   character layout appears in the game layout list and personal layouts remain.
+   Test combat, hover, target changes and reloading without blocked actions.
+4. Test unavailable layout APIs/full character slots: show a clear message;
+   keeping current game positions must still allow the addon layout to apply.
+5. Existing user positions must default to Keep current. Cancel must leave
+   them intact. Apply a preset, reload and switch profiles: addon positions persist.
+6. Check large text, 16:9 and wide screens. Previews must contain only generic
+   labels, with no source screenshot or personal chat/name data.
+
 ## 0.9.5 Guided setup previews
 
 1. Disable all modules in Control Center, then open Guided setup. Welcome
@@ -26,7 +42,7 @@
 
 1. On a clean test WoW account with no ForeverSuite saved settings, install via
    WoWUp and log in. Welcome must open with name, version, author and Patch Log.
-2. Continue through all four steps. Patch Log must return to the same draft.
+2. Continue through all five steps. Patch Log must return to the same draft.
    Applying setup must persist across reload; no automatic repeat on zoning.
 3. Without finishing setup, reload during combat where possible. Welcome
    must wait until combat ends. Test enabling the addon after login as supported.
