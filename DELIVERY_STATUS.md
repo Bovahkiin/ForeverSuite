@@ -1,4 +1,11 @@
-# Current patch - 0.9.2
+# Current patch - 0.9.3
+
+Harden automatic Welcome/guided setup for first-time users, late loading and
+combat. Preserve explicit skip/completion and all existing settings/layouts.
+Publish through GitHub after the full offline and package checks succeed.
+Affected players can reopen setup with /fs setup without clearing settings.
+
+# Patch - 0.9.2
 
 Add the Character Pet tab, live pet details, experience and happiness, separate
 model rotation, large-font spacing and full-value tooltips.

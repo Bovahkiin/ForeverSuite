@@ -1353,8 +1353,8 @@ f.hideStartup:SetChecked(true); f.hideStartup:Click(); assert(not FS.db.patchLog
 FS:InitializeDatabase(); assert(not FS.db.patchLog.showOnLoad)
 f.close:Click(); center.patchLog:Click(); assert(f:IsShown() and f.hideStartup:GetChecked())
 center.credits:Click(); assert(f.body:GetText():find('DeluxiZ',1,true) and f.body:GetText():find('AI',1,true) and not f.hideStartup:IsShown() and not f.hideStartup.label:IsShown())
-f.close:Click(); FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); assert(not f:IsShown())
-FS.db.patchLog.showOnLoad=true; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); assert(f:IsShown() and FS.aboutMode=='patch')
+f.close:Click(); FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(not f:IsShown())
+FS.db.patchLog.showOnLoad=true; FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(f:IsShown() and FS.aboutMode=='patch')
 f.hideStartup:SetChecked(false); f.hideStartup:Click(); assert(FS.db.patchLog.showOnLoad)
 f.close:Click()
 """

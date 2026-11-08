@@ -8,18 +8,18 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.9.2 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.9.3 · **Client:** WoW Forever · **Interface:** 16001
 
-## New in 0.9.2
+## New in 0.9.3
 
-- **Pet details:** summon your pet and open Character to find a fourth sidebar
-  tab beside Stats, Gear sets and Titles. View its model, level, health, power,
-  armor, damage and experience. Hunter pets also show happiness, loyalty,
-  available training points and diet when the client provides them.
-- **Clearer character window:** separate player/pet model rotation, readable
-  full-value tooltips and improved tab/row spacing at larger font sizes.
-- Pet dismissal safely returns to player stats after combat. Previous minimap
-  collector and gear comparison improvements remain included.
+- **Reliable first-run setup:** Welcome and guided setup open after login
+  handlers finish, with a world-entry fallback for late addon loading.
+  Startup during combat waits until combat ends. Only explicit completion
+  or dismissal skips setup; partial settings no longer imply completion.
+- Existing layouts and preferences stay intact. To open setup manually, type
+  `/fs setup` or choose **Guided setup** in the Control Center.
+- Includes the Character Pet tab, experience/happiness display and the prior
+  character layout, minimap collector and gear comparison improvements.
 
 ## Features
 
@@ -162,7 +162,7 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **330 offline scenarios**, Lua startup,
+The current development checks cover **338 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
 every aspect of the game. In version 0.8.5, the author has confirmed that layout
 restoration survives reload and that combat and logout no longer produce the

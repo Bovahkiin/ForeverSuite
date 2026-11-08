@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.2",lines={"New Pet tab in Character: pet model, level, health, power, armor, damage and experience.","Hunter details include happiness, loyalty, available training points and diet when provided by the client.","Player and pet keep separate rotation. Pet data updates without resetting the model; dismissal during combat is handled safely.","Improved character tab spacing and pagination at larger font sizes, with full-text tooltips on detail rows."}},
+    {version="0.9.3",lines={"First-run Welcome and guided setup now wait until login handlers finish, with a world-entry fallback for late loading.","If startup happens during combat, setup opens after combat ends.","Partial settings no longer count as completed setup. Explicit completion or dismissal and all existing layouts remain saved.","Setup opens before patch notes and only once per session. Reopen it any time with /fs setup or Guided setup in the Control Center."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

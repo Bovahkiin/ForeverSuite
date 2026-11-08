@@ -1,3 +1,14 @@
+# 0.9.3 - 2026-11-08
+
+- Defer the startup window until login handlers finish. Fall back to world
+  entry or an addon loaded after login, and retry after combat if necessary.
+- Do not infer completed setup from a nonempty or partial settings table.
+  Only an explicitly saved completed/dismissed choice suppresses onboarding.
+- Show setup before patch notes and handle startup once per session. Repeated
+  world entries do not restart an active draft or reopen dismissed windows.
+- Preserve manual setup and Patch Log navigation during delayed startup.
+  Existing layouts, module settings, completed setup and dismissal persist.
+
 # 0.9.2 - 2026-11-08
 
 - Add a Pet sidebar tab to the custom Character window while an active pet is

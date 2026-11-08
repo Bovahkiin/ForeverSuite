@@ -1,3 +1,16 @@
+## 0.9.3 First-run onboarding
+
+1. On a clean test WoW account with no ForeverSuite saved settings, install via
+   WoWUp and log in. Welcome must open with name, version, author and Patch Log.
+2. Continue through all four steps. Patch Log must return to the same draft.
+   Applying setup must persist across reload; no automatic repeat on zoning.
+3. Without finishing setup, reload during combat where possible. Welcome
+   must wait until combat ends. Test enabling the addon after login as supported.
+4. Select Set up later: reload must respect this choice. `/fs setup` and the
+   Guided setup button must still reopen Welcome without resetting layouts.
+5. Existing users with completed setup must keep their settings and normal
+   patch-note preference. No full database reset is required for recovery.
+
 ## 0.9.2 Character pet tab
 
 1. Update through WoWUp. Summon a hunter pet, open Character and select Pet

@@ -381,7 +381,7 @@ TEST.combat=false; A:SettingsChanged(); assert(state.border.fsTileStyle=='Floati
 -- TEST: Fresh installs prompt once and upgrades retain settings without restarting setup on profile switches
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer; assert(I:NeedsSetup())
 ForeverSuiteDB={actionBars={scale=.9,style='Floating'},setup=nil}; FS:InitializeDatabase()
-assert(not I:NeedsSetup() and FS.db.actionBars.scale==.9 and FS.db.actionBars.style=='Floating')
+assert(I:NeedsSetup() and FS.db.actionBars.scale==.9 and FS.db.actionBars.style=='Floating')
 FS.db.setup.dismissed=true; FS.db.setup.completed=false; FS.modules.Profiles:Save('Existing setup')
 assert(not FS.modules.Profiles:Snapshot().setup); FS.modules.Profiles:Load('Existing setup'); assert(FS.db.setup.dismissed and not I:NeedsSetup())
 ResetTest(); I:Show(); I.window.later:Click(); assert(not I:NeedsSetup() and not FS.db.setup.completed)
@@ -418,9 +418,9 @@ f:Hide(); FS.db.typography.global.size=0; FS.Typography:Apply()
 
 -- TEST: First login prioritizes setup over patch notes and completed setup resumes normal startup preferences
 ResetTest(); local FS=ForeverSuite; FS:CreateAboutWindow(); FS.aboutWindow:Hide()
-FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); assert(FS.Installer.window:IsShown() and not FS.aboutWindow:IsShown())
+FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(FS.Installer.window:IsShown() and not FS.aboutWindow:IsShown())
 FS.Installer:Dismiss(); FS.db.patchLog.showOnLoad=true
-FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); assert(FS.aboutWindow:IsShown() and not FS.Installer.window:IsShown())
+FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(FS.aboutWindow:IsShown() and not FS.Installer.window:IsShown())
 FS.aboutWindow.close:Click()
 
 -- TEST: Textured bar artwork matches the installer and restores icon geometry without touching secure buttons

@@ -28,9 +28,9 @@ FS.defaults = {
 }
 
 function FS:InitializeDatabase()
-    local fresh=type(ForeverSuiteDB)~="table" or next(ForeverSuiteDB)==nil
     if type(ForeverSuiteDB) ~= "table" then ForeverSuiteDB = {} end
-    if not fresh and type(ForeverSuiteDB.setup)~="table" then ForeverSuiteDB.setup={completed=true,dismissed=false} end
+    -- Only an explicit saved choice may skip onboarding; partial settings are not completion.
+    if type(ForeverSuiteDB.setup)~="table" then ForeverSuiteDB.setup={completed=false,dismissed=false} end
     local social=ForeverSuiteDB.social
     if type(social)=="table" then
         if type(ForeverSuiteDB.chat)~="table" then ForeverSuiteDB.chat={enabled=social.enabled,timestamps=social.timestamps} end

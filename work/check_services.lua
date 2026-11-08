@@ -275,3 +275,63 @@ for _,row in ipairs(C.rows) do if row:IsShown() then assert(-row.point[3]+row:Ge
 assert(C.next:IsEnabled()); C.rows[1].scripts.OnEnter(C.rows[1]); assert(#GameTooltip.lines>0)
 TEST.units.pet=nil; HasPetUI=nil; C_PetInfo=nil; GetPetExperience=nil; UnitCreatureFamily=nil; UnitDamage=nil; UnitAttackSpeed=nil; UnitArmor=nil
 FS.db.typography.modules.Character=nil; FS.Typography:Apply(); C:RefreshCharacter(); assert(not C.sideTabs[4]:IsShown())
+
+-- TEST: Clean first login waits for startup handlers and opens Welcome before patch notes
+function StartupFixture()
+    ResetTest(); local FS=ForeverSuite; FS.Installer:Create(); FS:CreateAboutWindow()
+    for _,f in ipairs({FS.Installer.window,FS.aboutWindow,FS.window,FS.Typography.window}) do if f then f:Hide() end end
+    FS.installerReturn=false; FS.startupHandled=nil; FS.startupPending=nil; FS.startupQueued=nil
+    return FS,FS.Installer
+end
+local FS,I=StartupFixture(); ForeverSuiteDB=nil; FS:InitializeDatabase()
+FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD')
+assert(FS.startupQueued and not I.window:IsShown()); Drain()
+assert(I.window:IsShown() and I.step==1 and not FS.aboutWindow:IsShown() and not FS.db.setup.completed)
+assert(I.window.description:GetText():find(FS.version,1,true) and I.window.patch:IsShown())
+assert(FS.startupHandled and not FS.startupPending)
+
+-- TEST: Partial settings never imply completed setup and existing appearance and layouts survive
+local FS,I=StartupFixture(); ForeverSuiteDB={typography={global={size=18}},layout={frames={Clock={x=11,y=22,scale=1}}}}
+FS:InitializeDatabase(); assert(I:NeedsSetup() and FS.db.typography.global.size==18 and FS.db.layout.frames.Clock.x==11)
+FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD'); Drain()
+assert(I.window:IsShown() and not FS.db.setup.completed and FS.db.layout.frames.Clock.y==22)
+
+-- TEST: World entry recovers a missed login and later world entries preserve the active setup step
+local FS,I=StartupFixture(); FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD'); Drain()
+assert(I.window:IsShown()); I.window.next:Click(); I.draft.theme='Royal Aether'
+FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD'); FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain()
+assert(I.step==2 and I.draft.theme=='Royal Aether')
+
+-- TEST: Startup in combat remains pending and opens welcome automatically after combat
+local FS,I=StartupFixture(); TEST.combat=true
+FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain()
+assert(FS.startupPending and not FS.startupHandled and not I.window:IsShown())
+TEST.combat=false; FS.events.scripts.OnEvent(FS.events,'PLAYER_REGEN_ENABLED'); Drain()
+assert(FS.startupHandled and I.window:IsShown() and I.step==1)
+
+-- TEST: Loading the addon after login still schedules first run onboarding
+local FS,I=StartupFixture(); local old=IsLoggedIn; IsLoggedIn=function() return true end
+FS.events.scripts.OnEvent(FS.events,'ADDON_LOADED','ForeverSuite'); IsLoggedIn=old
+assert(FS.startupQueued); Drain(); assert(I.window:IsShown() and I.step==1)
+
+-- TEST: Explicitly dismissed setup remains dismissed and can be reopened without resetting settings
+local FS,I=StartupFixture(); FS.db.setup.dismissed=true; FS.db.patchLog.showOnLoad=false; FS.db.actionBars.style='Floating'
+FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain()
+assert(FS.startupHandled and not I.window:IsShown() and not FS.aboutWindow:IsShown())
+assert(I:Show() and I.step==1 and I.draft.style=='Floating' and not FS.db.setup.completed)
+I.window:Hide()
+
+-- TEST: Completed setup shows preferred patch notes once without repeating them on zone changes
+local FS,I=StartupFixture(); FS.db.setup.completed=true; FS.db.patchLog.showOnLoad=true
+FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain()
+assert(FS.aboutWindow:IsShown() and not I.window:IsShown()); FS.aboutWindow:Hide()
+FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD'); Drain()
+assert(not FS.aboutWindow:IsShown() and FS.db.setup.completed)
+
+-- TEST: A pending automatic welcome preserves a manually opened draft and patch log return
+local FS,I=StartupFixture(); FS:QueueStartup(); assert(I:Show()); I.step=2; I.draft.theme='Verdant Relic'; I:Refresh(); Drain()
+assert(I.step==2 and I.draft.theme=='Verdant Relic' and FS.startupHandled)
+FS.startupHandled=nil; FS:QueueStartup(); I.step=1; I:Refresh(); I.window.patch:Click(); Drain()
+assert(FS.aboutWindow:IsShown() and FS.installerReturn and not I.window:IsShown())
+FS.aboutWindow.close:Click(); assert(I.window:IsShown() and I.step==1 and I.draft.theme=='Verdant Relic')
+I.window:Hide()
