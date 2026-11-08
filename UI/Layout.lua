@@ -145,12 +145,13 @@ function L:CreateGrid()
     f.centerHorizontal:SetPoint("LEFT",f,"LEFT",0,0)
     f.centerHorizontal:SetPoint("RIGHT",f,"RIGHT",0,0)
     local toolbar=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(toolbar)
-    toolbar:SetSize(610,65); toolbar:SetPoint("TOP",0,-20); toolbar:EnableMouse(true)
-    H:Label(toolbar,"MOVE FRAMES  |  Drag handles to move. Drag the corner arrow to resize.",12,-9,586)
-    f.done=H:Button(toolbar,"Done",12,-30,140,function() self:Stop(); FS:ShowConfig() end)
-    f.snap=H:Button(toolbar,"",162,-30,140,function() FS.db.layout.snap=not FS.db.layout.snap; self:UpdateToolbar() end)
-    f.reset=H:Button(toolbar,"Reset positions",312,-30,140,function() self:Reset() end)
-    f.close=H:Button(toolbar,"Cancel",462,-30,136,function()
+    f.toolbar=toolbar; toolbar:SetSize(760,65); toolbar:SetPoint("TOP",0,-20); toolbar:EnableMouse(true)
+    f.toolbarHint=H:Label(toolbar,"MOVE FRAMES  |  Drag handles to move. Drag the corner arrow to resize.",12,-9,736)
+    f.save=H:Button(toolbar,"Save",12,-30,132,function() self:SaveChanges(false) end)
+    f.done=H:Button(toolbar,"Save & close",154,-30,132,function() self:SaveChanges(true) end)
+    f.snap=H:Button(toolbar,"",296,-30,142,function() FS.db.layout.snap=not FS.db.layout.snap; self:UpdateToolbar() end)
+    f.reset=H:Button(toolbar,"Reset positions",448,-30,142,function() self:Reset() end)
+    f.close=H:Button(toolbar,"Cancel",600,-30,148,function()
         FS.db.layout.frames=self.before; self:Stop()
         self.applying=true
         for id,state in pairs(self.beforeVisual) do
@@ -161,7 +162,34 @@ function L:CreateGrid()
     f:Hide(); UISpecialFrames[#UISpecialFrames+1]="ForeverSuiteMoveFrames"
     f:SetScript("OnHide",function() if self.active then self:Stop() end end)
 end
-function L:UpdateToolbar() self.overlay.snap:SetText("Snap to grid: "..(FS.db.layout.snap and "On" or "Off")) end
+function L:UpdateToolbar()
+    local f=self.overlay; if not f then return end
+    f.snap:SetText("Snap to grid: "..(FS.db.layout.snap and "On" or "Off"))
+    local y=FS.HUD:TextHeight(f.toolbarHint,736,2)+18; local height=0
+    for _,b in ipairs({f.save,f.done,f.snap,f.reset,f.close}) do
+        local point={b:GetPoint()}; b:ClearAllPoints(); b:SetPoint("TOPLEFT",point[4] or point[2],-y)
+        height=math.max(height,FS.HUD:FitButton(b,3))
+    end
+    f.toolbar:SetHeight(y+height+12)
+    f.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/760,(UIParent:GetHeight()-40)/f.toolbar:GetHeight()))
+end
+function L:Checkpoint()
+    self.before={}; for id,v in pairs(FS.db.layout.frames) do self.before[id]={x=v.x,y=v.y,scale=v.scale} end
+    self.beforeVisual={}; for id,target in pairs(self.targets) do self.beforeVisual[id]={points=FS.HUD:SavePoints(target.frame),scale=target.frame:GetScale()} end
+end
+function L:SaveChanges(close)
+    if not self.active then return false end
+    if InCombatLockdown() or FS.modules.Vendor.busy then FS:Print("Leave combat and finish vendor actions before saving the layout."); return false end
+    for id,h in pairs(self.handles) do
+        if h.resizeStart then self:Resize(id,h); h.resizeStart=nil end
+        if h.dragging then h.dragging=false; h:StopMovingOrSizing(); self:Save(id,h) end
+    end
+    FS.modules.Profiles:PersistCurrent(); self:Checkpoint()
+    self.overlay.toolbarHint:SetText("Saved to profile: "..FS.db.profiles.current..". Cancel reverts changes made after this save.")
+    self:UpdateToolbar()
+    if close then self:Stop(); FS:ShowConfig() end
+    return true
+end
 function L:Save(id,handle,scale,dragging)
     if InCombatLockdown() then return end
     local f=self.targets[id].frame
@@ -193,10 +221,9 @@ function L:Start()
     if InCombatLockdown() then FS:Print("Leave combat to move frames."); return end
     if self.active then self:Stop(); return end
     self:CreateGrid(); self:Collect()
-    self.before={}; for id,v in pairs(FS.db.layout.frames) do self.before[id]={x=v.x,y=v.y,scale=v.scale} end
-    self.beforeVisual={}; for id,target in pairs(self.targets) do self.beforeVisual[id]={points=FS.HUD:SavePoints(target.frame),scale=target.frame:GetScale()} end
+    self:Checkpoint()
     if FS.window then FS.window:Hide() end
-    self.active=true; self.overlay:Show(); self:UpdateToolbar()
+    self.active=true; self.overlay.toolbarHint:SetText("MOVE FRAMES  |  Drag handles to move. Drag the corner arrow to resize."); self.overlay:Show(); self:UpdateToolbar()
     for id,target in pairs(self.targets) do
         local h=self.handles[id]
         if not h then

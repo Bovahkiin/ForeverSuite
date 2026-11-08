@@ -1,4 +1,10 @@
-# Current patch - 0.9.3
+# Current patch - 0.9.4
+
+Explicit Move Frames saving, a Control Center bulk-disable action and reliable
+Enabled/Disabled captions. Preserve layouts, customization and undo behavior.
+Publish through GitHub after full tests; no direct installed game changes.
+
+# Patch - 0.9.3
 
 Harden automatic Welcome/guided setup for first-time users, late loading and
 combat. Preserve explicit skip/completion and all existing settings/layouts.

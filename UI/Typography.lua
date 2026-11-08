@@ -82,6 +82,7 @@ function F:Apply()
     FS.fontGeneration=(FS.fontGeneration or 0)+1
     for region,state in pairs(self.regions) do if state.active then FS:ApplyFont(region) end end
     if FS.LayoutConfigText then FS:LayoutConfigText() end
+    if FS.Layout and FS.Layout.overlay then FS.Layout:UpdateToolbar() end
     if FS.aboutWindow and FS.aboutWindow.LayoutText then FS.aboutWindow:LayoutText() end
     for _,module in pairs(FS.modules) do
         if module.settings and module.settings.LayoutText then module.settings:LayoutText() end

@@ -1,6 +1,6 @@
 local addonName, FS = ...
 FS.name = addonName
-FS.version = "0.9.3"
+FS.version = "0.9.4"
 FS.icon = "Interface\\AddOns\\ForeverSuite\\Assets\\Icon-FS.tga"
 FS.logo = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-wordmark.tga"
 FS.emblem = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-transparent.tga"
@@ -30,11 +30,13 @@ function FS:SetModuleEnabled(name, enabled)
     if not module then return end
     if name == "Vendor" then
         self.db.vendor.enabled = enabled == true
-        module:SettingsChanged()
     elseif name == "Bags" then self.db.bags.enabled = enabled == true
-    elseif name == "Gear" then self.db.gear.enabled = enabled == true; module:SettingsChanged()
-    elseif module.key and self.db[module.key] then self.db[module.key].enabled = enabled == true; module:SettingsChanged()
-    else self.db.modules[name] = enabled == true; if module.SettingsChanged then module:SettingsChanged() end end
+    elseif name == "Gear" then self.db.gear.enabled = enabled == true
+    elseif module.key and self.db[module.key] then self.db[module.key].enabled = enabled == true
+    else self.db.modules[name] = enabled == true end
+    -- Reflect the saved choice before module work can defer or raise an error.
+    if self.PaintModuleCard then self:PaintModuleCard(name) end
+    if name~="Bags" and module.SettingsChanged then module:SettingsChanged() end
     if not enabled and module.window and not InCombatLockdown() then module.window:Hide() end
     self:RefreshConfig()
     if self.Style then self.Style:Refresh() end

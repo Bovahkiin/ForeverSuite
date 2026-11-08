@@ -1,3 +1,16 @@
+# 0.9.4 - 2026-11-08
+
+- Add Save and Save & close to Move Frames. Store the current layout in the
+  active profile, with a visible confirmation and a new Cancel checkpoint.
+- Fit the five mover controls to larger fonts and scale the toolbar to the
+  available viewport width.
+- Add Disable all modules to Control Center, including every module page.
+  Preserve customization and profiles; Undo last setting restores prior choices.
+  Block bulk disabling and explicit layout saves during combat/vendor actions.
+- Update module captions directly before applying a module's state. Keep the
+  visible label synchronized even if native button text is cached, module
+  refresh fails, or another screen changes its enabled flag.
+
 # 0.9.3 - 2026-11-08
 
 - Defer the startup window until login handlers finish. Fall back to world

@@ -1,3 +1,12 @@
+ForeverSuite 0.9.4 - 2026-11-08
+PASS: 45 service groups including seven new layout/control scenarios.
+PASS: all 345 scenarios, Lua startup, metadata and artwork checks.
+PASS: six release-pipeline checks; 153-file package CRC and source validation.
+Covers profile layout checkpoints and Cancel, explicit Save & close, action
+locks, bulk disable/undo with preserved custom settings, all card captions,
+failed module refresh, external state changes and narrow/large-font controls.
+Live client confirmation remains necessary after updating through WoWUp.
+
 ForeverSuite 0.9.3 - 2026-11-08
 PASS: 38 targeted service groups including eight new startup lifecycle cases.
 PASS: all 338 scenarios, Lua startup, metadata and artwork checks.

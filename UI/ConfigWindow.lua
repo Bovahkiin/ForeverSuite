@@ -30,6 +30,18 @@ local function button(parent, value, width, action)
     f:SetScript("OnLeave", function(b) b:SetBackdropBorderColor(0.16, 0.22, 0.29, 1) end)
     return f
 end
+function FS:DisableAllModules()
+    if InCombatLockdown() or self.modules.Vendor.busy then
+        self:Print("Leave combat and finish vendor actions before disabling all modules."); return false
+    end
+    local f=self.window; if not f or not f.moduleOrder then return false end
+    for _,name in ipairs(f.moduleOrder) do
+        if self:IsModuleEnabled(name) then self:SetModuleEnabled(name,false) end
+    end
+    self.modules.Profiles:PersistCurrent(); self:RefreshConfig()
+    self:Print("All modules disabled. Settings are kept; enable individual cards or use Undo last setting.")
+    return true
+end
 function FS:SetModuleFilter(query,mode)
     local f=self.window; if not f then return end
     local wasDefault=(f.moduleQuery or "")=="" and (f.moduleFilter or "All")=="All"
@@ -68,7 +80,8 @@ function FS:PaintModuleCard(name)
     card.hover:SetColorTexture(c[1],c[2],c[3],.08); card.hover:SetShown(card.hovered==true)
     card.rail:SetColorTexture(c[1],c[2],c[3],enabled and 1 or .35)
     card.icon:SetDesaturated(not enabled)
-    card.toggle:SetText(enabled and FS.Text.enabled or FS.Text.disabled)
+    local caption=enabled and FS.Text.enabled or FS.Text.disabled
+    card.toggle:SetText(caption); card.toggle.fsLabel:SetText(caption); card.displayedEnabled=enabled
     if enabled then card.toggle.fsLabel:SetTextColor(c[1]*factor,c[2]*factor,c[3]*factor)
     elseif factor==1 then card.toggle.fsLabel:SetTextColor(.60,.65,.72)
     else card.toggle.fsLabel:SetTextColor(.25,.28,.32) end
@@ -208,6 +221,12 @@ function FS:CreateConfigWindow()
     frame.tools=button(frame,"More tools / search",290,function() FS.modules.Workbench:ShowWindow() end)
     frame.undo=button(frame,"Undo last setting",290,function() FS.Extensions:Undo() end)
     frame.addons=button(frame,"Addon systems",250,function() FS.Compatibility:Show() end)
+    frame.disableAll=button(frame,"Disable all modules",290,function() self:DisableAllModules() end)
+    frame.disableAll:SetScript("OnEnter",function(b)
+        GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Disable all modules")
+        GameTooltip:AddLine("Includes every module page. Settings and profiles are kept. Undo last setting restores the previous module choices.",.8,.9,1,true); GameTooltip:Show()
+    end)
+    frame.disableAll:SetScript("OnLeave",function() GameTooltip:Hide() end)
     frame.reset = button(frame, "", 160, function() self:ResetDatabase(); if frame.settings then self.modules.Bags:RefreshSettings(true, frame.settings) end; self.modules.Gear:Refresh() end)
     frame.reset:SetPoint("BOTTOMLEFT", 24, 16)
     frame.reload = button(frame, "Reload UI", 160, function() ReloadUI() end)
@@ -218,6 +237,13 @@ function FS:CreateConfigWindow()
     frame.credits:SetPoint("BOTTOMLEFT",573,16)
     frame.move = button(frame, "Move Frames", 160, function() self.Layout:Start() end)
     frame.move:SetPoint("BOTTOM", 0, 16)
+    frame:SetScript("OnUpdate",function(_,elapsed)
+        frame.moduleStateElapsed=(frame.moduleStateElapsed or 0)+elapsed
+        if frame.moduleStateElapsed<.25 then return end; frame.moduleStateElapsed=0
+        for name,card in pairs(frame.cards) do
+            if card.displayedEnabled~=self:IsModuleEnabled(name) then self:RefreshConfig(); break end
+        end
+    end)
     UISpecialFrames[#UISpecialFrames + 1] = "ForeverSuiteConfigWindow"
     frame:Hide(); self:RefreshConfig(); return frame
 end
@@ -292,6 +318,8 @@ function FS:LayoutConfigText()
     fitButton(f.undo,290); f.undo:ClearAllPoints(); f.undo:SetPoint("TOPLEFT",330,-y+48)
     fitButton(f.addons,250); f.addons:ClearAllPoints(); f.addons:SetPoint("TOPLEFT",636,-y+48)
     y=y+math.max(f.tools:GetHeight(),f.undo:GetHeight(),f.addons:GetHeight())+10
+    fitButton(f.disableAll,290,2); f.disableAll:ClearAllPoints(); f.disableAll:SetPoint("TOPLEFT",24,-y)
+    y=y+f.disableAll:GetHeight()+12
     local footer=28
     for _,b in ipairs({f.reset,f.patchLog,f.move,f.credits,f.reload}) do footer=math.max(footer,fitButton(b,160,2)) end
     local height=math.max(1000,y+footer+32)

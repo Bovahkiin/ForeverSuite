@@ -1,3 +1,16 @@
+## 0.9.4 Save layout and module controls
+
+1. Move and resize frames. Click Save: editor stays open and the active profile
+   receives the layout. Move again and Cancel: return to the last saved layout.
+2. Save & close, reload, then switch profiles and back. Positions/scales must
+   match. Change font size and check all five mover controls remain readable.
+3. Click Disable all modules in Control Center. Check cards on every page,
+   native UI restoration and preserved settings. Undo last setting must restore
+   the previous enabled/disabled combination, including previously disabled cards.
+4. Toggle individual cards: visible Enabled/Disabled text must change immediately.
+   Check filters, page navigation and reopening Control Center.
+5. Combat and active vendor transactions must block Save and Disable all modules.
+
 ## 0.9.3 First-run onboarding
 
 1. On a clean test WoW account with no ForeverSuite saved settings, install via

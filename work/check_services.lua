@@ -335,3 +335,63 @@ FS.startupHandled=nil; FS:QueueStartup(); I.step=1; I:Refresh(); I.window.patch:
 assert(FS.aboutWindow:IsShown() and FS.installerReturn and not I.window:IsShown())
 FS.aboutWindow.close:Click(); assert(I.window:IsShown() and I.step==1 and I.draft.theme=='Verdant Relic')
 I.window:Hide()
+
+-- TEST: Move Frames Save persists current profile and establishes a new cancel checkpoint
+ResetTest(); local FS=ForeverSuite; local L=FS.Layout; L:Stop(); local frame=CreateFrame('Frame',nil,UIParent)
+frame:SetSize(120,40); frame:SetPoint('CENTER',UIParent,'CENTER',0,0); L:Register('SavePreview',frame,'Save preview')
+L:Start(); FS.db.layout.frames.SavePreview={x=72,y=320,scale=1.1}; L:Apply('SavePreview'); L.overlay.save:Click()
+assert(L.active and L.overlay:IsShown() and FS.db.profiles.saved[FS.db.profiles.current].layout.frames.SavePreview.x==72)
+FS.db.layout.frames.SavePreview={x=100,y=400,scale=1.3}; L:Apply('SavePreview'); L.overlay.close:Click()
+assert(not L.active and FS.db.layout.frames.SavePreview.x==72 and frame:GetScale()==1.1)
+FS:InitializeDatabase(); assert(FS.db.layout.frames.SavePreview.y==320 and FS.db.layout.frames.SavePreview.scale==1.1)
+L.targets.SavePreview=nil; L.handles.SavePreview=nil; FS.db.layout.frames.SavePreview=nil; frame:Hide()
+
+-- TEST: Save and close persists layout while combat and vendor guards leave the editing state unchanged
+ResetTest(); local FS=ForeverSuite; local L=FS.Layout; L:Stop(); L:Start()
+FS.db.layout.frames.Clock={x=18,y=280,scale=1.2}; TEST.combat=true
+assert(not L:SaveChanges(false) and L.active); TEST.combat=false; FS.modules.Vendor.busy=true
+assert(not L:SaveChanges(true) and L.active); FS.modules.Vendor.busy=false
+L.overlay.done:Click(); assert(not L.active and FS.window:IsShown() and FS.db.profiles.saved[FS.db.profiles.current].layout.frames.Clock.x==18)
+
+-- TEST: Disable all modules includes every page preserves custom settings and has a single undo action
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; local E=FS.Extensions; E.undo={}
+FS.db.map.enabled=false; FS.db.chat.historyLines=1024; local before={}; for _,name in ipairs(f.moduleOrder) do before[name]=FS:IsModuleEnabled(name) end
+local profile=FS.db.profiles.current; f.disableAll:Click()
+for _,name in ipairs(f.moduleOrder) do assert(not FS:IsModuleEnabled(name),name) end
+assert(FS.db.chat.historyLines==1024 and FS.db.profiles.current==profile and #E.undo==1 and FS.window:IsShown())
+f.undo:Click(); for name,value in pairs(before) do assert(FS:IsModuleEnabled(name)==value,name) end
+assert(FS.db.chat.historyLines==1024)
+
+-- TEST: Disable all modules blocks combat and active vendor actions before changing any module
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local before={}; for _,name in ipairs(FS.window.moduleOrder) do before[name]=FS:IsModuleEnabled(name) end
+TEST.combat=true; assert(not FS:DisableAllModules()); TEST.combat=false; FS.modules.Vendor.busy=true
+assert(not FS:DisableAllModules()); FS.modules.Vendor.busy=false
+for name,value in pairs(before) do assert(FS:IsModuleEnabled(name)==value,name) end
+
+-- TEST: Save toolbar and bulk module control remain inside their panels with large fonts and small viewports
+ResetTest(); local FS=ForeverSuite; local L=FS.Layout; FS:ShowConfig(); FS.db.typography.global.size=24; FS.Typography:Apply(); L:Start()
+for _,b in ipairs({L.overlay.save,L.overlay.done,L.overlay.snap,L.overlay.reset,L.overlay.close}) do
+    assert(-b.point[3]+b:GetHeight()+10<=L.overlay.toolbar:GetHeight())
+    assert(b.fsLabel:GetHeight()+10<=b:GetHeight())
+end
+local f=FS.window; assert(-f.disableAll.point[3]+f.disableAll:GetHeight()+50<f:GetHeight())
+local width=UIParent:GetWidth(); UIParent:SetWidth(640); L:UpdateToolbar(); assert(L.overlay.toolbar:GetWidth()*L.overlay.toolbar:GetScale()<=616)
+UIParent:SetWidth(width); FS.db.typography.global.size=0; FS.Typography:Apply(); L:Stop()
+
+-- TEST: Every module toggle updates both the button and visible caption across all dashboard pages
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; FS:ClearModuleFilter()
+for _,name in ipairs(f.moduleOrder) do
+    FS:SetModuleEnabled(name,true); f.cardPage=f.cards[name].page; FS:RefreshConfig(); local b=f.cards[name].toggle
+    b:Click(); assert(not FS:IsModuleEnabled(name) and b:GetText()=='Disabled' and b.fsLabel:GetText()=='Disabled',name)
+    b:Click(); assert(FS:IsModuleEnabled(name) and b:GetText()=='Enabled' and b.fsLabel:GetText()=='Enabled',name)
+end
+
+-- TEST: Visible module captions recover native text caching failed module refresh and external state changes
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; local b=f.cards.Chat.toggle; local setter=b.SetText
+b.SetText=function(frame,text) frame.text=text end; FS:SetModuleEnabled('Chat',false)
+assert(b.fsLabel:GetText()=='Disabled'); b.SetText=setter; FS:SetModuleEnabled('Chat',true)
+local C=FS.modules.Chat; local refresh=C.SettingsChanged; C.SettingsChanged=function() error('simulated module refresh failure') end
+local ok=pcall(FS.SetModuleEnabled,FS,'Chat',false); assert(not ok and b.fsLabel:GetText()=='Disabled' and not FS:IsModuleEnabled('Chat'))
+C.SettingsChanged=refresh; FS:SetModuleEnabled('Chat',true)
+FS.db.loot.enabled=false; f.scripts.OnUpdate(f,.25); assert(f.cards.Loot.toggle.fsLabel:GetText()=='Disabled')
+FS:SetModuleEnabled('Loot',true)

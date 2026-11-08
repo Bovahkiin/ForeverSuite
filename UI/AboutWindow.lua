@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.3",lines={"First-run Welcome and guided setup now wait until login handlers finish, with a world-entry fallback for late loading.","If startup happens during combat, setup opens after combat ends.","Partial settings no longer count as completed setup. Explicit completion or dismissal and all existing layouts remain saved.","Setup opens before patch notes and only once per session. Reopen it any time with /fs setup or Guided setup in the Control Center."}},
+    {version="0.9.4",lines={"Move Frames now has Save and Save & close. Your layout is stored in the current profile; Cancel reverts edits after the latest save.","Disable all modules in Control Center turns off every module page while keeping settings. Undo last setting restores your previous choices.","Enabled/Disabled captions now update directly and stay synchronized with module state changes.","The mover toolbar fits larger text and narrow screens. Layout saves and bulk disabling wait until combat and vendor actions are finished."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end
