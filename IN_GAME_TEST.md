@@ -1,3 +1,12 @@
+## 0.8.13 repeated Lua errors
+
+1. Update through WoWUp and reload outside combat.
+2. Show enemy nameplates, enter combat and tab between targets repeatedly.
+3. Check nameplate health/casting/target borders. Restricted aura icons should
+   disappear without errors and return when the client permits access again.
+4. Open Loot/Chat and other module settings, including advanced pages.
+5. Check combat borders and confirm no repeated addon-errors warning occurs.
+
 ## 0.8.12 hunter feeding and happiness
 
 1. Update through WoWUp and reload outside combat. Summon your hunter pet and

@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.8.12 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.8.13 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Features
 
@@ -151,7 +151,7 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **296 offline scenarios**, Lua startup,
+The current development checks cover **300 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
 every aspect of the game. In version 0.8.5, the author has confirmed that layout
 restoration survives reload and that combat and logout no longer produce the

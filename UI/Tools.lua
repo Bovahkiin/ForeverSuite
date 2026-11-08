@@ -73,9 +73,10 @@ function T:Module(name,key,title,description,defaults,events)
         function f:LayoutText()
             local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
             local header=math.max(H:FitButton(self.back,2),H:TextHeight(self.heading,590,2)+8)
-            at(self.description,20,math.max(65,12+header+10))
+            local descriptionTop=math.max(65,12+header+10)
+            at(self.description,20,descriptionTop)
             local descriptionHeight=H:TextHeight(self.description,850,3)
-            local start=math.max(110,-select(3,self.description:GetPoint())+descriptionHeight+12)
+            local start=math.max(110,descriptionTop+descriptionHeight+12)
             local rowHeight=compact and 34 or 38
             for _,option in ipairs(module.options) do rowHeight=math.max(rowHeight,H:FitButton(self[option.key],2)+4) end
             for i,option in ipairs(module.options) do local slot=compact and (i-1)%12 or i-1; at(self[option.key],20+slot%2*430,start+math.floor(slot/2)*rowHeight) end

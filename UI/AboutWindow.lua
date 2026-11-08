@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.8.12",lines={"Feed Pet now targets the clicked food stack instead of opening Item Options. The game still validates food suitability.","Hunter pet frames show a happiness icon: green Happy, yellow Content, red Unhappy. Hover for feeding advice and diet.","Keep the compact pet frame below the player by default, with independent saved pet layouts preserved.","GitHub releases can now publish automatically after all checks pass. Updates are distributed through GitHub and WoWUp."}},
+    {version="0.8.13",lines={"Fix repeated nameplate aura errors when data is restricted.","Ignore unsupported target-of-target nameplate events.","Fix secret-size decorative border errors and settings layout errors."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

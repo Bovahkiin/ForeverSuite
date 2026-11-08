@@ -65,7 +65,7 @@ function N:QueuePlateRefresh()
     C_Timer.After(0,function() self.plateRefreshQueued=false; self:RefreshPlates() end)
 end
 function N:CreateCanvas(parent,anchor)
-    local f=CreateFrame("Frame",nil,parent,"BackdropTemplate"); H:Skin(f)
+    local f=CreateFrame("Frame",nil,parent,"BackdropTemplate"); f.fsSecretAnchor=true; H:Skin(f,true)
     f.ignoreInLayout=true
     f:SetSize(190,22); f:SetPoint("CENTER",anchor or parent,"CENTER"); f:EnableMouse(false)
     f.health=CreateFrame("StatusBar",nil,f); f.health:SetSize(186,18); f.health:SetPoint("TOPLEFT",2,-2); f.health:SetStatusBarTexture(H.texture)
@@ -77,7 +77,7 @@ function N:CreateCanvas(parent,anchor)
     if self.CreateExtras then self:CreateExtras(f) end
     f.auras={}
     for i=1,8 do
-        local cell=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(cell); cell:EnableMouse(false)
+        local cell=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(cell,true); cell:EnableMouse(false)
         cell:SetSize(17,17); cell:SetPoint("TOPLEFT",(i-1)*20,-45)
         cell.icon=cell:CreateTexture(nil,"ARTWORK"); cell.icon:SetAllPoints(); cell.cooldown=CreateFrame("Cooldown",nil,cell,"CooldownFrameTemplate")
         cell.cooldown:SetAllPoints(); cell.cooldown:EnableMouse(false); cell:Hide(); f.auras[i]=cell
@@ -127,9 +127,17 @@ function N:Update(plate,unit)
     f.level:SetText(H:Safe(level) and type(level)=="number" and (level<0 and "??" or tostring(level)) or "")
     FS.modules.UnitFrames:RefreshCast(unit,f)
     local db=design; self:Paint(f,unit,selected,threat,db); self:CastAppearance(f,unit,db)
+    local auraAccess=true
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret then
+        auraAccess=FS.Tools:Call(C_Secrets.ShouldAurasBeSecret)==false
+    end
     for i,cell in ipairs(f.auras) do
         local filter=db.auraType=="Buffs" and "HELPFUL" or "HARMFUL"; if db.onlyMine then filter=filter.."|PLAYER" end
-        local aura=db.debuffs and i<=db.auraCount and C_UnitAuras and C_UnitAuras.GetAuraDataByIndex and C_UnitAuras.GetAuraDataByIndex(unit,i,filter)
+        local aura
+        if auraAccess and db.debuffs and i<=db.auraCount and C_UnitAuras then
+            aura=FS.Tools:Call(C_UnitAuras.GetAuraDataByIndex,unit,i,filter)
+        end
+        if not H:Safe(aura) or type(aura)~="table" then aura=nil end
         cell.cooldown:Hide()
         if aura then
             cell.icon:SetTexture(aura.icon); cell:Show()
@@ -177,7 +185,12 @@ function N:Initialize()
             for plate,saved in pairs(self.custom) do if saved.unit then self:Update(plate,saved.unit) end end
         elseif event=="NAME_PLATE_UNIT_REMOVED" then
             for _,saved in pairs(self.custom) do if saved.unit==unit then self:Release(saved) end end
-        elseif unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit then self:Update(C_NamePlate.GetNamePlateForUnit(unit),unit)
+        elseif H:Safe(unit) and type(unit)=="string" then
+            -- UNIT_* also fires for targettarget/pettarget. Those tokens are
+            -- rejected by GetNamePlateForUnit; only resolve documented units.
+            if unit=="target" or unit=="focus" or unit:match("^nameplate%d+$") then
+                self:Update(FS.Tools:Call(C_NamePlate and C_NamePlate.GetNamePlateForUnit,unit),unit)
+            end
         else self:RefreshPlates() end
     end)
     self:SettingsChanged()

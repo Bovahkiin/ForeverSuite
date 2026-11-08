@@ -178,6 +178,7 @@ function M:SetFontString(region) self.fontString=region end
 function M:GetFontString() return self.fontString end
 function M:SetBackdropBorderColor(...) self.border={...} end
 function M:SetBackdropColor(...) self.backdropColor={...} end
+function M:SetColorTexture(...) self.color={...} end
 function M:SetAllPoints(...) self.allPoints={...} end
 function CreateFrame(kind,name,parent,template)
     local f = setmetatable({name=name,kind=kind,template=template,attributes={},scripts={},events={},shown=true,parent=parent,lines={}}, {

@@ -1,3 +1,45 @@
+-- TEST: Nameplate aura restrictions skip queries and clear stale aura icons until access returns
+ResetTest(); local FS=ForeverSuite; local N=FS.modules.Nameplates
+local plate=CreateFrame('Frame'); plate.UnitFrame=CreateFrame('Button',nil,plate); plate.UnitFrame.unit='target'
+local oldAuras,oldSecrets=C_UnitAuras,C_Secrets; local restricted=false; local calls=0
+C_Secrets={ShouldAurasBeSecret=function() return restricted end}
+C_UnitAuras={GetAuraDataByIndex=function(_,i) calls=calls+1; assert(not restricted); if i==1 then return {icon=123,duration=10,expirationTime=TEST.now+10} end end}
+N:Update(plate,'target'); local f=N.custom[plate].canvas; assert(calls>0 and f.auras[1]:IsShown())
+calls=0; restricted=true; TEST.combat=true
+for i=1,20 do N:Update(plate,'target') end
+assert(calls==0 and not f.auras[1]:IsShown() and not f.auras[1].cooldown:IsShown() and f:IsShown())
+restricted=false; TEST.combat=false; N:Update(plate,'target'); assert(calls>0 and f.auras[1]:IsShown())
+C_UnitAuras.GetAuraDataByIndex=function() error('Client denied aura access') end
+N:Update(plate,'target'); assert(not f.auras[1]:IsShown() and f:IsShown())
+C_UnitAuras,C_Secrets=oldAuras,oldSecrets; N:Release(N.custom[plate])
+
+-- TEST: Unit events never query nameplate API with target-of-target or secret tokens
+ResetTest(); local N=ForeverSuite.modules.Nameplates; local old=C_NamePlate; C_NamePlate={}; local calls={}
+C_NamePlate.GetNamePlateForUnit=function(unit) assert(unit=='target' or unit=='focus' or unit:match('^nameplate%d+$')); calls[#calls+1]=unit end
+for _,unit in ipairs({'targettarget','pettarget','party1target','player','pet'}) do N.events.scripts.OnEvent(N.events,'UNIT_HEALTH',unit) end
+assert(#calls==0)
+for _,unit in ipairs({'target','focus','nameplate1'}) do N.events.scripts.OnEvent(N.events,'UNIT_HEALTH',unit) end
+assert(#calls==3)
+local marker={}; local oldSecret=issecretvalue; issecretvalue=function(value) return value==marker end
+N.events.scripts.OnEvent(N.events,'UNIT_HEALTH',marker); assert(#calls==3)
+issecretvalue=oldSecret; C_NamePlate=old
+
+-- TEST: Native anchored skin renders fixed edges without reading secret frame dimensions
+ResetTest(); local H=ForeverSuite.HUD; local frame=CreateFrame('Frame',nil,UIParent,'BackdropTemplate')
+frame.GetWidth=function() error('Secret width must not be read') end
+frame.GetHeight=function() error('Secret height must not be read') end
+local calls=0; frame.SetBackdrop=function(_,value) assert(value==nil); calls=calls+1 end
+H:Skin(frame,true); assert(calls==1 and #frame.fsFlatSkin.edges==4)
+H:Skin(frame,true); assert(calls==1)
+frame:SetBackdropColor(.1,.2,.3,.4); frame:SetBackdropBorderColor(.4,.3,.2,.1)
+assert(frame.fsFlatSkin.background.color[1]==.1 and frame.fsFlatSkin.edges[1].color[1]==.4)
+
+-- TEST: Generic module settings avoid arithmetic on the relative anchor string
+ResetTest(); local FS=ForeverSuite; local module=FS.modules.Loot
+module:CreateSettings(FS.window); local f=module.settings
+f.description.GetPoint=function() return 'TOPLEFT',f,'TOPLEFT',20,-65 end
+f:LayoutText(); assert(f:GetHeight()>=420)
+
 -- TEST: Feed Pet left-click targets the exact food stack once and bypasses the item options panel
 ResetTest(); local B=ForeverSuite.modules.Bags; MerchantFrame:Hide()
 TEST.data[710]={quality=1,price=1,petFood=true}; AddItem(1,710,3); AddItem(2,710,2)

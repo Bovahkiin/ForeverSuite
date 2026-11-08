@@ -1,4 +1,9 @@
-# Current patch - 0.8.12
+# Current patch - 0.8.13
+
+Fix the four error signatures captured in the local General.log.
+Regression tests and release validation run before distribution.
+
+# Patch - 0.8.12
 
 Feed Pet takes priority over inventory options and targets the clicked stack.
 Hunter pets display the client's real happiness icon and a feeding/diet tooltip.

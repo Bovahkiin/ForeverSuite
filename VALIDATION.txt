@@ -1,3 +1,13 @@
+ForeverSuite 0.8.13 - 2026-11-08
+PASS: all 300 scenario groups, Lua startup, metadata and artwork checks.
+PASS: six release-pipeline tests; 147-file release ZIP CRC and source validation.
+Regression coverage: restricted aura queries and stale-icon clearing, unsupported
+unit tokens, native-anchored texture borders, real five-result GetPoint layout.
+The local General.log identified 714 aura, 197 secret-width, 64 nameplate-token
+and 2 module settings errors. Full-suite results are recorded after execution.
+Live combat/nameplate rendering needs an in-game check after updating via WoWUp.
+No direct game-folder installation.
+
 ForeverSuite 0.8.12 - 2026-11-08
 30 targeted system scenario groups pass locally, including five new cases for
 exact-stack Feed Pet clicks, invalid targets, merchant priority, mood events,

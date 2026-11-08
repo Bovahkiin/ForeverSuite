@@ -12,7 +12,7 @@ function S:Plate(owner,kind)
         f=nativeBar and bars:CreateDecoration(owner) or CreateFrame("Frame",nil,owner,"BackdropTemplate"); f.fsSuiteStyle=true; f.ignoreInLayout=true; self.plates[owner]=f
         f:ClearAllPoints(); f:SetPoint("TOPLEFT",owner,"TOPLEFT",-5,5); f:SetPoint("BOTTOMRIGHT",owner,"BOTTOMRIGHT",5,-5)
         f:SetFrameLevel(math.max(0,owner:GetFrameLevel()-1)); f:EnableMouse(false)
-        if not nativeBar then H:Skin(f); f:SetBackdropColor(.018,.027,.038,.9); f:SetBackdropBorderColor(.12,.45,.54,.7) end
+        if not nativeBar then H:Skin(f,true); f:SetBackdropColor(.018,.027,.038,.9); f:SetBackdropBorderColor(.12,.45,.54,.7) end
         f.gold=f:CreateTexture(nil,"ARTWORK"); f.gold:SetColorTexture(.95,.68,.24,.8)
         f.gold:SetSize(24,2); f.gold:SetPoint("TOPLEFT",3,-2)
         f.cyan=f:CreateTexture(nil,"ARTWORK"); f.cyan:SetColorTexture(.12,.72,.86,.65)

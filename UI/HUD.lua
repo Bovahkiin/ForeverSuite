@@ -1,9 +1,32 @@
 local _, FS = ...
 local H = {}; FS.HUD = H
 H.texture = "Interface\\Buttons\\WHITE8X8"
-function H:Skin(f)
+-- Native anchors can make dimensions secret. Anchored textures need no Lua
+-- width/height arithmetic, unlike BackdropTemplate's tiled edge calculation.
+function H:FlatSkin(f)
+    if f.fsFlatSkin then return end
+    f:SetBackdrop(nil)
+    local bg=f:CreateTexture(nil,"BACKGROUND"); bg:SetAllPoints(); bg.fsSuiteStyle=true; bg.ignoreInLayout=true
+    local edges={}
+    for i=1,4 do
+        local edge=f:CreateTexture(nil,"BORDER"); edge.fsSuiteStyle=true; edge.ignoreInLayout=true; edges[i]=edge
+        if i<=2 then
+            local side=i==1 and "TOP" or "BOTTOM"
+            edge:SetPoint(side.."LEFT"); edge:SetPoint(side.."RIGHT"); edge:SetHeight(1)
+        else
+            local side=i==3 and "LEFT" or "RIGHT"
+            edge:SetPoint("TOP"..side); edge:SetPoint("BOTTOM"..side); edge:SetWidth(1)
+        end
+    end
+    f.fsFlatSkin={background=bg,edges=edges}
+    f.SetBackdropColor=function(_,...) bg:SetColorTexture(...) end
+    f.SetBackdropBorderColor=function(_,...) for _,edge in ipairs(edges) do edge:SetColorTexture(...) end end
+end
+function H:Skin(f,secretAnchors)
+    if secretAnchors then self:FlatSkin(f) end
     if not f.fsHUDBackdrop then
-        f:SetBackdrop({ bgFile = self.texture, edgeFile = self.texture, edgeSize = 1 }); f.fsHUDBackdrop=true
+        if not f.fsFlatSkin then f:SetBackdrop({ bgFile = self.texture, edgeFile = self.texture, edgeSize = 1 }) end
+        f.fsHUDBackdrop=true
     end
     f:SetBackdropColor(0.035, 0.045, 0.065, 0.95); f:SetBackdropBorderColor(0.12, 0.72, 0.86, 0.85)
     if FS.Themes then FS.Themes:Register(f) end

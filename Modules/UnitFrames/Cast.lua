@@ -1,7 +1,7 @@
 local _, FS = ...
 local U, H = FS.modules.UnitFrames, FS.HUD
 function U:CreateCast(f)
-    local bar = CreateFrame("StatusBar", nil, f, "BackdropTemplate"); H:Skin(bar)
+    local bar = CreateFrame("StatusBar", nil, f, "BackdropTemplate"); H:Skin(bar,f.fsSecretAnchor)
     bar:SetSize(270, 18); bar:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -4)
     bar:SetStatusBarTexture(H.texture); bar:SetStatusBarColor(0.12, 0.72, 0.86)
     bar.label = H:Label(bar, "", 5, -3, 260); bar.label:SetHeight(14)

@@ -1,3 +1,11 @@
+# 0.8.13 - 2026-11-08
+
+- Stop repeated nameplate aura errors when the client restricts aura access.
+  Restricted aura icons are cleared and return when their data is available.
+- Ignore target-of-target unit events that the nameplate lookup does not support.
+- Render native-anchored decorative borders without calculating secret sizes.
+- Fix module settings layout errors when opening configuration panels.
+
 # 0.8.12 - 2026-11-08
 
 - Fix Feed Pet: left-clicking a bag item with an active item-targeting spell
