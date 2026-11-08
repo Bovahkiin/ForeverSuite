@@ -61,7 +61,7 @@ end
 function S:Units()
     for _,f in pairs(FS.modules.UnitFrames.frames) do
         if not f.fsPortraitRim then
-            local rim=CreateFrame("Frame",nil,f,"BackdropTemplate"); rim.ignoreInLayout=true; rim.fsThemeBorderOnly=true; f.fsPortraitRim=rim; H:Skin(rim); rim:EnableMouse(false)
+            local rim=CreateFrame("Frame",nil,f,"BackdropTemplate"); rim.ignoreInLayout=true; rim.fsThemeBorderOnly=true; rim.fsThemeTransparent=true; f.fsPortraitRim=rim; H:Skin(rim); rim:EnableMouse(false)
             rim:SetPoint("TOPLEFT",f.portrait,"TOPLEFT",-1,1); rim:SetPoint("BOTTOMRIGHT",f.portrait,"BOTTOMRIGHT",1,-1)
             rim:SetFrameLevel(f:GetFrameLevel()+1); rim:SetBackdropColor(0,0,0,0); rim:SetBackdropBorderColor(.95,.68,.24,.7)
             f.health.sheen=f.health:CreateTexture(nil,"OVERLAY"); f.health.sheen:SetColorTexture(1,1,1,.06)

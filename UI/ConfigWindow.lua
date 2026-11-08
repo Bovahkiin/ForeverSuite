@@ -53,6 +53,7 @@ function FS:SetModuleFilter(query,mode)
     f.moduleQuery=query; f.moduleFilter=mode
     f.cardPage=isDefault and (wasDefault and f.cardPage or f.unfilteredPage or 1) or 1
     self:RefreshConfig()
+    self:ScrollConfig(0)
 end
 function FS:ClearModuleFilter()
     local f=self.window; if not f then return end
@@ -206,8 +207,8 @@ function FS:CreateConfigWindow()
         local aliases={Combat="dps hps damage healing",QoL="xp experience",Bindings="hotkeys shortcuts",ActionBars="hotkeys buttons"}
         terms[#terms+1]=aliases[name] or ""; frame.cards[name].searchText=table.concat(terms," "):lower()
     end
-    frame.previousModules=button(frame,"Previous modules",150,function() frame.cardPage=math.max(1,frame.cardPage-1); self:RefreshConfig() end); frame.previousModules:SetPoint("TOPLEFT",24,-531)
-    frame.nextModules=button(frame,"Next modules",150,function() frame.cardPage=math.min(frame.filteredPages or 1,frame.cardPage+1); self:RefreshConfig() end); frame.nextModules:SetPoint("TOPRIGHT",-24,-531)
+    frame.previousModules=button(frame,"Previous modules",150,function() frame.cardPage=math.max(1,frame.cardPage-1); self:RefreshConfig(); self:ScrollConfig(0) end); frame.previousModules:SetPoint("TOPLEFT",24,-531)
+    frame.nextModules=button(frame,"Next modules",150,function() frame.cardPage=math.min(frame.filteredPages or 1,frame.cardPage+1); self:RefreshConfig(); self:ScrollConfig(0) end); frame.nextModules:SetPoint("TOPRIGHT",-24,-531)
     frame.modulePage=text(frame,"",400,-539,200)
     frame.general=text(frame, "GENERAL", 24, -579, 500, "ForeverSuiteFontNormal")
     frame.minimap = self.Widgets:Checkbox(frame, -607, function(value)
@@ -237,6 +238,7 @@ function FS:CreateConfigWindow()
     frame.credits:SetPoint("BOTTOMLEFT",573,16)
     frame.move = button(frame, "Move Frames", 160, function() self.Layout:Start() end)
     frame.move:SetPoint("BOTTOM", 0, 16)
+    self:CreateConfigViewport(frame)
     frame:SetScript("OnUpdate",function(_,elapsed)
         frame.moduleStateElapsed=(frame.moduleStateElapsed or 0)+elapsed
         if frame.moduleStateElapsed<.25 then return end; frame.moduleStateElapsed=0
@@ -310,22 +312,20 @@ function FS:LayoutConfigText()
         y=y+math.max(30,size(b.label)+12)+10
     end
     y=y+place(f.help,24,y,850,3)+18
-    fitButton(f.typography,290); f.typography:ClearAllPoints(); f.typography:SetPoint("TOPLEFT",24,-y)
-    fitButton(f.setup,290); f.setup:ClearAllPoints(); f.setup:SetPoint("TOPLEFT",330,-y)
-    fitButton(f.appearance,250); f.appearance:ClearAllPoints(); f.appearance:SetPoint("TOPLEFT",636,-y)
-    y=y+math.max(f.typography:GetHeight(),f.setup:GetHeight())+70
-    fitButton(f.tools,290); f.tools:ClearAllPoints(); f.tools:SetPoint("TOPLEFT",24,-y+48)
-    fitButton(f.undo,290); f.undo:ClearAllPoints(); f.undo:SetPoint("TOPLEFT",330,-y+48)
-    fitButton(f.addons,250); f.addons:ClearAllPoints(); f.addons:SetPoint("TOPLEFT",636,-y+48)
+    fitButton(f.typography,290,2); f.typography:ClearAllPoints(); f.typography:SetPoint("TOPLEFT",24,-y)
+    fitButton(f.setup,290,2); f.setup:ClearAllPoints(); f.setup:SetPoint("TOPLEFT",330,-y)
+    fitButton(f.appearance,250,2); f.appearance:ClearAllPoints(); f.appearance:SetPoint("TOPLEFT",636,-y)
+    y=y+math.max(f.typography:GetHeight(),f.setup:GetHeight(),f.appearance:GetHeight())+14
+    fitButton(f.tools,290,2); f.tools:ClearAllPoints(); f.tools:SetPoint("TOPLEFT",24,-y)
+    fitButton(f.undo,290,2); f.undo:ClearAllPoints(); f.undo:SetPoint("TOPLEFT",330,-y)
+    fitButton(f.addons,250,2); f.addons:ClearAllPoints(); f.addons:SetPoint("TOPLEFT",636,-y)
     y=y+math.max(f.tools:GetHeight(),f.undo:GetHeight(),f.addons:GetHeight())+10
     fitButton(f.disableAll,290,2); f.disableAll:ClearAllPoints(); f.disableAll:SetPoint("TOPLEFT",24,-y)
     y=y+f.disableAll:GetHeight()+12
     local footer=28
     for _,b in ipairs({f.reset,f.patchLog,f.move,f.credits,f.reload}) do footer=math.max(footer,fitButton(b,160,2)) end
-    local height=math.max(1000,y+footer+32)
-    f:SetHeight(height)
-    -- Preserve a saved mover scale; default scaling keeps the entire window on screen.
-    if not self.db.layout.frames.ControlCenter then f:SetScale(math.min(1,(UIParent:GetWidth()-32)/940,(UIParent:GetHeight()-32)/height)) end
+    local height=math.max(800,y+footer+48)
+    self:FitConfigViewport(searchTop,y,footer,height)
 end
 function FS:RefreshConfig()
     local frame = self.window; if not frame then return end
@@ -334,6 +334,7 @@ function FS:RefreshConfig()
     frame.minimap.label:SetText(self.L.MINIMAP); frame.minimap:SetChecked(self.db.minimap.show)
     frame.welcome.label:SetText(self.L.WELCOME); frame.welcome:SetChecked(self.db.welcome)
     frame.reset:SetText(self.L.RESET)
+    frame.appearance:SetText("Theme: "..self.db.appearance.theme)
     self.modules.Profiles:RefreshSettings()
     self:FilterModuleCards()
     for name, card in pairs(frame.cards) do

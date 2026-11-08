@@ -374,7 +374,7 @@ for _,b in ipairs({L.overlay.save,L.overlay.done,L.overlay.snap,L.overlay.reset,
     assert(-b.point[3]+b:GetHeight()+10<=L.overlay.toolbar:GetHeight())
     assert(b.fsLabel:GetHeight()+10<=b:GetHeight())
 end
-local f=FS.window; assert(-f.disableAll.point[3]+f.disableAll:GetHeight()+50<f:GetHeight())
+local f=FS.window; assert(-f.disableAll.point[3]+f.disableAll:GetHeight()+10<f.bodyContent:GetHeight())
 local width=UIParent:GetWidth(); UIParent:SetWidth(640); L:UpdateToolbar(); assert(L.overlay.toolbar:GetWidth()*L.overlay.toolbar:GetScale()<=616)
 UIParent:SetWidth(width); FS.db.typography.global.size=0; FS.Typography:Apply(); L:Stop()
 
@@ -525,7 +525,7 @@ FS.db.typography.global.size=0; FS.Typography:Apply(); f:Hide()
 ResetTest(); local FS=ForeverSuite; local frame=CreateFrame('Frame',nil,UIParent,'BackdropTemplate')
 frame.GetWidth=function() error('Secret skin width must not be read') end
 frame.GetHeight=function() error('Secret skin height must not be read') end
-FS.HUD:Skin(frame,true); assert(frame.fsThemeBorderOnly and not FS.Themes.frames[frame])
+FS.HUD:Skin(frame,true); assert(frame.fsThemeBorderOnly and FS.Themes.frames[frame])
 FS.db.appearance.theme='Celestial Forge'; assert(FS.Themes:Refresh() and frame.fsFlatSkin)
 FS.db.appearance.theme='Legacy'; assert(FS.Themes:Refresh())
 
@@ -535,3 +535,59 @@ FS.firstInstallation=true; I.hasOpenedSetup=nil; FS.db.layout.frames.MainMenu={x
 I:Show(); assert(I.draft.layout=='Layout 1')
 FS.db.layout.frames['Unit:player']={x=-200,y=300,scale=1}; I:Show(); assert(I.draft.layout=='Keep current')
 FS.firstInstallation=oldFresh; I.hasOpenedSetup=oldOpened; I.window:Hide()
+
+-- TEST: Saved Control Center scale and large text fit the viewport without overwriting mover preferences
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; local oldW,oldH=UIParent:GetWidth(),UIParent:GetHeight()
+UIParent:SetSize(1280,720); FS.db.layout.frames.ControlCenter={x=500,y=700,scale=1.4}
+FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; FS.Typography:Apply(); FS.Layout:Apply('ControlCenter')
+assert(f:GetWidth()*f:GetScale()<=1248.001 and f:GetHeight()*f:GetScale()<=688.001 and f.scrollMaximum>0)
+assert(FS.db.layout.frames.ControlCenter.scale==1.4 and FS.db.layout.frames.ControlCenter.x==500 and FS.db.layout.frames.ControlCenter.y==700)
+assert(f.cards.Bags.heading.font[2]==36 and f.profiles:GetParent()==f and f.reload:GetParent()==f)
+UIParent:SetSize(oldW,oldH); FS.db.layout.frames.ControlCenter=nil; FS.db.typography.global.size=0; FS.db.typography.global.scale=1; FS.Typography:Apply()
+
+-- TEST: Wheel arrows and scrollbar reach the bottom actions while header profile and footer stay fixed
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; FS.db.typography.global.size=24; FS.Typography:Apply()
+local profilePoint={f.profiles:GetPoint()}; local reloadPoint={f.reload:GetPoint()}; assert(f.scrollMaximum>0)
+f.bodyScroll.scripts.OnMouseWheel(f.bodyScroll,-100); assert(f.scrollOffset==f.scrollMaximum and f.bodyScroll:GetVerticalScroll()==f.scrollMaximum)
+assert(-f.disableAll.point[3]+f.disableAll:GetHeight()-f.scrollOffset<=f.bodyScroll:GetHeight())
+assert(f.profiles.point[3]==profilePoint[3] and f.reload.point[3]==reloadPoint[3])
+f.scrollUp:Click(); assert(f.scrollOffset<f.scrollMaximum); f.bodyScrollbar.scripts.OnValueChanged(f.bodyScrollbar,0); assert(f.scrollOffset==0)
+FS:ScrollConfig(-100); assert(f.scrollOffset==0); FS.db.typography.global.size=0; FS.Typography:Apply()
+
+-- TEST: Viewport reflow is stable on narrow screens and font reset clamps scrolling cleanly
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; local w,h=UIParent:GetWidth(),UIParent:GetHeight()
+UIParent:SetSize(640,360); FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; FS.Typography:Apply()
+local height,content,scale=f:GetHeight(),f.bodyContent:GetHeight(),f:GetScale()
+FS:RefreshConfig(); FS.Typography:Apply(); assert(f:GetHeight()==height and f.bodyContent:GetHeight()==content and f:GetScale()==scale)
+assert(f:GetWidth()*scale<=608.001 and height*scale<=328.001)
+FS:ScrollConfig(100000); UIParent:SetSize(w,h); FS.db.typography.global.size=0; FS.db.typography.global.scale=1; FS.Typography:Apply()
+assert(f.scrollOffset<=f.scrollMaximum)
+
+-- TEST: Paging and search scroll results into view without losing module choices or footer callbacks
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:ClearModuleFilter(); local f=FS.window; local reload=f.reload:GetScript('OnClick'); f.cardPage=1; FS:RefreshConfig()
+FS:SetModuleEnabled('Chat',false); FS:ScrollConfig(100000); f.nextModules:Click(); assert(f.scrollOffset==0 and f.cardPage==2)
+FS:ScrollConfig(100000); FS:SetModuleFilter('chat panels','All'); assert(f.scrollOffset==0 and f.filteredCount==1 and not FS:IsModuleEnabled('Chat'))
+assert(f.reload:GetScript('OnClick')==reload); FS:ClearModuleFilter()
+
+-- TEST: All themes reach native anchored decorations using fixed geometry without reading restricted dimensions
+ResetTest(); local FS=ForeverSuite; local frame=CreateFrame('Frame',nil,UIParent,'BackdropTemplate'); FS.HUD:Skin(frame,true)
+frame.GetWidth=function() error('Restricted themed width') end; frame.GetHeight=function() error('Restricted themed height') end
+for i,name in ipairs(FS.Themes.names) do
+    assert(FS.Themes:Set(name)); local state=FS.Themes.frames[frame]
+    assert(state.parts[1]:IsShown() and state.parts[1].texture==FS.Themes:Asset(i,'Panel') and state.corner==2)
+end
+assert(FS.Themes:Set('Legacy')); for _,part in ipairs(FS.Themes.frames[frame].parts) do assert(not part:IsShown()) end
+
+-- TEST: Guided setup finish applies the chosen theme to live UI and active profile with explicit dashboard feedback
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local I=FS.Installer; local f=FS.window
+I:Show(); I.step=2; I:Refresh(); I.window.choices[4]:Click(); assert(FS.db.appearance.theme=='Legacy')
+I.draft.layout='Keep current'; I.step=5; I:Refresh(); I.window.next:Click()
+assert(not I.window:IsShown() and FS.db.appearance.theme=='Verdant Relic' and f.appearance:GetText()=='Theme: Verdant Relic')
+assert(FS.Themes.frames[f].parts[1].texture==FS.Themes:Asset(4,'Panel'))
+assert(FS.db.profiles.saved[FS.db.profiles.current].appearance.theme=='Verdant Relic')
+
+-- TEST: Theme-only apply updates live artwork and profile while cancellation keeps the previous choice
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:ShowThemes(); I.window.choices[8]:Click(); I.window.next:Click()
+assert(FS.db.appearance.theme=='Astral Glass' and FS.db.profiles.saved[FS.db.profiles.current].appearance.theme=='Astral Glass')
+I:ShowThemes(); I.window.choices[10]:Click(); I.window.later:Click(); assert(FS.db.appearance.theme=='Astral Glass')
+assert(FS.Themes:Set('Legacy'))

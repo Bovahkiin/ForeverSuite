@@ -102,9 +102,9 @@ f:Hide()
 
 -- TEST: Control Center typography reflows cards profile controls navigation and footer without cumulative growth
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; local F=FS.Typography
-local original=f:GetHeight(); local profileHeight=f.profiles:GetHeight()
+local original=f:GetHeight(); local originalContent=f.bodyContent:GetHeight(); local profileHeight=f.profiles:GetHeight()
 FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; FS.db.typography.global.weight='Bold'; F:Apply()
-assert(f.cards.Bags.heading.font[2]==36 and f:GetHeight()>original and f.profiles:GetHeight()>profileHeight)
+assert(f.cards.Bags.heading.font[2]==36 and f.bodyContent:GetHeight()>originalContent and f.profiles:GetHeight()>profileHeight)
 for _,c in pairs(f.cards) do
  assert(c.bodyEnd+10+c.toggle:GetHeight()<=c.card:GetHeight()-10)
  assert(not c.hint:IsShown() and c.toggle:GetWidth()<=220 and c.toggle.fsLabel:GetWidth()<c.toggle:GetWidth())
@@ -113,7 +113,7 @@ end
 local p=f.profiles
 assert(-p.current.point[3]+p.current:GetHeight() < -p.name.point[3])
 for _,b in ipairs({p.name,p.save,p.choice,p.use}) do assert(-b.point[3]+b:GetHeight()<=p:GetHeight()-10) end
-assert(f.reset:GetHeight()>36 and f.previousModules:GetHeight()>36 and -f.typography.point[3]+f.typography:GetHeight()<f:GetHeight()-f.reset:GetHeight()-32)
+assert(f.reset:GetHeight()>36 and f.previousModules:GetHeight()>36 and -f.typography.point[3]+f.typography:GetHeight()<f.bodyContent:GetHeight())
 local height=f:GetHeight(); FS:RefreshConfig(); F:Apply(); assert(f:GetHeight()==height)
 FS.db.layout.frames.ControlCenter={x=0,y=0,scale=1.2}; f:SetScale(1.2); FS:LayoutConfigText(); assert(f:GetScale()==1.2)
 FS.db.layout.frames.ControlCenter=nil; FS.db.typography.global.size=0; FS.db.typography.global.scale=1; FS.db.typography.global.weight='Default'; F:Apply(); assert(f:GetHeight()==original and p:GetHeight()==profileHeight)

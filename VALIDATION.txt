@@ -1,3 +1,12 @@
+ForeverSuite 0.9.7 - 2026-11-09
+PASS: 65 service groups including seven new viewport/theme scenarios.
+PASS: all 365 scenarios, startup and artwork checks.
+PASS: six release-pipeline checks; 155-file package source validation.
+Covers saved scale/position, large text and small viewports, reachable footer
+and final body actions, scroll controls, stable reflow, search/page behavior,
+all ten restricted-anchor themes, setup finish and theme/profile persistence.
+Actual client rendering still needs confirmation after updating through WoWUp.
+
 ForeverSuite 0.9.6 - 2026-11-08
 PASS: 58 service groups including ten new layout-preset scenarios.
 PASS: full 357-group regression run plus 58 focused groups after the added

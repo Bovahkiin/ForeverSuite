@@ -1,3 +1,16 @@
+# 0.9.7 - 2026-11-09
+
+- Give Control Center a scrollable middle area with fixed header, profiles and
+  bottom actions. Add themed scrolling controls and mouse-wheel support.
+- Fit the visible window to the viewport even with saved mover scale and large
+  typography, without rewriting saved position/scale or shrinking chosen text.
+- Reflow general action rows without overlap; reset scroll on search/page changes
+  and clamp it after font, viewport and content changes.
+- Render theme artwork on native-anchored flat decorations using fixed corner
+  geometry. Keep restricted frame dimensions out of addon calculations.
+- Apply guided setup themes through the shared theme setter, save the active
+  profile immediately and display the selected theme in Control Center.
+
 # 0.9.6 - 2026-11-08
 
 - Keep native-anchored flat skins out of theme dimension calculations, so

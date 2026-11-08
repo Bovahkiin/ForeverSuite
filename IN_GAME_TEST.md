@@ -1,3 +1,17 @@
+## 0.9.7 Control Center viewport and themes
+
+1. With a saved Control Center scale/position, increase global font size and
+   scale. Header, Profiles and all five bottom buttons must stay on-screen.
+   Scroll to Disable all modules using wheel, arrows and the scrollbar.
+2. Change font size repeatedly, resize the viewport and reset text settings.
+   Check no cumulative growth, stale scroll or saved-placement changes.
+3. Scroll down, navigate module pages and search: results must return to the
+   top. Open module settings and return; profile/footer controls stay usable.
+4. In guided setup choose another theme and finish, then check live panel,
+   button and action decoration artwork plus the active theme name.
+5. Apply via Appearance too. Reload and switch profiles: selected theme must
+   persist. Verify combat/targeting remains free of blocked actions or flicker.
+
 ## 0.9.6 Layout selection
 
 1. On a clean install, reach step 5. Layout 1 should be selected; all four

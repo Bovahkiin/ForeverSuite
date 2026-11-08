@@ -31,7 +31,7 @@ function I:Apply()
     if d.preset then FS.Extensions:ApplyPreset(d.preset); FS.Typography:Apply() end
     for _,name in ipairs(modules) do FS:SetModuleEnabled(name,d.modules[name]) end
     FS.db.setup.completed=true; FS.db.setup.dismissed=false
-    FS.Themes:Refresh()
+    if not FS.Themes:Set(d.theme) then return false end
     FS.Layout:ApplyAll(); FS.modules.Profiles:PersistCurrent()
     self.window:Hide(); FS:ShowConfig(); return true
 end
@@ -90,7 +90,7 @@ function I:Create()
     f.later=H:Button(f,"Set up later",205,-620,220,function() self:Dismiss() end)
     f.next=H:Button(f,FS.Text.next,530,-620,206,function()
         if self.themeOnly then
-            if FS.Themes:Set(self.draft.theme) then self.window:Hide(); if FS.window then FS:ShowConfig() end end
+            if FS.Themes:Set(self.draft.theme) then FS.modules.Profiles:PersistCurrent(); self.window:Hide(); if FS.window then FS:ShowConfig() end end
         elseif self.step==5 then self:Apply() else self.step=self.step+1; self:Refresh() end
     end)
     UISpecialFrames[#UISpecialFrames+1]="ForeverSuiteInstaller"

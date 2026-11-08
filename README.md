@@ -8,24 +8,20 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.9.6 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.9.7 · **Client:** WoW Forever · **Interface:** 16001
 
-## New in 0.9.6
+## New in 0.9.7
 
-- **Choose your layout:** guided setup now has a fifth step with Layout 1,
-  Compact, Classic and Keep current. A neutral schematic preview shows the
-  arrangement without sharing screenshots, chat messages or player names.
-- Layout 1 follows DeluxiZ's reference: centered bars, player/target above,
-  pet beneath the player, chat left and map/quests right. Positions are fitted
-  to your UI viewport. New installs without saved mover positions recommend
-  Layout 1; existing placements default to Keep current.
-- The optional **Game bars and chat** choice creates a separate character
-  layout through the game's public layout API. Personal game layouts remain
-  available. If unavailable or full, keep current game positions instead.
-- Changes apply only at Apply & finish. Existing profile backups retain the
-  previous addon arrangement. Game-layout errors leave addon positions intact.
-- Includes the blank-preview fix: text and size examples stay visible even
-  when all live modules are disabled.
+- **Accessible Control Center:** the module list and general options scroll
+  while the header, profiles and bottom actions remain fixed. Larger text no
+  longer pushes the bottom buttons off-screen, including with saved mover scale.
+- Mouse wheel, scrollbar and arrow buttons reach all options. Search and page
+  changes return to the results. Temporary viewport fitting preserves saved
+  positions and scale preferences.
+- **Theme application:** native-anchored decorations now receive themed artwork
+  using fixed corners without reading restricted frame sizes. Guided setup and
+  the theme-only picker apply and save the selected theme in the current profile.
+  Control Center shows the active theme name.
 
 ## Features
 
@@ -168,7 +164,7 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **358 offline scenarios**, Lua startup,
+The current development checks cover **365 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
 every aspect of the game. In version 0.8.5, the author has confirmed that layout
 restoration survives reload and that combat and logout no longer produce the

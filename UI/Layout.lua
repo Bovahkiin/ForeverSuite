@@ -22,6 +22,7 @@ function L:Apply(id)
     if (id=="MainMenu" or id=="BagsBar" or id:find("Bar")) and not FS:IsModuleEnabled("ActionBars") then return end
     local f=target.frame
     if f.fsDirectDragging then return end
+    if id=="ControlCenter" and f==FS.window and FS.LayoutConfigText then FS:LayoutConfigText(); return end
     local scale=saved.scale or 1
     local parent=f:GetParent() or UIParent
     local ratio=parent:GetEffectiveScale()*scale/UIParent:GetEffectiveScale()

@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.6",lines={"Guided setup now has five steps, including Layout 1, Compact, Classic and Keep current with neutral layout previews.","Layout 1 follows the reference arrangement. Positions fit your screen; existing mover placements default to Keep current.","Optional game-bar/chat placement creates a separate character game layout. Existing personal game layouts are kept.","Changes apply only on finish and save in your profile. No private chat, player names or user screenshots are included. Disabled modules no longer blank the text/size preview."}},
+    {version="0.9.7",lines={"Control Center now scrolls its middle area while profiles and bottom actions stay visible, including with larger text and saved mover scale.","Use the mouse wheel, scrollbar or arrows. Search and page changes return to the results; saved placement preferences are preserved.","Themes now reach native-anchored decorations using fixed geometry without reading restricted frame dimensions.","Guided setup and the appearance picker apply and save the chosen theme in your active profile. Control Center displays its name."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

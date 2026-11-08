@@ -488,7 +488,7 @@ FS.moduleCardColors.Gear=old; FS:SetModuleEnabled('Gear',true); assert(not c.ico
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:ClearModuleFilter(); local f=FS.window; local F=FS.Typography
 FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; F:Apply(); FS:RefreshConfig()
 local height=f:GetHeight(); local searchY=-f.moduleSearch.point[3]
-assert(searchY>=-f.profiles.point[3]+f.profiles:GetHeight())
+assert(f.bodyTop+searchY>=-f.profiles.point[3]+f.profiles:GetHeight())
 assert(-f.cards.Bags.card.point[3]>=searchY+f.moduleSearch:GetHeight())
 assert(f.moduleSearch:GetWidth()==460 and f.moduleFilterButton:GetWidth()==260 and f.moduleSearch:GetHeight()>=36)
 FS:SetModuleFilter('no-result-zzzz','All'); assert(f:GetHeight()==height and f.emptyModules:IsShown())

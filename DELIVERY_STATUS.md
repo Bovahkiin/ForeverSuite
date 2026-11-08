@@ -1,4 +1,11 @@
-# Current patch - 0.9.6
+# Current patch - 0.9.7
+
+Scrollable Control Center body with fixed profiles/footer and saved-placement
+preservation. Restore live theme artwork on native-anchored decorations and
+persist selected appearance through guided setup and the theme picker.
+Publish through GitHub after full/package checks; no direct game installation.
+
+# Patch - 0.9.6
 
 Guided layout selection with reference-based Layout 1, Compact, Classic and
 Keep current. Neutral previews contain no private screenshot/chat/name data.

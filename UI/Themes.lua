@@ -17,9 +17,13 @@ function T:Normalize()
     if FS.db.appearance.theme~="Legacy" and not self:Index(FS.db.appearance.theme) then FS.db.appearance.theme="Legacy" end
 end
 function T:Size(frame,state)
-    local width,height=frame:GetWidth(),frame:GetHeight()
-    if not FS.HUD:Safe(width) or not FS.HUD:Safe(height) then return end
-    local corner=math.max(3,math.min(state.kind=="Button" and 10 or 18,width/3,height/3))
+    local corner
+    if frame.fsThemeBorderOnly then corner=state.kind=="Button" and 4 or 2
+    else
+        local width,height=frame:GetWidth(),frame:GetHeight()
+        if not FS.HUD:Safe(width) or not FS.HUD:Safe(height) then return end
+        corner=math.max(3,math.min(state.kind=="Button" and 10 or 18,width/3,height/3))
+    end
     if state.corner==corner then return end; state.corner=corner
     for _,i in ipairs({1,3,7,9}) do state.parts[i]:SetSize(corner,corner) end
     for _,i in ipairs({2,8}) do state.parts[i]:SetHeight(corner) end
@@ -27,7 +31,7 @@ function T:Size(frame,state)
 end
 function T:Register(frame,kind,previewIndex)
     if not frame or (frame.IsForbidden and frame:IsForbidden()) then return end
-    if frame.fsThemeBorderOnly then return end
+    if frame.fsThemeTransparent then return end
     local state=self.frames[frame]
     if not state then state={kind=kind or "Panel"}; self.frames[frame]=state end
     if kind then state.kind=kind end
@@ -47,7 +51,7 @@ function T:Register(frame,kind,previewIndex)
         p[4]:SetPoint("TOPLEFT",p[1],"BOTTOMLEFT"); p[4]:SetPoint("BOTTOMLEFT",p[7],"TOPLEFT")
         p[6]:SetPoint("TOPRIGHT",p[3],"BOTTOMRIGHT"); p[6]:SetPoint("BOTTOMRIGHT",p[9],"TOPRIGHT")
         p[5]:SetPoint("TOPLEFT",p[1],"BOTTOMRIGHT"); p[5]:SetPoint("BOTTOMRIGHT",p[9],"TOPLEFT")
-        frame:HookScript("OnSizeChanged",function() T:Size(frame,state) end)
+        if not frame.fsThemeBorderOnly then frame:HookScript("OnSizeChanged",function() T:Size(frame,state) end) end
     end
     if state.parts then
         self:Size(frame,state)
@@ -95,7 +99,12 @@ end
 function T:Set(name)
     if name~="Legacy" and not self:Index(name) then return false end
     if InCombatLockdown() or FS.modules.Vendor.busy then return false end
-    FS.db.appearance.theme=name; return self:Refresh()
+    FS.db.appearance.theme=name
+    local applied=self:Refresh()
+    if applied then
+        if FS.RefreshConfig then FS:RefreshConfig() end
+    end
+    return applied
 end
 local events=CreateFrame("Frame"); T.events=events; FS:RegisterClientEvent(events,"PLAYER_REGEN_ENABLED")
 events:SetScript("OnEvent",function() if T.pending then T:Refresh() end end)

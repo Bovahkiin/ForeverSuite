@@ -157,6 +157,14 @@ function M:GetChecked() return self.checked end
 function M:SetEnabled(v) self.enabled = v end
 function M:SetMultiLine(value) assert(self.kind=='EditBox'); self.multiLine=value end
 function M:SetScrollChild(child) assert(self.kind=='ScrollFrame' and child.parent==self); self.scrollChild=child end
+function M:SetVerticalScroll(value) assert(self.kind=='ScrollFrame'); self.verticalScroll=value end
+function M:GetVerticalScroll() return self.verticalScroll or 0 end
+function M:SetOrientation(value) self.orientation=value end
+function M:SetValueStep(value) self.valueStep=value end
+function M:SetObeyStepOnDrag(value) self.obeyStep=value end
+function M:SetThumbTexture(value) self.thumb=self:CreateTexture(); self.thumb:SetTexture(value) end
+function M:GetThumbTexture() return self.thumb end
+
 function M:HighlightText(first,last) self.highlighted={first or 0,last or #self:GetText()} end
 function M:HasFocus() return self.focus end
 function M:ClearFocus() self.focus = false end
