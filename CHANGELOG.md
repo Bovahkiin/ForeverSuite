@@ -1,3 +1,17 @@
+# 0.9.1 - 2026-11-08
+
+- Keep the addon-button tray next to its toggle, with above/below and left/right
+  placement based on screen position. Drag the toggle directly or use Move
+  Frames; its position is saved in the current profile without self-anchoring.
+- Find nested minimap launchers and LibDBIcon-registered buttons with custom
+  names. Native controls, map pins and protected buttons remain excluded.
+- Detect active MinimapButtonButton/MBB collectors. Offer an explicit choice:
+  use ForeverSuite and disable the other collector for this character + reload,
+  or keep the other collector and turn off ForeverSuite's collection module.
+- Add green up arrows, a gray dash and red down arrows for higher, equal and
+  lower Gear Advisor scores in comparisons and item tooltips. Equal equipped
+  items are shown correctly. Existing minimum-upgrade filters remain available.
+
 # 0.9.0 - 2026-11-08
 
 - Add a themed Mail module with searchable inbox, readable letters, expiry

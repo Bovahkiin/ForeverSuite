@@ -1,4 +1,9 @@
-# Current patch - 0.9.0
+# Current patch - 0.9.1
+
+Fix minimap tray placement and collection conflicts; add gear comparison indicators.
+Distribution through GitHub releases after the full suite passes.
+
+# Patch - 0.9.0
 
 Three new themed modules: Mail, Addon Buttons and Gear Advisor.
 Beginner class advice is automatic; custom weights are optional.

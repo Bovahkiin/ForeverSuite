@@ -95,7 +95,7 @@ function G:Compare(link)
     local unique=T:Call(C_Item.GetItemUniquenessByID,link)
     for _,slot in ipairs(self.slots[item.location]) do
         local equipped=T:Call(GetInventoryItemLink,'player',slot)
-        if equipped==link then return end
+        if equipped==link then base=score; bestSlot=slot; break end
         if unique and equipped and equipped:match('item:(%d+)')==link:match('item:(%d+)') then return end
         local current=0; if equipped then current=self:Score(equipped) end
         if not T:Number(current) then return end
@@ -106,6 +106,13 @@ function G:Compare(link)
     item.score=score; item.base=base; item.delta=delta; item.percent=percent; item.slot=bestSlot
     item.upgrade=delta>0 and (percent==nil or percent>=self:Data().minimum)
     return item
+end
+function G:Indicator(row)
+    if not row or not T:Number(row.delta) then return '' end
+    local tolerance=.000001*math.max(1,math.abs(row.score or 0),math.abs(row.base or 0))
+    if math.abs(row.delta)<=tolerance then return '|cff999999-|r','Equal',.6,.6,.6 end
+    if row.delta>0 then return '|TInterface\\AddOns\\ForeverSuite\\Assets\\Indicators\\Gear-Up.tga:16:16|t','Upgrade',.2,1,.35 end
+    return '|TInterface\\AddOns\\ForeverSuite\\Assets\\Indicators\\Gear-Down.tga:16:16|t','Downgrade',1,.25,.25
 end
 function G:Build()
     self.rows={}; local weights,scale=self:Weights()
@@ -134,7 +141,8 @@ function G:Build()
                     local row=self:Compare(info.hyperlink)
                     if row and (row.upgrade or self:Data().showAll) then
                         row.id=info.hyperlink; row.bag=bag; row.bagSlot=slot
-                        row.text=(row.upgrade and '+ ' or '')..row.name..' | '..string.format('%.1f',row.score)..' points | '..
+                        local indicator=self:Indicator(row)
+                        row.text=indicator..' '..row.name..' | '..string.format('%.1f',row.score)..' points | '..
                             (row.percent and string.format('%+.1f%%',row.percent) or (row.delta>0 and 'Empty slot' or 'No improvement'))
                         self.rows[#self.rows+1]=row
                     elseif not row then unknown=unknown+1 end
@@ -196,7 +204,8 @@ function G:Tooltip(tooltip)
     tooltip.fsAdvisorLink=link
     local _,scale=self:Weights()
     tooltip:AddLine('ForeverSuite '..scale..': '..string.format('%.1f points',row.score),.71,.87,.49)
-    if row.upgrade then tooltip:AddLine(row.percent and string.format('Stat-score upgrade: +%.1f%%',row.percent) or 'Stat-score upgrade for an empty slot',.3,1,.4) end
+    local indicator,label,r,g,b=self:Indicator(row)
+    tooltip:AddLine(indicator..' '..label..(row.percent and string.format(' (%+.1f%% stat score)',row.percent) or ''),r,g,b)
     tooltip:AddLine('Estimate only: check requirements, procs and set bonuses.',.7,.7,.7,true)
 end
 function G:InstallTooltip()
@@ -218,6 +227,8 @@ function G:Render()
     local editing=self:Data().view=='Weights'
     f.input:SetShown(editing); f.actionButtons[2]:SetShown(editing)
     f.actionButtons[1]:SetText('View: '..self:Data().view)
+    for _,button in ipairs(f.cells) do if button.row then button:SetText(button.row.text) end end
+    if f.LayoutText then f:LayoutText() end
 end
 function G:OnSelect(row)
     if self:Data().view=='Class guide' and row and FS.Extensions.TextDialog then

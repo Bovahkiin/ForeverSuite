@@ -1,3 +1,14 @@
+ForeverSuite 0.9.1 - 2026-11-08
+PASS: all 324 scenario groups, startup, metadata and artwork validation.
+PASS: six release-pipeline checks; 152-file ZIP CRC and source validation.
+24 targeted service groups pass, including seven new collector/indicator cases.
+Full suite target: 324 scenario groups plus startup, metadata and artwork checks.
+Tests cover nested/library launchers, pin exclusion, popup anchors, direct drag
+persistence without self-anchoring, collector switching/failed switching, and
+upgrade/equal/downgrade indicators including identical equipped links.
+Live third-party addon geometry and hardware dragging need an in-game check
+after a WoWUp update. No direct game-folder installation.
+
 ForeverSuite 0.9.0 - 2026-11-08
 PASS: all 317 scenario groups, 70-file Lua startup, artwork and metadata checks.
 PASS: six release-pipeline tests; 150-file package CRC and source validation.

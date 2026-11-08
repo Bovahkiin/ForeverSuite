@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.0",lines={"Mail: themed inbox, search, letters and selected/all attachment and money collection. COD and GM mail stay manual.","Addon Buttons: one minimap tray with adjustable icons, exclusions and original addon clicks.","Gear Advisor: automatic class beginner guides, build-role choices, tooltip scores and optional custom weights.","Starter scores are estimates. Check equip requirements, special effects and set bonuses yourself."}},
+    {version="0.9.1",lines={"Addon-button tray opens beside its toggle. Drag the toggle directly; saved positions and Move Frames remain supported.","Recognize nested and custom-named registered launchers; keep map pins and native controls on the minimap.","Choose between ForeverSuite and MinimapButtonButton when both collectors are active. Switching to ForeverSuite reloads after your explicit choice.","Gear Advisor: green up for higher scores, gray dash for equal scores, red down for lower scores, in comparisons and tooltips."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

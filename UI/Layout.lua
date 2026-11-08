@@ -21,6 +21,7 @@ function L:Apply(id)
     if not target or not saved then return end
     if (id=="MainMenu" or id=="BagsBar" or id:find("Bar")) and not FS:IsModuleEnabled("ActionBars") then return end
     local f=target.frame
+    if f.fsDirectDragging then return end
     local scale=saved.scale or 1
     local parent=f:GetParent() or UIParent
     local ratio=parent:GetEffectiveScale()*scale/UIParent:GetEffectiveScale()

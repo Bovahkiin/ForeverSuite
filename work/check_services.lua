@@ -151,3 +151,69 @@ callback(GameTooltip); assert(#GameTooltip.lines==3)
 GameTooltip.scripts.OnTooltipCleared(GameTooltip); GameTooltip.lines={}; callback(GameTooltip); assert(#GameTooltip.lines==3)
 G:Data().tooltips=false; GameTooltip.scripts.OnTooltipCleared(GameTooltip); GameTooltip.lines={}; callback(GameTooltip); assert(#GameTooltip.lines==0)
 TooltipDataProcessor,Enum,GameTooltip.GetItem=oldProcessor,oldEnum,oldGet
+
+-- TEST: Collector finds nested addon launchers and registered library buttons without stealing map pins
+ResetTest(); local M=ForeverSuite.modules.MinimapButtons; local oldLib=LibStub
+local wrapper=CreateFrame('Frame',nil,Minimap)
+local nested=CreateFrame('Button','NestedAddonMinimapButton',wrapper); nested:SetSize(28,28); nested:Show()
+local broker=CreateFrame('Button','UnusualBrokerLauncher',UIParent); broker:SetSize(28,28); broker:Show()
+local pin=CreateFrame('Button','QuestMinimapIconPin',wrapper); pin.uiMapID=1; pin:SetSize(28,28); pin:Show()
+local library={GetButtonList=function() return {'Broker'} end,GetMinimapButton=function() return broker end}
+LibStub=function() return library end
+M:Scan(); assert(M.collected[nested] and M.collected[broker] and not M.collected[pin])
+M:Restore(nested); M:Restore(broker); assert(nested:GetParent()==wrapper and broker:GetParent()==UIParent)
+nested:Hide(); broker:Hide(); pin:Hide(); LibStub=oldLib
+
+-- TEST: Tray is anchored to the collector button and flips above or below near screen edges
+ResetTest(); local M=ForeverSuite.modules.MinimapButtons; M:CreateTray(); local b=M.button; local original=b.GetCenter
+b.GetCenter=function() return UIParent:GetWidth()-20,UIParent:GetHeight()-20 end; M:AnchorTray()
+assert(M.tray.point[1]=='TOPRIGHT' and M.tray.point[2]==b and M.tray.point[3]=='BOTTOMRIGHT')
+b.GetCenter=function() return 20,20 end; M:AnchorTray()
+assert(M.tray.point[1]=='BOTTOMLEFT' and M.tray.point[2]==b and M.tray.point[3]=='TOPLEFT')
+assert(b:GetParent()==UIParent); b.GetCenter=original
+
+-- TEST: Direct collector dragging saves a persistent position without self anchoring or reopening the tray
+ResetTest(); local FS=ForeverSuite; local M=FS.modules.MinimapButtons; local b=M.button
+local originalCenter,originalPoint=b.GetCenter,b.SetPoint
+b.GetCenter=function() return 700,500 end
+b.SetPoint=function(self,point,relative,...) assert(relative~=self,'A dragged frame must not anchor to itself'); return originalPoint(self,point,relative,...) end
+b.scripts.OnDragStart(b); assert(b.fsDirectDragging and M.dragging)
+FS.Layout:Apply('AddonButtons'); b.scripts.OnDragStop(b)
+assert(not b.fsDirectDragging and not M.dragging and FS.db.layout.frames.AddonButtons and M.suppressClick)
+local position=FS.db.layout.frames.AddonButtons; assert(position.y==500)
+b.scripts.OnClick(b); assert(M.suppressClick); Drain(); FS.Layout:Apply('AddonButtons'); assert(FS.db.layout.frames.AddonButtons.y==500)
+b.GetCenter=originalCenter; b.SetPoint=originalPoint
+
+-- TEST: A competing collector prompts before changing addon state and switches only after explicit choice
+ResetTest(); local FS=ForeverSuite; local M=FS.modules.MinimapButtons; local oldAddons,oldReload=C_AddOns,ReloadUI
+local enabled=true; local reloads=0; local disabled={}
+C_AddOns={IsAddOnLoaded=function(name) return name=='MinimapButtonButton' end,
+    DisableAddOn=function(name,character) disabled[#disabled+1]=name; enabled=false end,
+    GetAddOnEnableState=function() return enabled and 2 or 0 end}
+ReloadUI=function() reloads=reloads+1 end
+M:Scan(); M:ToggleTray(); assert(M.conflict:IsShown() and #disabled==0 and reloads==0 and not M.tray:IsShown())
+TEST.combat=true; assert(not M:ChooseCollector(true) and #disabled==0); TEST.combat=false
+assert(M:ChooseCollector(true)); assert(#disabled==1 and disabled[1]=='MinimapButtonButton' and reloads==1)
+C_AddOns,ReloadUI=oldAddons,oldReload
+
+-- TEST: A failed collector switch never reloads or disables unrelated addons
+ResetTest(); local M=ForeverSuite.modules.MinimapButtons; local oldAddons,oldReload=C_AddOns,ReloadUI
+C_AddOns={IsAddOnLoaded=function(name) return name=='MinimapButtonButton' end,DisableAddOn=function() error('Denied') end}
+local reloads=0; ReloadUI=function() reloads=reloads+1 end
+assert(not M:ChooseCollector(true) and reloads==0)
+C_AddOns,ReloadUI=oldAddons,oldReload
+
+-- TEST: Gear advice has green up gray equal and red down indicators with floating point tolerance
+ResetTest(); local G=ForeverSuite.modules.GearAdvisor
+local icon,label,r,g,b=G:Indicator({delta=2,score=12,base=10}); assert(icon:find('Gear-Up',1,true) and label=='Upgrade' and g>r)
+icon,label,r,g,b=G:Indicator({delta=0,score=10,base=10}); assert(icon:find('|cff999999-',1,true) and label=='Equal' and r==g and g==b)
+icon,label,r,g,b=G:Indicator({delta=-2,score=8,base=10}); assert(icon:find('Gear-Down',1,true) and label=='Downgrade' and r>g)
+icon,label=G:Indicator({delta=1e-10,score=10,base=10}); assert(label=='Equal')
+
+-- TEST: Equal equipped links and lower scoring candidates get matching tooltip indicators
+local G,data,equipped=AdvisorFixture(); data['item:1']={loc='INVTYPE_HEAD',stats={ITEM_MOD_AGILITY_SHORT=10}}; data['item:2']={loc='INVTYPE_HEAD',stats={ITEM_MOD_AGILITY_SHORT=5}}; equipped[1]='item:1'
+local row=G:Compare('item:1'); assert(row and row.delta==0 and select(2,G:Indicator(row))=='Equal')
+local previous=GameTooltip.GetItem; GameTooltip.GetItem=function() return 'Item','item:2' end
+G:Data().tooltips=true; GameTooltip.fsAdvisorLink=nil; GameTooltip.lines={}; G:Tooltip(GameTooltip)
+assert(GameTooltip.lines[2]:find('Gear-Down',1,true) and GameTooltip.lines[2]:find('Downgrade',1,true))
+GameTooltip.GetItem=previous

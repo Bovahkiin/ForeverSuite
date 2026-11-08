@@ -1446,6 +1446,14 @@ lua.execute('Drain()')
 print(f'PASS: {len(checks)} scenario groups')
 
 from PIL import Image
+for name in ('Up','Down'):
+    asset=Path('Assets/Indicators')/f'Gear-{name}.tga'
+    with Image.open(asset) as icon:
+        assert icon.size==(32,32) and icon.mode=='RGBA'
+        assert icon.getpixel((0,0))[3]==0
+        assert icon.getchannel('A').getextrema()==(0,255)
+    assert asset.read_bytes()[2]==2
+print('PASS: colored upgrade and downgrade indicators use transparent uncompressed textures')
 with Image.open('Assets/Icon-FS.tga') as logo:
     assert logo.size == (256, 256) and logo.mode == 'RGBA'
     assert logo.getchannel('A').getextrema() == (0, 255)

@@ -1,3 +1,15 @@
+## 0.9.1 minimap collector and gear indicators
+
+1. Update in WoWUp and reload. With MinimapButtonButton/MBB active, select
+   Use ForeverSuite + reload in the collector choice. Only the competing
+   collector should disable for this character; DBM/Pawn/RXP stay enabled.
+2. Open the tray and use DBM, RXP and other original addon clicks/tooltips.
+   Map quest/route pins should stay on the map rather than enter the tray.
+3. Drag the toggle outside combat, reopen it near each screen edge, then reload.
+   Its position must persist and the tray must open next to it. Test Move Frames.
+4. Compare higher/equal/lower stat-score gear. Check green up/gray dash/red down
+   indicators in the list (enable non-upgrades if filtered) and item tooltips.
+
 ## 0.9.0 Mail, Addon Buttons and Gear Advisor
 
 1. Update through WoWUp. Check the three new cards on the last dashboard page.
