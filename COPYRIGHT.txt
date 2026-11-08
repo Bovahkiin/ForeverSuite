@@ -1,0 +1,7 @@
+ForeverSuite
+Copyright (c) 2026 DeluxiZ.
+
+ForeverSuite is licensed under the MIT License. See LICENSE for the full terms.
+
+Third-party components, fonts and assets retain their respective copyright
+and license notices. This notice does not replace their licensing terms.
