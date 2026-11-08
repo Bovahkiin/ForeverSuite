@@ -1,3 +1,23 @@
+## 0.8.10
+
+- Addon systems (/fs addons): choose supported navigation/nameplate providers.
+- Unit Frames: Pet toggle and Move Frames target; player/target/focus/pet levels.
+- Text & Fonts: scope retained, immediate active-profile save, startup reapply.
+- Sell item: explicit unmarked-item sale at a merchant with protection feedback.
+
+# Control Center improvements in 0.8.6
+
+- Search above the module cards by name, feature or setting label. Multiple
+  words must all match; punctuation is searched literally. Try "dps", "dismount"
+  or "quest waypoint".
+- Cycle All modules / Enabled only / Disabled only with the filter button.
+  Module toggles update the result list immediately.
+- Clear or Escape resets filters and returns to the page you were browsing.
+  Enter opens settings when exactly one module matches.
+- Muted icons and state text identify disabled modules. Hover uses the module's
+  current accent palette. Settings remain available while the module is disabled.
+- The close button uses the chosen theme. Search controls adapt to text size.
+
 # New tools in 0.8.0
 
 Open More tools / search in the Control Center, or `/fs tools`. Click Tools: …

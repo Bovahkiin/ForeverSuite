@@ -1,4 +1,67 @@
+## 0.8.10 verification
+
+1. /reload after installing. Check player/target/focus levels; summon, dismiss,
+   revive and rename a hunter pet. The pet frame is in Move Frames, with a Pet
+   toggle in Unit Frame settings. Test pet updates during combat.
+2. Choose font family/size/weight in Text & Fonts, including one module override.
+   Reload and restart, and check both stored choices and rendered text.
+3. Check bagbar icons, counts, native bag clicks and selected theme/style.
+4. Open /fs addons or Addon systems. With supported competing addons active,
+   choose one arrow and check the guides continue while only one arrow displays.
+   For nameplates, Apply and reload UI explicitly confirms the change. Verify
+   dependency addons, saved settings and your per-character choice after login.
+5. At a merchant, Sell item on ordinary unmarked gear. Check Never Sell, saved
+   quantities and valuable-item protections explain a blocked sale in the popup.
+6. Check Mounts side tabs and name area, wardrobe helm/shoulder/weapon icons,
+   and profession rank fill at low, intermediate and maximum skill (40/75 should
+   be about 53% filled). Increase skill and check animation/update.
+7. Retest combat, hover/tab targeting, logout, equipment/BoE and profile layout
+   persistence. No native action-button handlers or protected attributes changed.
+
+## 0.8.9 independent action-bar art check
+
+1. Reload after installation so old decorative children are discarded.
+2. Verify borders, trays and empty slots follow bars at all game layout scales
+   and positions. Check all four legacy styles and your selected theme.
+3. Enter combat, hover buttons 1-12, tab-target, use abilities and change action
+   slots. Check /fs errors for the previously reported SetShown blockage.
+4. Hide/show extra bars and check that independent art follows visibility.
+5. Verify keybinds, paging and original native clicks still work.
+
+## 0.8.8 combat hover check
+
+1. Run /reload after updating: old script hooks cannot be removed from a live
+   UI instance by replacing files alone.
+2. Enter combat and hover across filled and empty native action buttons,
+   including slots 8-12. Tab-target and use actions. Check /fs errors.
+3. Check native clicks, bindings, paging, tooltips and existing skin appearance.
+4. If blocking persists, capture the taint origin: /console taintLog 1, /reload,
+   reproduce the combat hover, then /console taintLog 0. Inspect Logs/taint.log.
+
+## 0.8.7 inventory equipment check
+
+1. Reload outside combat. Right-click compatible, already-bound gear in the
+   ForeverSuite inventory; verify the correct copy equips once.
+2. Right-click an unbound Bind-on-Equip item. Cancel the game's bind dialog:
+   it must stay unbound in the bag. Repeat and accept only if you want to bind it.
+3. Select equipment and click Use item; check the same behavior.
+4. Verify Hearthstone/consumables still work. At a merchant, right-click must
+   continue using protected selling rules, rather than equipping.
+
+# In-game checks - 0.8.6
+
+- Open /fs, search for a module and for one of its setting labels.
+- Cycle the state filter, toggle a matching module and check the updated list.
+- Check Enter on a unique result and Escape/Clear returning to your previous page.
+- Check empty results, page controls, hover colors and disabled state labels.
+- Repeat with your preferred theme and large text; confirm profiles stay accessible.
+- Repeat the author-confirmed 0.8.5 reload/combat/logout checks as a regression check.
+
 # In-game checks - 0.8.5
+
+Author-confirmed results, 2026-11-08: reload preserves the intended layout, and
+combat/logout work without the previously reported blocked-action warnings.
+Keep the checks below for future releases and additional client configurations.
 
 - Restore your preferred clock, waypoint, experience-bar and quest-tracker layout.
 - Run /reload and check positions again once UI scaling has settled.

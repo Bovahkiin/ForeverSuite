@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.8.9 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.8.10 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Features
 
@@ -17,7 +17,7 @@ profile. Made by **DeluxiZ**.
 - **Consistent customization:** module colors, font family, size and outline
   settings, plus movable and resizable supported frames with a centered grid.
 - **Action bars and unit frames:** configurable bar appearances, player and target
-  frames, portraits, and cast bars.
+  frames, an optional pet frame, levels, portraits, and cast bars.
 - **Nameplates:** a layout designer, health and cast information, saved NPC rules,
   and emphasis for selected important spells.
 - **Bags and vendors:** inventory categories, favorites, recent items, stock tools,
@@ -33,6 +33,22 @@ profile. Made by **DeluxiZ**.
 - **Profiles and settings tools:** profile import/export, automatic backups,
   character assignments, settings search, favorites, and undo for reversible
   settings changes.
+- **Faster Control Center:** search modules by name, feature or setting, filter
+  enabled/disabled modules, and open a unique result with Enter. Clear or Escape
+  resets the filters and returns to the module page you were browsing.
+
+## Choosing addon systems
+
+Open **Addon systems** in the Control Center or use `/fs addons`. When supported
+competing addons are detected, ForeverSuite asks which system to use and remembers
+the choice per character. Choose later leaves existing behavior unchanged.
+
+- Waypoint adapters: RestedXP, Zygor and TomTom. Only their arrow options change;
+  guide addons keep running. Unsupported API versions show an explanation.
+- Nameplates: Plater, Platynator, Kui, Threat Plates, Tidy Plates and Neat Plates.
+  **Apply and reload UI** changes supported addon enablement for this character,
+  preserves dependencies/settings, and reloads. Unknown addons need an adapter.
+- Choices stay separate from UI profiles and reversible settings undo.
 
 ## Previews
 
@@ -54,6 +70,9 @@ is an artwork sheet, not a gameplay screenshot or a promised window layout.
 </details>
 
 ## Installation
+
+Maintaining this repository? See [GitHub update instructions](GITHUB_UPDATEN.md)
+for GitHub Desktop and the **Nieuwe release maken** release button.
 
 1. Download the attached **ForeverSuite ZIP** from this repository's **Releases**
    page.
@@ -79,6 +98,10 @@ skip setup and return later with `/fs setup`.
 Open `/fs` to access the Control Center. Click a module card to open its settings,
 or use its Enabled button to toggle the module. Profiles remain accessible across
 the Control Center's module pages.
+
+Use the search field above the cards to find a module or feature. The filter
+button cycles through all modules, enabled modules and disabled modules. Muted
+icons identify disabled modules; their settings remain available on the card.
 
 Use **Move Frames** to reposition supported elements and drag their resize grips
 to change scale. Native secure action-bar placement remains controlled by the
@@ -128,11 +151,12 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **252 offline scenarios**, Lua startup,
+The current development checks cover **288 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
-every aspect of the game. Live verification of combat-related action-bar overlap
-and UI flicker remains open. Reported logout/quit blocking has received changes
-to native callback handling and still requires in-game verification.
+every aspect of the game. In version 0.8.5, the author has confirmed that layout
+restoration survives reload and that combat and logout no longer produce the
+previously reported blocked-action warnings in their setup. This confirmation
+covers that setup; broader client, class and addon-combination testing continues.
 
 ## Reporting issues
 

@@ -1,4 +1,51 @@
-# Current patch - 0.8.5
+# Current patch - 0.8.10
+
+Adds pet/level information, profile text persistence hardening, matching bag art,
+supported addon-system choices, manual item sales and native-window corrections.
+The prior 0.8.9 action-bar isolation architecture is retained. User reports no
+further combat error so far, correct layout, and working equipment/BoE use.
+
+Offline coverage: 288 scenario groups; see work/latest-test.txt. New features
+still require live rendering/hardware-action checks. External provider adapters
+are capability-checked, not a promise of compatibility with every addon/version.
+
+# Patch - 0.8.9
+
+Action-bar decoration is separated from native layout children and regions.
+All styles remain; a read-only driver synchronizes the suite's art frames.
+Theme sizing guards secret dimensions. Temporary diagnostic code was removed.
+266 offline scenarios pass; actual combat taint verification is pending.
+The captured logs/audit did not conclusively establish the first taint source.
+
+# Patch - 0.8.8
+
+Native action-button hover/leave/post-click callbacks are left unchanged by the
+feedback layer. Other protected controls skip feedback hooks too. Skins remain.
+263 offline scenarios pass. This targets the reported combat hover path but the
+exact original taint source is not established; in-game confirmation is needed.
+
+# Patch - 0.8.7
+
+Inventory equipment now uses the native container-slot action on right-click or
+Use item. The addon never accepts binding automatically. Consumables retain
+their secure item action. Merchant selling and existing protections remain.
+261 offline scenarios pass; actual equipping and bind dialogs need a game check.
+
+# Patch - 0.8.6
+
+Control Center improvements: literal multiword search across module/feature/
+setting names, state filters, contextual result counts, keyboard shortcuts,
+clear-to-previous-page navigation, module-colored hover and state labels,
+disabled icon desaturation and a theme-matched close button.
+258 offline scenarios cover these changes and existing modules. In-game visual
+confirmation of the new dashboard remains pending.
+
+# Patch - 0.8.5
+
+Author confirmation, 2026-11-08: layout restoration now survives reload; combat
+and logout are reported working without the earlier blocked-action warnings.
+This supersedes the pending status below for those reported cases in the
+author's setup. Broader in-game coverage remains part of future regression checks.
 
 Saved positions remain unchanged during restoration, including when startup
 temporarily reports a smaller UI viewport. Bounds are persisted only during

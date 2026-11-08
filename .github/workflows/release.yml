@@ -1,0 +1,61 @@
+name: Nieuwe release maken
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forever-suite-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Controleren en conceptrelease maken
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Bronbestanden ophalen
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Python klaarzetten
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Testonderdelen installeren
+        run: python -m pip install -r work/requirements-ci.txt
+      - name: Versie en release-inrichting controleren
+        run: |
+          python work/build_github_release.py --check
+          python work/check_release_pipeline.py
+      - name: Addon controleren
+        run: python -u work/check_vendor.py
+      - name: Addon inpakken
+        id: package
+        run: python work/build_github_release.py
+      - name: Conceptrelease met ZIP en patchnotes maken
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.package.outputs.version }}
+          TAG: ${{ steps.package.outputs.tag }}
+          ZIP: ${{ steps.package.outputs.zip }}
+          CHECKSUM: ${{ steps.package.outputs.checksum }}
+          NOTES: ${{ steps.package.outputs.notes }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Er bestaat al een release of concept voor $TAG. Open die via Releases, of gebruik een nieuw versienummer."
+            exit 1
+          fi
+          gh release create "$TAG" "$ZIP" "$CHECKSUM" \
+            --draft --target "$GITHUB_SHA" \
+            --title "ForeverSuite $VERSION" --notes-file "$NOTES" > "$RUNNER_TEMP/release-url.txt"
+          echo "### Conceptrelease klaar" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/release-url.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Bekijk de ZIP en patchnotes via Releases. Klik Publish release wanneer je deze versie wilt uitbrengen." >> "$GITHUB_STEP_SUMMARY"

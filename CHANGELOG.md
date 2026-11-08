@@ -1,3 +1,78 @@
+# 0.8.10 - 2026-11-08
+
+- Add a movable, optional pet unit frame with name, portrait, level, health,
+  power and casting information. Secure unit watches handle pet visibility.
+- Show player, target and focus levels beside the name and reserve text space.
+- Commit text choices directly to the active saved profile, remember the font
+  editor scope and reapply typography after startup profile selection.
+- Match bag-button borders and tray to the selected action-bar style/theme using
+  independent artwork, retaining native bag icons, clicks and counts.
+- Add per-character Addon systems choices for supported navigation and nameplate
+  providers. Recognized navigation adapters: RestedXP, Zygor and TomTom. Guide
+  addons stay active while only their arrows are switched. Nameplate selection
+  enables/disables supported addons for this character and explicitly reloads UI.
+- Keep those choices separate from UI profile imports/undo. Unsupported arrow APIs
+  are reported without saving a choice; failed changes roll back prior flags.
+- Restore wardrobe category atlas icons, skin collection side tabs and leave the
+  mount-name hit area unframed. Preserve the mount model's original position.
+- Share the native profession progress mask so the cyan fill follows skill ratio
+  and the game's animation rather than always appearing full.
+- Manual Sell item now sells eligible unmarked items without marking them junk.
+  Retain Never Sell, quest, valuable-item and saved-quantity protections. Prevent
+  stale selections from falling through to another junk item; show blocked
+  reasons inside Item Options, including after stack splitting.
+
+# 0.8.9 - 2026-11-08
+
+- Move action-button borders, empty-slot artwork and native action-bar trays
+  under UIParent, outside native bar/button child and region lists.
+- Follow native visibility, opacity, strata and position with a read-only
+  decoration driver. Change only suite-owned art frames during combat.
+- Avoid Backdrop data on these decorations; skip theme corner calculations
+  when the client returns secret dimensions.
+- Remove temporary action-bar diagnostics. The captured audit showed no direct
+  field taint among the inspected native fields; the log still blocked at wipe
+  inside UpdateShownButtons. Independent art avoids the native layout subtree.
+- Add three regressions for hierarchy isolation, secret dimensions and combat
+  visibility/opacity. Retain all styles and inventory equipment fixes.
+- 266 offline scenarios pass. Actual combat taint behavior remains subject to
+  in-game verification; the original taint origin is not conclusively established.
+
+# 0.8.8 - 2026-11-08
+
+- Remove automatic decorative hover/leave/post-click hook registration from
+  native action buttons and other protected controls. Their native hover path
+  can call UpdateAction and UpdateShownButtons during combat.
+- Keep action bar skins and themes; retain feedback on suite-owned buttons.
+- Add regressions checking original native script identity, decorative border
+  availability and exclusion of other protected controls from input hooks.
+- This removes an addon interaction at the reported call path; the original
+  taint source is not proven by the blocked-action stack alone. In-game
+  combat hover validation remains required after a full UI reload.
+
+# 0.8.7 - 2026-11-08
+
+- Route bag equipment right-clicks and Use item clicks through the exact native
+  container slot instead of the general secure item action.
+- Keep bind-on-equip confirmation owned by the client; never auto-accept binding.
+- Preserve secure consumable use and merchant selling, GUID validation, locked
+  item checks, cursor/targeting checks and combat guards.
+- Add three regression groups covering exact-copy equipment use, simulated
+  binding accept/cancel, and invalid/stale/blocked item actions.
+
+# 0.8.6 - 2026-11-08
+
+- Search module names, feature descriptions, setting labels and useful aliases
+  directly in the Control Center. Searches are literal and support multiple words.
+- Filter all/enabled/disabled modules, show result counts, disable unavailable
+  page buttons and explain empty results. Clear returns to the previous full-list page.
+- Enter opens a unique result; Escape clears filters. Search state is kept only
+  for the current UI session and does not change profile data or undo history.
+- Add subtle per-module hover accents, clearer state label colors, muted disabled
+  icons, toggle tooltips and a theme-matched close button. Adapt controls to typography.
+- Name release archives with the -forever suffix required by WowUp's GitHub provider.
+- Record author confirmation that 0.8.5 reload/combat/logout cases now work.
+
 # 0.8.5 - 2026-11-08
 
 - Keep saved coordinates unchanged when temporarily constraining visuals during

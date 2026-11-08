@@ -1,0 +1,76 @@
+## Interface: 16001
+## Title: ForeverSuite
+## Notes: Modular UI and everyday tools.
+## IconTexture: Interface\AddOns\ForeverSuite\Assets\Icon-FS.tga
+## Author: DeluxiZ
+## X-License: MIT
+## Version: 0.8.10
+## SavedVariables: ForeverSuiteDB
+
+Core/Init.lua
+Localization/enUS.lua
+Core/Utils.lua
+Core/Client.lua
+Core/Database.lua
+Core/Config.lua
+Core/Profiles.lua
+UI/Fonts.lua
+UI/Typography.lua
+UI/Widgets.lua
+UI/HUD.lua
+UI/Themes.lua
+UI/Tools.lua
+UI/Layout.lua
+UI/ConfigWindow.lua
+UI/AboutWindow.lua
+UI/MinimapButton.lua
+Modules/Vendor/Init.lua
+Modules/Vendor/API.lua
+Modules/Vendor/Rules.lua
+Modules/Vendor/Transactions.lua
+Modules/Vendor/Highlights.lua
+Modules/Vendor/UI.lua
+Modules/Bags/Init.lua
+Modules/Bags/Model.lua
+Modules/Bags/UI.lua
+Modules/Bags/Sidebar.lua
+Modules/Gear/Init.lua
+Modules/Gear/UI.lua
+Modules/UnitFrames/Init.lua
+Modules/UnitFrames/Cast.lua
+Modules/UnitFrames/Groups.lua
+Modules/ActionBars/Init.lua
+Modules/ActionBars/Appearance.lua
+Modules/ActionBars/Menu.lua
+Modules/ActionBars/Bindings.lua
+Modules/Nameplates/Init.lua
+Modules/Nameplates/Style.lua
+Modules/Nameplates/Designer.lua
+Modules/Character/Init.lua
+Modules/Character/Data.lua
+Modules/Character/UI.lua
+Modules/Map/Init.lua
+Modules/Quests/Init.lua
+Modules/Quests/Tracker.lua
+Modules/Quests/Pins.lua
+Modules/Map/Navigation.lua
+Modules/Loot/Init.lua
+Modules/Buffs/Init.lua
+Modules/Cooldowns/Init.lua
+Modules/Combat/Init.lua
+Modules/Professions/Init.lua
+Modules/AuctionHouse/Init.lua
+Modules/Social/Init.lua
+Modules/Chat/Init.lua
+Modules/Guild/Init.lua
+Modules/QoL/Init.lua
+Modules/Bags/Bank.lua
+UI/WindowManager.lua
+UI/Style.lua
+UI/NativeWindows.lua
+UI/Installer.lua
+Core/Extensions.lua
+Modules/Extensions.lua
+UI/Workbench.lua
+Core/Compatibility.lua
+Core/Events.lua

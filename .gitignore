@@ -1,0 +1,27 @@
+# Built downloads are attached to Releases, not committed as source.
+/dist/
+*.zip
+*.sha256
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Keep local development exports, logs and cached dependencies on this PC.
+/work/*
+!/work/check_vendor.py
+!/work/check_expansion.lua
+!/work/check_trail.lua
+!/work/check_native_chrome.lua
+!/work/check_extensions.lua
+!/work/check_systems.lua
+!/work/package_release.py
+!/work/build_github_release.py
+!/work/check_release_pipeline.py
+!/work/requirements-ci.txt
+!/work/Test-Addon.cmd
+*.blend
+*.blend1
+/Assets/**/*.png
+/Assets/**/*.md
+/Modules/README.md

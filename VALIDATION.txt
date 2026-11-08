@@ -1,0 +1,320 @@
+ForeverSuite 0.8.10 - 2026-11-08
+Passed: 288 offline scenario groups plus 67-file startup, texture
+and metadata checks. See work/latest-test.txt for the completed run.
+New cases cover secure pet updates, levels, persisted fonts, independent bag art,
+provider choices/rollback/dependencies, explicit sales/splits/protection feedback,
+collection icons/mount geometry and the profession's animated mask.
+Fresh Lua VM typography serialization/reload check also passes.
+The user confirmed 0.8.9 combat/layout behavior and equipment/BoE usage working.
+Offline fixtures do not implement Blizzard's taint engine or actual rendering.
+New 0.8.10 behavior, particularly external-addon combinations, needs live checks.
+The original font reset was not reproduced offline; saving/application paths
+were hardened. Re-select preferred typography once and verify after reload.
+
+ForeverSuite 0.8.9 - 2026-11-08
+266 offline scenario groups plus startup/texture/metadata checks passed.
+Final targeted checks cover all four appearances, profiles, detached hierarchy,
+visibility/alpha, explicit anchors and guarded secret dimensions.
+Offline stubs do not reproduce Blizzard's taint engine. The architecture change
+requires an in-game combat check after reload. It is not yet a confirmed fix.
+
+ForeverSuite 0.8.8 - 2026-11-08
+263 offline scenario groups plus startup/texture/metadata checks.
+New regressions verify native action-button script identities remain unchanged
+after feedback setup and other protected controls skip decorative input hooks.
+Offline stubs do not implement the client's taint engine. The reported combat
+hover blockage requires in-game confirmation after reload.
+
+ForeverSuite 0.8.7 - 2026-11-08
+261 offline scenario groups plus startup/texture/metadata checks.
+Equipment tests cover exact-copy use, click-once behavior, toolbar use, simulated
+native bind confirmation accept/cancel, stale GUIDs and guarded item actions.
+Real equipment changes and bind confirmation still require an in-game check.
+Confirmed combat/logout/layout code is unchanged by this patch.
+
+ForeverSuite 0.8.6 - 2026-11-08
+258 offline scenario groups plus startup/texture/metadata checks.
+New dashboard checks cover literal feature/settings search, filters and toggles,
+keyboard navigation, profile/undo isolation, palette feedback and large typography.
+The author confirmed 0.8.5 layout reload, combat and logout in their setup.
+The 0.8.6 dashboard still needs an in-game visual check.
+
+ForeverSuite 0.8.5 - 2026-11-08
+252 offline scenarios pass, including restoration from a temporary startup
+viewport without overwriting saved coordinates for the four reported widgets.
+Live verification could not be performed: computer access to WoW was denied.
+
+ForeverSuite 0.8.4 - 2026-11-08
+251 offline scenario groups pass, plus texture/metadata/startup checks.
+New checks cover assigned-profile reload persistence, logout snapshots,
+deferred native menu corrections, combat guards and blocked-action stacks.
+Live logout/quit, combat overlap and taint-engine verification remain pending.
+
+ForeverSuite 0.8.0 - 2026-11-08
+
+66 Lua files compile with Lua 5.1 and load in TOC order.
+242 offline scenarios pass (previous 200 + 42 addition/regression cases).
+All ten Blender styles and original runtime texture checks pass.
+
+New cases cover codec abuse/bounds, import preview/active replacement/backups,
+private data preservation, character assignment, staged presets, search and
+favorites, undo, palettes, sound channels/cooldowns, NPC/cast rules, chat markup
+and opt-in capture, modern/legacy filters, guild/groups/checklists, manual
+buyback, loot/XP sessions, queue transitions, lifecycle, bag-plan reuse,
+unchanged waypoint fonts/anchors, corrupt data, viewport fit, read-only audits,
+pooled modals, native restoration, missing APIs and direct category selection.
+
+20 additions implemented. Improvements 2-10 implemented/offline checked.
+Improvement 1 live combat/target/flicker check is pending. Actual client
+rendering and secure hardware actions have not been tested in the live game.
+
+Previous validation:
+
+ForeverSuite v0.7.39 — 2026-11-07
+
+63 Lua files compile with Lua 5.1 and load in TOC order.
+200 offline scenarios pass. Theme checks cover ten staged design previews,
+non-mutating cancellation, profile persistence, native action/callback/anchor
+preservation, combat/vendor guards, fixed slice corners, ignored native bounds,
+light-theme color restoration and smoothed themed waypoint rotation.
+40 runtime textures pass RGBA, uncompressed TGA, power-of-two dimensions, alpha
+range and transparent-corner/padding checks. Blender bakes inspected separately.
+No live game rendering, combat or secure hardware action test was performed.
+
+Previous validation:
+
+ForeverSuite v0.7.38 â€” 2026-11-07
+
+62 addon Lua files compile with Lua 5.1 and load in TOC order.
+192 offline scenario groups pass, including vendor protections, bar bounds,
+client detection for 16001 vs retail, rejected-event recovery both with and
+without C_EventUtils, and loaded-addon overlap diagnostics without mutation.
+Installed live client metadata: 1.60.1.70862 / wowf. TOC: Interface 16001.
+No live rendering, combat or secure hardware action test was performed.
+
+Previous validation:
+
+ForeverSuite v0.7.37 - 2026-10-08
+
+61 addon Lua files compile with Lua 5.1 and load in TOC order.
+189 offline scenario groups pass, including existing vendor protections.
+Native ResizeLayout-style filtering measures shown children and regions,
+including native controls, excluding ignoreInLayout decoration. The fixture
+reproduces repeated 10-pixel size growth without exclusion and remains stable
+across 20 combat/update cycles with exclusion. Bar frame and region checks cover
+all four appearance assets and click feedback. Native positioning remains
+owned by the client. Actual game rendering, combat overlap, target flicker and
+secure actions have not been tested in the live client.
+
+Previous validation:
+
+ForeverSuite v0.7.36 - 2026-10-08
+
+61 addon Lua files compile with Lua 5.1 and load in TOC order.
+187 offline scenario groups pass, including all existing vendor protections.
+
+v0.7.36: removes the insecure native-anchor/flag synchronization approach.
+Read-only native layout proxies reject writes; native manager methods fail
+tests if invoked. Native positions and scale remain untouched despite legacy
+saved positions, target-style anchor writes, combat and module disable.
+Scoped discovery does not call global styling; combat completion applies only
+pending module/unit settings. Diagnostic events capture addon/function/combat.
+Installer size is now preview-only; actual sizing uses native game controls.
+This supersedes earlier tests expecting custom native-bar position ownership.
+The failed function from the reported client warning and actual taint/rendering
+behavior cannot be verified by mocks. Live client testing is required.
+
+v0.7.35: artwork paths match between installer and managed bar slots for every
+style. Icon anchor/crop restoration, native button positions/actions/handlers,
+unchanged icon anchors and combat deferral pass. All six runtime textures have
+valid dimensions, RGBA alpha and uncompressed TGA format; gold bevel/gem and
+dock rail colors are checked. Artwork comparison sheet inspected separately.
+Game rendering, overlay layering, protected actions and combat remain untested.
+
+v0.7.34: four decorative action bar styles preserve actions, scripts and native
+button geometry; refreshes and profile switches retain style. Fresh/existing
+database migrations, completion/dismissal, profile exclusion, staged setup
+choices, Patch Log return, scale/position preservation, unrelated modules,
+combat/vendor blocking, large-font viewport bounds and startup precedence pass.
+The preview is illustrative. Rendering, secure actions, paging and combat
+behavior still require verification in the WoW Forever client.
+
+v0.7.33: repeated native target-style anchor/scale writes do not enqueue a
+full settings/skin refresh. Actual drift repairs geometry only, saved placements
+apply without a default-anchor round trip, and unchanged settings do not rewrite
+bar points. Hidden secure buttons retain separate noninteractive slot borders
+in combat; parent bar visibility, module disable, actions and scripts preserve.
+179 scenario groups pass. Target-switch flicker and visual slot appearance must
+still be verified in the WoW Forever client.
+
+v0.7.32: faithful native combat reconciliation includes the
+skipAutomaticPositioning -> old layout anchor path. Runtime custom state/anchor
+synchronization, saved Move Frames positions, native layout reload and disable
+restoration are checked without replacing native methods. Idle discovery
+polling skips full styling, discovers new roots/controls and defers combat work.
+177 scenarios pass. Live protected paths, taint, combat overlap and remaining
+visual flicker must still be checked in the actual client.
+
+v0.7.31: all settings viewport bounds with moved/scaled host and large text;
+basic/advanced descriptions/help/field preservation and pagination; native
+action bar positioning opt-out and restoration; unchanged backdrop/font/anchor
+operations and idle settings; per-frame cast/channel progress without range
+resets, expiration and native cast bar suppression/restoration after combat.
+Native combat manager is simulated; live client rendering, native secure
+positioning and complete flicker elimination remain unverified.
+
+v0.7.30: all Control Center settings card colors and responsive custom forms;
+advanced field/explanation relationships and edits retain values/callbacks.
+Inventory large toolbar/sidebar/item/page bounds and saved size; Character
+large tab/stats pagination/reset/disable; map breadcrumb/search/count geometry.
+Six smaller modules' filtering, ordering, display and Profile persistence are
+covered with data. The mock now models button font strings and independent
+frame scale fields, allowing meaningful text/color checks. Live client visual
+layout and secure hardware interactions remain unverified.
+
+v0.7.29: font-aware Control Center/Profile/card/footer bounds, repeated apply,
+reset and saved scale. Large generic settings and tool rows stay separated;
+font editor preview/status/footer bounds remain contained. Quest tracker long
+objective/title wrapping, column widths, folding, repeated updates and reset.
+Existing all-module behavior and typography inheritance/profile/combat tests
+pass. Full live rendering, specialized/native layouts and secure hardware
+interactions are not verified by this offline suite.
+
+v0.7.28: map helper close art has no generated X, primary close and side panel
+actions work, canvas untouched, disable restores art. Achievement header stays
+inside root; category background/summary edges suppress and restore, retaining
+points/shield/progress. Map nineteen-option pagination checks all page bounds,
+previous/next disabled states, second-page edits and separate Open button bounds.
+Actual game screenshot corrections remain unverified.
+
+v0.7.27: trail waypoint projection, rim bounds, rotation and marching phase;
+validated size/spacing/color/opacity settings and Profile restoration. Arrival,
+hidden minimap, missing view radius, stop and module disable clear pooled dots.
+Existing navigation ownership, smooth animation and saved placement pass.
+Actual minimap rendering/opacity and live click behavior remain unverified.
+
+v0.7.26: actual OnUpdate hook interpolates direction every frame; intermediate
+rotation remains between old/new directions. 30/144 FPS simulations converge
+equally, +/-pi wrap takes the short turn, and unavailable vector clears arrow
+and shadow. Existing world coordinates, arrival, manual/quest routing, options
+and placement regressions pass. Actual visual smoothness remains unverified.
+
+v0.7.25: compact waypoint bounds, absent backdrop template/icon, hidden third
+row, seven custom arrow segments with gold accents and matching shadows.
+Rotation and arrival/missing-direction second-row status remain covered,
+alongside existing saved position/scale, options, quest routing and native
+waypoint ownership checks. Actual game appearance remains unverified.
+
+v0.7.24: global family/size/fixed size/weight/outline/shadow, repeated update
+without growth; every registered module's ownership/override/inheritance and
+future labels. Nested settings, native window and chat scope, forbidden-frame
+skip, released native font/shadow restoration after global changes. Saved
+choice validation, Profile round-trip and preview scope; combat edit blocking,
+deferred reapplication and editor/window coordination. Actual font rendering,
+client font availability and large-text layout remain unverified.
+
+v0.7.23: accepted-quest selection including delayed log population; objective
+and turn-in destination changes; next quest/removal settings; manual pin
+priority and persistent explicit stop. Client waypoint/map-POI fallback and
+missing-data handling; facing rotation, arrival and same-world cross-map
+projection; missing/cross-instance direction suppression. Native marker
+ownership, externally replaced pins, deferred combat writes/cleanup and
+disable behavior. Settings validation, bounded panel controls, stable saved
+Move Frames scale/position and Profile round-trip. Actual game rendering and
+Forever quest-location data availability remain unverified.
+
+v0.7.22: Nameplate Designer migration/default validation, all four groups and
+34 options, typed value bounds, four presets retaining visibility, profile
+round-trip, sample preview bounds and component visibility. Dragging verifies
+effective scale, stable cursor deltas, clamping and hide/combat interruption.
+Plate updates verify bar/text dimensions, fonts, formats, colors, target
+size/opacity and retained native clicks. Cast icon/time/non-interruptible
+color and aura filters/count/cooldowns clear stale visuals. Combat appearance
+changes defer while module disable restores native frames immediately.
+All of these are mock checks; actual game rendering remains unverified.
+
+v0.7.22: Frame-based profession progress visual follows the actual fill bounds
+and native skill/width/text updates. Search/filter/reset placement retains
+text and click handlers, hidden reset state and restores original geometry.
+Profession tabs include sibling controls, keep parent/click/tooltip/selection
+and updated icons, defer combat changes and restore size/anchors/art. Modern
+profession scrollbar arrows and thumb retain native scroll/drag/disabled
+behavior and restore captured art. The workspace-only test launcher runs
+these checks without launching WoW. Actual game rendering remains unverified.
+
+v0.7.21: chat side-button native clicks/tooltips/count changes/notifications,
+decoration suppression/restoration, disabled state and combat deferral;
+code-drawn speaker/chat icons and compact settings layout. Chat routes directly
+to settings; native typing activation/fallback keeps drafts. Loot history
+limits/source/recording, quality cache updates, time/order, non-destructive
+display filters and confirmed clear; roll sorting/views/auto-open/combat,
+eligibility/expiry/cancel and rejected calls; native loot slot icons/actions
+and style restoration. No running-game visual verification was performed.
+
+v0.7.20: fixed profile bar visibility on all three pages and module settings;
+current/new save, selected-profile loading and settings restoration; no card
+or toggle; layout bounds and combat/vendor guards. Modern/classic chat
+scrollbars preserve native click/drag/value handlers, show suite thumb/arrow
+visuals, include the scrollbar inside background bounds and restore native
+art on panel/module disable. Timestamp Off overrides an originally enabled
+game preference, which restores when Chat is disabled. Actual rendering
+still needs live validation.
+
+v0.7.19: independent Chat/Social/Guild enable state, one-time migration,
+validated preset options, combat-deferred changes, chat property/font/CVar
+restoration, separate friend/guild sorting/filtering/details and explicit
+whisper preparation. Native APIs and appearance still need live validation.
+
+v0.7.18: existing Control Center scenarios use direct card navigation for
+all module settings, including disabled modules. The 20 module accent RGB
+triples are distinct and cover all three pages; Settings buttons are removed.
+
+v0.7.17 coverage: native Contacts actions and disabled buttons; spell icons,
+drag handlers, paging and skill values/colors; original art/font restoration;
+appearance models, pooled achievement rows; world-map canvas and native/addon
+pin preservation; load-on-demand discovery, combat guards and forbidden/widget
+subtrees; communities/professions window coordination and nested journal tabs.
+
+v0.7.16 coverage: Character/backpack opening in both orders, independent
+closing, bag-to-gear native drop routing, combat guard and modal cleanup.
+
+v0.7.2 coverage: quest card progress/completion/distance/folding/paging;
+minimap/world projection, overlap grouping/cycling, rotation/rim placement,
+missing-coordinate cleanup and module disable; native window exclusivity;
+spellbook clearance and XP restoration/input/deferred combat changes;
+V off/on pooled nameplate recovery and no CVar reset on target updates.
+
+v0.7.1 coverage: sidebar modes/counts/search; recent visual duplication,
+review retention, timed expiry and unique vendor accounting; custom category
+validation/assignments/reload and protection priorities; live resizing/bounds,
+responsive columns/footer separation; sidebar scrolling and input cleanup.
+
+Earlier coverage: profile isolation/switching/preferences and combat guards;
+secure focus/group units and deferred changes; target/threat nameplates;
+all twelve new tool windows, module toggles and three-page Control Center;
+quest reward/Shift/combat safeguards; bounded loot history/roll eligibility;
+missing-buff reminders; cooldown durations/charges/grouping;
+native damage-meter reports/two-click reset and readable-log fallback;
+coordinates/pins/waypoints; legacy and modern profession material counts;
+legacy stack and modern commodity prices, realm scopes and opt-out;
+social online filtering/whisper preparation; explicit invites;
+actual purchased bank-tab IDs, stale-slot checks and side-by-side inventory;
+key binding modifiers, capture cancellation/propagation and save set;
+sole /fs slash entry; reset guards; API nil-return handling and map migration.
+
+Assets: uncompressed RGBA addon icon/wordmark/menu atlas verified.
+Core, TOC and current patch-log version agree; addon metadata is compact.
+
+Live Forever testing remains required. The strict UI mock cannot establish
+actual API availability, secure hardware-event behavior, native visual
+suppression, font placement or interoperability with other addons.
+Combat uses public game Damage Meter aggregates after combat; auction scans
+read loaded results only. See FEATURE_AUDIT.md and IN_GAME_TEST.md.
+
+Character page containment: all five secondary tabs tested for bounded scale, rebased external anchors, native reanchoring and restoration. Live visual validation remains required.
+
+Separate native pane-host regression checks list/detail anchoring, fixed detail width, native reanchoring, restored anchors and styling of newly pooled rows.
+
+Resize grip regression: live cursor updates, position preservation, scale bounds, Cancel restoration and combat interruption.
+
+Visual style regression: native action dispatch and original bag icons, saved gear position, native chat/minimap restoration, damage values/class colors, and bounded rested XP segment with hover text.
