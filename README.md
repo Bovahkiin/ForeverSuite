@@ -1,5 +1,7 @@
 # ForeverSuite
 
+![ForeverSuite — a modular UI for WoW Forever](.previews/00-cover.png)
+
 **A customizable, modular interface for WoW Forever.**
 
 ForeverSuite brings your everyday interface tools together in one Control Center.
@@ -31,6 +33,25 @@ profile. Made by **DeluxiZ**.
 - **Profiles and settings tools:** profile import/export, automatic backups,
   character assignments, settings search, favorites, and undo for reversible
   settings changes.
+
+## Previews
+
+### In-game interface
+
+![ForeverSuite configured in WoW Forever](.previews/01-in-game-interface.png)
+
+An in-game screenshot supplied by the author. Module choices, appearance and
+frame placement are configurable; this is one example layout.
+
+<details>
+<summary>See the artwork for all ten themes</summary>
+
+![Panel, button and waypoint artwork for all ten themes](.previews/02-theme-artwork.png)
+
+These samples show the actual theme textures used by the addon. This comparison
+is an artwork sheet, not a gameplay screenshot or a promised window layout.
+
+</details>
 
 ## Installation
 
