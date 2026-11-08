@@ -1,4 +1,12 @@
-# Current patch - 0.9.1
+# Current patch - 0.9.2
+
+Add the Character Pet tab, live pet details, experience and happiness, separate
+model rotation, large-font spacing and full-value tooltips.
+Distribution through GitHub after the full suite and package checks pass.
+Live pet rendering remains an in-game verification step after updating via WoWUp.
+No direct changes to the installed game addon or saved profiles.
+
+# Patch - 0.9.1
 
 Fix minimap tray placement and collection conflicts; add gear comparison indicators.
 Distribution through GitHub releases after the full suite passes.

@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.1",lines={"Addon-button tray opens beside its toggle. Drag the toggle directly; saved positions and Move Frames remain supported.","Recognize nested and custom-named registered launchers; keep map pins and native controls on the minimap.","Choose between ForeverSuite and MinimapButtonButton when both collectors are active. Switching to ForeverSuite reloads after your explicit choice.","Gear Advisor: green up for higher scores, gray dash for equal scores, red down for lower scores, in comparisons and tooltips."}},
+    {version="0.9.2",lines={"New Pet tab in Character: pet model, level, health, power, armor, damage and experience.","Hunter details include happiness, loyalty, available training points and diet when provided by the client.","Player and pet keep separate rotation. Pet data updates without resetting the model; dismissal during combat is handled safely.","Improved character tab spacing and pagination at larger font sizes, with full-text tooltips on detail rows."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

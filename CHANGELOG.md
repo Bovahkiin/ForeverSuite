@@ -1,3 +1,16 @@
+# 0.9.2 - 2026-11-08
+
+- Add a Pet sidebar tab to the custom Character window while an active pet is
+  available, matching the Forever client's native sidebar structure.
+- Show the pet model, level, health, power, armor, damage and attack speed.
+  Add an experience bar and hunter happiness indicator with feeding guidance;
+  show loyalty, available training points and diet when the client supplies them.
+- Keep player and pet rotation independent. Update pet data without repeatedly
+  resetting the model; handle pet dismissal during combat without changing
+  protected equipment controls, and return to player stats after combat.
+- Improve four-tab spacing and row pagination for larger fonts. Add full-text
+  tooltips to character detail rows so long values remain readable.
+
 # 0.9.1 - 2026-11-08
 
 - Keep the addon-button tray next to its toggle, with above/below and left/right

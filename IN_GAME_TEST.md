@@ -1,3 +1,16 @@
+## 0.9.2 Character pet tab
+
+1. Update through WoWUp. Summon a hunter pet, open Character and select Pet
+   beside Stats, Gear sets and Titles. Check its model and actual level/stats.
+2. Check experience, happiness, loyalty, training points and diet against the
+   game. Missing data must not create a fake bar or happiness state.
+3. Rotate player and pet separately; switch tabs and confirm both rotations
+   persist. Equipment slots must return on player pages and work as before.
+4. Feed the pet and gain pet experience with Character open. Check updates.
+5. Dismiss/resummon outside combat. Dismiss during combat where allowed and
+   leave combat: return to player stats without blocked actions.
+6. Set large character text; inspect all four tabs, pages and row tooltips.
+
 ## 0.9.1 minimap collector and gear indicators
 
 1. Update in WoWUp and reload. With MinimapButtonButton/MBB active, select

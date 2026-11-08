@@ -66,11 +66,11 @@ end
 function C:SettingsChanged() self:Apply(); self:RefreshSettings() end
 function C:Initialize()
     self.events=CreateFrame("Frame")
-    for _,e in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_REGEN_ENABLED","PLAYER_EQUIPMENT_CHANGED","UNIT_STATS","UNIT_RESISTANCES","UNIT_INVENTORY_CHANGED","EQUIPMENT_SETS_CHANGED","KNOWN_TITLES_UPDATE","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER"}) do FS:RegisterClientEvent(self.events,e) end
+    for _,e in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD","PLAYER_REGEN_ENABLED","PLAYER_EQUIPMENT_CHANGED","UNIT_STATS","UNIT_RESISTANCES","UNIT_INVENTORY_CHANGED","EQUIPMENT_SETS_CHANGED","KNOWN_TITLES_UPDATE","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_POWER_UPDATE","UNIT_MAXPOWER","UNIT_PET","UNIT_NAME_UPDATE","UNIT_MODEL_CHANGED","UNIT_PORTRAIT_UPDATE","UNIT_PET_EXPERIENCE","UNIT_HAPPINESS","PET_UI_UPDATE","PET_STATS_UPDATE"}) do FS:RegisterClientEvent(self.events,e) end
     self.events:SetScript("OnEvent",function(_,event,unit)
         if event=="ADDON_LOADED" or event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_REGEN_ENABLED" then self:InstallHooks(); self:Apply()
         elseif self.root and self.root:IsShown() and FS:IsModuleEnabled(self.name) then
-            if event=="PLAYER_EQUIPMENT_CHANGED" or (event=="UNIT_INVENTORY_CHANGED" and unit=="player") then self.model:SetUnit("player") end
+            if event=="UNIT_PET" or event=="UNIT_MODEL_CHANGED" or event=="UNIT_PORTRAIT_UPDATE" or event=="PLAYER_EQUIPMENT_CHANGED" or (event=="UNIT_INVENTORY_CHANGED" and unit=="player") then self.modelUnit=nil end
             self:RefreshCharacter()
         end
     end)
@@ -81,7 +81,7 @@ function C:CreateSettings(host)
     f:SetSize(892,420); f:SetPoint("TOPLEFT",24,FS.settingsTop); f:SetFrameLevel(host:GetFrameLevel()+30); f:EnableMouse(true)
     H:Button(f,"Back to Control Center",20,-12,220,function() f:Hide() end)
     H:Label(f,"Character Info settings",260,-20,600)
-    H:Label(f,"A custom Character window with six illustrated tabs. Custom equipment slots, stats, titles and equipment sets.",20,-70,850)
+    H:Label(f,"A custom Character window with six illustrated tabs. Equipment slots, stats, titles, equipment sets and an active-pet page with experience and happiness.",20,-70,850)
     H:Button(f,"Move Frames",20,-130,400,function() FS.Layout:Start() end)
     H:Label(f,"Use the Character menu button or your normal Character shortcut to open it.\n\nCharacter, Reputation, Skills, Player vs. Player, Currency and Statistics all share the ForeverSuite style.",20,-190,850)
     f:Hide(); return f

@@ -217,3 +217,61 @@ local previous=GameTooltip.GetItem; GameTooltip.GetItem=function() return 'Item'
 G:Data().tooltips=true; GameTooltip.fsAdvisorLink=nil; GameTooltip.lines={}; G:Tooltip(GameTooltip)
 assert(GameTooltip.lines[2]:find('Gear-Down',1,true) and GameTooltip.lines[2]:find('Downgrade',1,true))
 GameTooltip.GetItem=previous
+
+-- TEST: Active pet character tab shows the pet model and hides player equipment controls
+function CharacterPetFixture()
+    ResetTest(); local FS=ForeverSuite; local C=FS.modules.Character
+    CharacterFrame=CharacterFrame or CreateFrame('Frame','CharacterFrame',UIParent)
+    for _,p in ipairs(C.pages) do _G[p.frame]=_G[p.frame] or CreateFrame('Frame',p.frame,CharacterFrame) end
+    CharacterFrame:Show(); CharacterFrame.activeSubframe='PaperDollFrame'; C.sideMode=1; C.modelUnit=nil
+    TEST.units.pet={name='Crab',health=120,maxHealth=150,power=60,maxPower=100}; TEST.petXP=40; TEST.petNeeded=100; TEST.petMood=3
+    UnitExists=function(unit) return TEST.units[unit]~=nil end
+    UnitName=function(unit) return TEST.units[unit] and TEST.units[unit].name or 'Player' end
+    HasPetUI=function() return UnitExists('pet'),true end
+    UnitLevel=function(unit) return unit=='pet' and 12 or 60 end
+    UnitCreatureFamily=function() return 'Crab' end; UnitArmor=function() return 50,70 end
+    UnitDamage=function() return 10,15 end; UnitAttackSpeed=function() return 2 end
+    GetPetExperience=function() return TEST.petXP,TEST.petNeeded end
+    C_PetInfo={GetPetHappiness=function() return TEST.petMood,125 end,GetPetLoyalty=function() return 'Best Friend' end,
+        GetPetTrainingPoints=function() return 20,6 end,GetPetFoodTypes=function() return {'Fish','Bread'} end}
+    C:Apply(); C.model.SetFacing=function(frame,value) frame.facing=value end
+    return C
+end
+local C=CharacterPetFixture(); assert(C.sideTabs[4]:IsShown()); C.sideTabs[4]:Click()
+assert(C.sideMode==4 and C.model.unit=='pet' and C.petXP:IsShown() and C.petXP.value==40 and C.petXP.maximum==100)
+for _,slot in pairs(C.slots) do assert(not slot:IsShown() and slot:GetAttribute('type2')=='item') end
+local rows=C:PetStats(); local joined=''; for _,r in ipairs(rows) do joined=joined..r.text..'\n' end
+assert(joined:find('Best Friend',1,true) and joined:find('14',1,true) and joined:find('Fish, Bread',1,true))
+
+-- TEST: Returning from pet view restores the player model equipment and independent rotation
+local C=CharacterPetFixture(); C.sideTabs[1]:Click(); C:RotateModel(.35); local playerFacing=C.model.facing
+C.sideTabs[4]:Click(); C:RotateModel(-.7); assert(C.model.facing==-.7)
+C.sideTabs[1]:Click(); assert(C.model.unit=='player' and C.model.facing==playerFacing and not C.petXP:IsShown() and not C.petMood:IsShown())
+for _,slot in pairs(C.slots) do assert(slot:IsShown()) end
+
+-- TEST: Pet experience and happiness events update the open character panel without recreating the model
+local C=CharacterPetFixture(); C.sideTabs[4]:Click(); TEST.petXP=75; TEST.petMood=1
+local original=C.model.SetUnit; local changes=0; C.model.SetUnit=function(...) changes=changes+1; return original(...) end
+C.events.scripts.OnEvent(C.events,'UNIT_PET_EXPERIENCE','pet'); assert(C.petXP.value==75 and C.petMood.icon.atlas=='UI-PetMad' and changes==0)
+C.model.SetUnit=original
+
+-- TEST: Dismissing a pet during combat avoids secure visibility writes and restores the player after combat
+local C=CharacterPetFixture(); C.sideTabs[4]:Click(); TEST.combat=true; TEST.units.pet=nil
+local originals={}; for _,slot in pairs(C.slots) do originals[slot]=slot.SetShown; slot.SetShown=function() error('Secure visibility write in combat') end end
+C.events.scripts.OnEvent(C.events,'UNIT_PET','player'); assert(C.sideMode==4 and not C.petXP:IsShown() and not C.petMood:IsShown())
+for slot,fn in pairs(originals) do slot.SetShown=fn end
+TEST.combat=false; C.events.scripts.OnEvent(C.events,'PLAYER_REGEN_ENABLED'); assert(C.sideMode==1 and C.model.unit=='player' and not C.sideTabs[4]:IsShown())
+
+-- TEST: Unavailable restricted or non hunter pet data never fabricates experience or happiness
+local C=CharacterPetFixture(); C.sideTabs[4]:Click(); TEST.petXP=nil; TEST.petNeeded=nil; TEST.petMood=nil; C:RefreshCharacter()
+assert(not C.petXP:IsShown() and not C.petMood:IsShown())
+HasPetUI=function() return true,false end; TEST.petMood=3; C:RefreshCharacter(); assert(not C.petMood:IsShown())
+local secret={}; local old=issecretvalue; issecretvalue=function(v) return v==secret end; TEST.petXP=secret; TEST.petNeeded=100; C:RefreshCharacter(); assert(not C.petXP:IsShown()); issecretvalue=old
+
+-- TEST: Four character subtabs and pet rows fit large fonts and full row tooltips remain readable
+local C=CharacterPetFixture(); local FS=ForeverSuite; C.sideTabs[4]:Click(); FS.db.typography.modules.Character={size=24,scale=1}; FS.Typography:Apply(); C:RefreshCharacter()
+for _,tab in ipairs(C.sideTabs) do assert(tab:IsShown() and tab.fsLabel:GetHeight()+28<=tab:GetHeight()) end
+for _,row in ipairs(C.rows) do if row:IsShown() then assert(-row.point[3]+row:GetHeight()<352) end end
+assert(C.next:IsEnabled()); C.rows[1].scripts.OnEnter(C.rows[1]); assert(#GameTooltip.lines>0)
+TEST.units.pet=nil; HasPetUI=nil; C_PetInfo=nil; GetPetExperience=nil; UnitCreatureFamily=nil; UnitDamage=nil; UnitAttackSpeed=nil; UnitArmor=nil
+FS.db.typography.modules.Character=nil; FS.Typography:Apply(); C:RefreshCharacter(); assert(not C.sideTabs[4]:IsShown())

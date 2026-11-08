@@ -49,16 +49,17 @@ function C:LayoutText()
     self.side:SetWidth(sideWidth); self.root:SetWidth(width); CharacterFrame:SetWidth(width)
     self.root.close:ClearAllPoints(); self.root.close:SetPoint("TOPRIGHT",-14,-12)
     local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
-    local tabWidth=math.floor((sideWidth-20)/3); local tabsHeight=48
+    local tabCount=self:HasActivePet() and 4 or 3
+    local tabWidth=math.floor((sideWidth-8)/tabCount)-4; local tabsHeight=48
     for i,b in ipairs(self.sideTabs) do
-        b:SetWidth(tabWidth); at(b,6+(i-1)*(tabWidth+4),6)
+        b:SetShown(i<=tabCount); b:SetWidth(tabWidth); at(b,6+(i-1)*(tabWidth+4),6)
         local h=H:TextHeight(b.fsLabel,tabWidth-4,2); b:SetHeight(math.max(48,28+h)); tabsHeight=math.max(tabsHeight,b:GetHeight())
     end
     self.sideHeading:SetWidth(sideWidth-24); at(self.sideHeading,12,tabsHeight+16)
     local headingHeight=H:TextHeight(self.sideHeading,sideWidth-24,2)
-    self.listTop=large and math.max(94,tabsHeight+16+headingHeight+12) or 94
+    self.listTop=math.max(94,tabsHeight+16+headingHeight+12)
     local rowHeight=large and size+16 or 28
-    self.rowsPerPage=large and math.max(1,math.min(9,math.floor((340-self.listTop)/rowHeight))) or 9
+    self.rowsPerPage=math.max(1,math.min(9,math.floor(((large and 340 or 346)-self.listTop)/rowHeight)))
     for i,b in ipairs(self.rows) do b:SetWidth(sideWidth-24); at(b,12,self.listTop+(i-1)*rowHeight); H:TextHeight(b.fsLabel,sideWidth-36,1); b:SetHeight(large and rowHeight-3 or 25) end
     local titleHeight=H:TextHeight(self.root.title,width-90,1)
     at(self.root.level,20,math.max(43,16+titleHeight+8)); local levelHeight=H:TextHeight(self.root.level,width-90,1)
@@ -119,12 +120,13 @@ function C:CreateNavigation()
             b:SetScript("OnLeave",function() GameTooltip:Hide() end); self.slots[slot]=b
         end
     end
-    H:Button(self.character,"Rotate left",78,-342,128,function() if self.model.SetFacing then self.facing=(self.facing or 0)-.35; self.model:SetFacing(self.facing) end end)
-    H:Button(self.character,"Rotate right",220,-342,128,function() if self.model.SetFacing then self.facing=(self.facing or 0)+.35; self.model:SetFacing(self.facing) end end)
+    H:Button(self.character,"Rotate left",78,-342,128,function() self:RotateModel(-.35) end)
+    H:Button(self.character,"Rotate right",220,-342,128,function() self:RotateModel(.35) end)
     self.side=panel(f,456,-72,308,432); self.sideTabs={}
-    for i,entry in ipairs({{"Stats","Statistics"},{"Gear sets","Equipment"},{"Titles","Reputation"}}) do
+    for i,entry in ipairs({{"Stats","Statistics"},{"Gear sets","Equipment"},{"Titles","Reputation"},{"Pet","Friendly"}}) do
         self.sideTabs[i]=self:IconButton(self.side,entry[1],entry[2],6+(i-1)*100,-6,96,function() if InCombatLockdown() then FS:Print("Leave combat to change Character panels."); return end; self.sideMode=i; self.listPage=1; self.confirmAction=nil; self:RefreshCharacter() end)
     end
+    self.sideTabs[4].image:SetTexture('Interface\\Icons\\Ability_Hunter_BeastTaming'); self.sideTabs[4].image:SetTexCoord(0,1,0,1)
     self.sideHeading=label(self.side,"",12,-64,282)
     self.rows={}
     for i=1,9 do

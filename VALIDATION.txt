@@ -1,3 +1,12 @@
+ForeverSuite 0.9.2 - 2026-11-08
+PASS: 30 targeted service scenario groups, including six new Character pet cases.
+PASS: all 330 scenario groups, Lua startup, metadata and artwork checks.
+PASS: six release-pipeline checks; 153-file package CRC and source validation.
+Coverage includes pet visibility, equipment restoration, separate rotation,
+event updates without model resets, combat dismissal, missing/restricted data,
+and large-font layout with full-value tooltips.
+Live pet rendering and client values still require an in-game check via WoWUp.
+
 ForeverSuite 0.9.1 - 2026-11-08
 PASS: all 324 scenario groups, startup, metadata and artwork validation.
 PASS: six release-pipeline checks; 152-file ZIP CRC and source validation.

@@ -64,6 +64,7 @@ function C:DeleteSet()
 end
 function C:RefreshCharacter()
     if not self.root then return end
+    self:RefreshPetView()
     self.root.title:SetText(UnitName("player") or "Character")
     local level=call(UnitLevel,"player"); local class=call(UnitClass,"player")
     self.root.level:SetText((level and H:Safe(level) and "Level "..tostring(level).."  " or "")..(H:Safe(class) and class or ""))
@@ -79,13 +80,15 @@ function C:RefreshCharacter()
         if H:Safe(start) and H:Safe(duration) and type(start)=="number" and type(duration)=="number" and duration>0 then b.cooldown:SetCooldown(start,duration); b.cooldown:Show() end
     end
     local mode=self.sideMode or 1
-    local entries=mode==1 and self:Stats() or mode==2 and self:EquipmentSets() or self:Titles()
+    local entries=mode==1 and self:Stats() or mode==2 and self:EquipmentSets() or mode==4 and self:PetStats() or self:Titles()
     self:LayoutText()
     local perPage=self.rowsPerPage or 9
     local pages=math.max(1,math.ceil(#entries/perPage)); self.listPage=math.min(pages,self.listPage or 1)
-    self.sideHeading:SetText(mode==1 and "Character Stats" or mode==2 and (#entries==0 and "No saved equipment sets yet." or "Select a set, then Equip set.") or "Choose your character title.")
+    self.sideHeading:SetText(mode==1 and "Character Stats" or mode==2 and (#entries==0 and "No saved equipment sets yet." or "Select a set, then Equip set.") or mode==4 and 'Pet details' or "Choose your character title.")
     for i,b in ipairs(self.rows) do
         local entry=i<=perPage and entries[(self.listPage-1)*perPage+i] or nil; b:SetShown(entry~=nil); b:SetText(entry and entry.text or "")
+        b:SetScript('OnEnter',function() if entry then GameTooltip:SetOwner(b,'ANCHOR_RIGHT'); GameTooltip:AddLine(entry.text,1,1,1,true); GameTooltip:Show() end end)
+        b:SetScript('OnLeave',function() GameTooltip:Hide() end)
         b:SetScript("OnClick",function()
             if not entry then return end
             if InCombatLockdown() then FS:Print("Leave combat to change character settings."); return end
