@@ -54,6 +54,8 @@ function I:Create()
     f.preview.chat=H:Label(f.preview,"[Guild] Welcome to ForeverSuite!",18,-66,230)
     f.preview.nameplate=H:Label(f.preview,"Enemy  |  100%",270,-60,190)
     f.preview.waypoint=H:Label(f.preview,"^  Quest destination  |  150 yards",230,-102,300)
+    f.preview.empty=H:Label(f.preview,"All preview modules are off. Enable a module above to see its example.",40,-75,632)
+    f.preview.empty:SetJustifyH("CENTER"); f.preview.empty:SetHeight(80); f.preview.empty:Hide()
     f.preview.health={}
     for index,x in ipairs({18,470}) do
         local bar=f.preview:CreateTexture(nil,"ARTWORK"); bar:SetColorTexture(index==1 and .3 or .8,index==1 and .75 or .15,.22,1)
@@ -110,14 +112,19 @@ function I:Refresh()
     f.design:SetShown(self.step==2); f.preview:SetShown(self.step~=2)
     at(f.design,24,y); f.design.image:SetTexture(FS.Themes:Asset(theme,"Preview"))
     local preview=f.preview
-    preview.player:SetShown(d.modules.UnitFrames); preview.target:SetShown(d.modules.UnitFrames)
-    preview.quest:SetShown(d.modules.Quests); preview.chat:SetShown(d.modules.Chat)
-    preview.nameplate:SetShown(d.modules.Nameplates); preview.waypoint:SetShown(d.modules.Map)
-    for _,bar in ipairs(preview.health) do bar:SetShown(d.modules.UnitFrames) end
+    -- Welcome and text/size examples must work even when live modules are off.
+    -- Only the module-choice page filters the illustration by the staged choices.
+    local function show(name) return self.step~=4 or d.modules[name]==true end
+    preview.player:SetShown(show("UnitFrames")); preview.target:SetShown(show("UnitFrames"))
+    preview.quest:SetShown(show("Quests")); preview.chat:SetShown(show("Chat"))
+    preview.nameplate:SetShown(show("Nameplates")); preview.waypoint:SetShown(show("Map"))
+    for _,bar in ipairs(preview.health) do bar:SetShown(show("UnitFrames")) end
+    local any=false; for _,name in ipairs(modules) do any=any or d.modules[name]==true end
+    preview.empty:SetShown(self.step==4 and not any)
     for _,region in ipairs({preview.player,preview.target,preview.quest,preview.chat,preview.nameplate,preview.waypoint}) do region:SetFont(FS.font,d.preset=='Readable text' and 18 or d.preset=='Compact screen' and 12 or 13,""); region:SetHeight(44) end
     local size=36*d.scale; local gap=d.style=="Floating" and 5 or 2; local width=12*size+11*gap; local x=(712-width)/2
     for index,tile in ipairs(preview.tiles) do
-        tile:SetSize(size,size); at(tile,x+(index-1)*(size+gap),140); tile:SetShown(d.modules.ActionBars)
+        tile:SetSize(size,size); at(tile,x+(index-1)*(size+gap),140); tile:SetShown(show("ActionBars"))
         FS.modules.ActionBars:StyleTile(tile,d.style,true)
         FS.Themes:Register(tile,"Button",theme)
         if tile.styleTexture then tile.styleTexture:Hide() end
@@ -126,7 +133,7 @@ function I:Refresh()
     preview.tray:ClearAllPoints(); preview.tray:SetPoint("TOPLEFT",x-5,-135); preview.tray:SetSize(width+10,size+10)
     preview.tray:SetFrameLevel(preview:GetFrameLevel()+1)
     for _,tile in ipairs(preview.tiles) do tile:SetFrameLevel(preview:GetFrameLevel()+2) end
-    FS.modules.ActionBars:StyleTray(preview.tray,d.style,d.modules.ActionBars)
+    FS.modules.ActionBars:StyleTray(preview.tray,d.style,show("ActionBars"))
     y=y+(self.step==2 and f.design:GetHeight() or preview:GetHeight())+16
     f.patch:SetShown(self.step==1)
     if self.step==1 then at(f.patch,24,y); y=y+H:FitButton(f.patch,2)+14 end

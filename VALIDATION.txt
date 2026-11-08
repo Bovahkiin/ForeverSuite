@@ -1,3 +1,12 @@
+ForeverSuite 0.9.5 - 2026-11-08
+PASS: 48 service groups including three new preview scenarios.
+PASS: all 348 scenarios, Lua startup, metadata and artwork checks.
+PASS: six release-pipeline checks; 153-file package CRC and source validation.
+Reproduces empty step 3 with all modules disabled; validates fixed Welcome,
+preset visibility, all ten style paths, module-choice empty state and draft
+navigation without applying presets or enabling live modules.
+Actual client preview rendering still needs confirmation via WoWUp.
+
 ForeverSuite 0.9.4 - 2026-11-08
 PASS: 45 service groups including seven new layout/control scenarios.
 PASS: all 345 scenarios, Lua startup, metadata and artwork checks.

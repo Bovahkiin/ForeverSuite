@@ -1,3 +1,13 @@
+# 0.9.5 - 2026-11-08
+
+- Keep Welcome and text/size preview examples visible independently of live
+  module enabled flags. Disabling modules no longer empties the preset preview.
+- Only the module-choice page filters examples by staged module choices.
+  Explain the empty preview when all module choices are off.
+- Preserve draft selections while moving between steps. All ten style images,
+  bar-size previews and text presets remain available with live modules off;
+  previewing never enables those modules or writes the staged preset.
+
 # 0.9.4 - 2026-11-08
 
 - Add Save and Save & close to Move Frames. Store the current layout in the

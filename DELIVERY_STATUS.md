@@ -1,4 +1,10 @@
-# Current patch - 0.9.4
+# Current patch - 0.9.5
+
+Fix blank guided setup previews when live modules are disabled. Separate the
+illustrative Welcome/text examples from the staged module-choice preview.
+Publish via GitHub after full checks; no installed game files are changed.
+
+# Patch - 0.9.4
 
 Explicit Move Frames saving, a Control Center bulk-disable action and reliable
 Enabled/Disabled captions. Preserve layouts, customization and undo behavior.

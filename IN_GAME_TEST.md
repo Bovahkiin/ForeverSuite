@@ -1,3 +1,14 @@
+## 0.9.5 Guided setup previews
+
+1. Disable all modules in Control Center, then open Guided setup. Welcome
+   and step 3 must still show example player/target bars, text and action icons.
+2. On step 2, choose each of the ten styles. Check the design image, then
+   step 3 bar-size and text presets. Live modules must remain disabled.
+3. Step 4: with all choices off, check the explanatory message. Enable one
+   draft module: its example appears, other examples stay hidden and the live
+   module stays off. Navigate back/forward and check draft choices persist.
+4. Cancel or Set up later: live module settings must remain unchanged.
+
 ## 0.9.4 Save layout and module controls
 
 1. Move and resize frames. Click Save: editor stays open and the active profile

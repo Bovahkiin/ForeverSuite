@@ -8,20 +8,16 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.9.4 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.9.5 · **Client:** WoW Forever · **Interface:** 16001
 
-## New in 0.9.4
+## New in 0.9.5
 
-- **Move Frames:** Save keeps the editor open and stores the layout in your
-  current profile. Save & close also returns to Control Center. Cancel reverts
-  edits made since entering the editor or your most recent Save.
-- **Disable all modules:** one Control Center button turns off modules on all
-  pages, preserving their settings. Undo last setting restores the previous
-  module choices; individual cards remain available.
-- Module buttons update their visible Enabled/Disabled caption immediately
-  and follow changes made elsewhere. The mover toolbar adapts to larger text
-  and narrow screens. Bulk disabling and saving are blocked during combat
-  or active vendor actions.
+- **Guided setup previews:** Welcome and text/size examples stay visible even
+  when the actual modules are disabled. Previewing never enables live modules.
+- The module-choice page still follows your staged module selections. When
+  all choices are off, a message explains how to show an example.
+- Includes explicit Move Frames Save, bulk module disabling and reliable
+  Enabled/Disabled captions from 0.9.4.
 
 ## Features
 
@@ -164,7 +160,7 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **345 offline scenarios**, Lua startup,
+The current development checks cover **348 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
 every aspect of the game. In version 0.8.5, the author has confirmed that layout
 restoration survives reload and that combat and logout no longer produce the

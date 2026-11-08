@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.4",lines={"Move Frames now has Save and Save & close. Your layout is stored in the current profile; Cancel reverts edits after the latest save.","Disable all modules in Control Center turns off every module page while keeping settings. Undo last setting restores your previous choices.","Enabled/Disabled captions now update directly and stay synchronized with module state changes.","The mover toolbar fits larger text and narrow screens. Layout saves and bulk disabling wait until combat and vendor actions are finished."}},
+    {version="0.9.5",lines={"Guided setup: Welcome and text/size previews stay visible even when live modules are disabled.","Only the module-choice page hides examples for disabled choices. An explanatory message appears when all choices are off.","All ten styles and text/size examples remain available without enabling live modules or applying draft settings.","Includes Move Frames Save, Disable all modules and updated Enabled/Disabled captions from 0.9.4."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

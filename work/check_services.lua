@@ -395,3 +395,37 @@ local ok=pcall(FS.SetModuleEnabled,FS,'Chat',false); assert(not ok and b.fsLabel
 C.SettingsChanged=refresh; FS:SetModuleEnabled('Chat',true)
 FS.db.loot.enabled=false; f.scripts.OnUpdate(f,.25); assert(f.cards.Loot.toggle.fsLabel:GetText()=='Disabled')
 FS:SetModuleEnabled('Loot',true)
+
+-- TEST: Welcome and text size previews stay populated with every live module disabled
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:DisableAllModules(); local I=FS.Installer
+I:Show(); local f=I.window
+for _,step in ipairs({1,3}) do
+    I.step=step; I:Refresh()
+    for _,r in ipairs({f.preview.player,f.preview.target,f.preview.quest,f.preview.chat,f.preview.nameplate,f.preview.waypoint,f.preview.health[1],f.preview.health[2],f.preview.tiles[1]}) do assert(r:IsShown()) end
+    assert(not f.preview.empty:IsShown())
+end
+f.choices[3]:Click(); assert(f.preview.tiles[1]:GetWidth()==36*1.2)
+f.choices[4]:Click(); assert(f.preview.player.font[2]==18 and FS.db.typography.global.size==0)
+for _,name in ipairs(FS.window.moduleOrder) do assert(not FS:IsModuleEnabled(name),name) end
+f:Hide()
+
+-- TEST: Module selection previews honor staged choices and explain the all off state without mutating live modules
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:DisableAllModules(); local I=FS.Installer; I:Show(); I.step=4; I:Refresh(); local f=I.window
+assert(f.preview.empty:IsShown() and not f.preview.player:IsShown() and not f.preview.tiles[1]:IsShown())
+f.choices[2]:Click(); assert(I.draft.modules.UnitFrames and f.preview.player:IsShown() and not f.preview.empty:IsShown())
+assert(not f.preview.quest:IsShown() and not FS:IsModuleEnabled('UnitFrames'))
+f.previous:Click(); assert(I.step==3 and f.preview.quest:IsShown() and f.preview.tiles[1]:IsShown())
+f.next:Click(); assert(I.step==4 and f.preview.player:IsShown() and not f.preview.quest:IsShown() and not I.draft.modules.Quests)
+f:Hide()
+
+-- TEST: All ten style images and preset previews remain available while live modules stay off
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:DisableAllModules(); local I=FS.Installer; I:Show(); local f=I.window
+I.step=2; I:Refresh()
+for i,name in ipairs(FS.Themes.names) do
+    f.choices[i]:Click(); assert(f.design:IsShown() and f.design.image.texture==FS.Themes:Asset(i,'Preview'))
+    f.next:Click(); assert(I.step==3 and f.preview.player:IsShown() and f.preview.tiles[1]:IsShown())
+    f.choices[5]:Click(); assert(f.preview.player.font[2]==12 and not FS.db.setup.completed)
+    f.previous:Click()
+end
+for _,name in ipairs(FS.window.moduleOrder) do assert(not FS:IsModuleEnabled(name),name) end
+f:Hide()
