@@ -1,3 +1,18 @@
+# 0.9.0 - 2026-11-08
+
+- Add a themed Mail module with searchable inbox, readable letters, expiry
+  display and selected/all collection of attachments and money. Collection
+  waits for server updates, skips COD/GM mail, and stops on full bags or errors.
+- Add an Addon Buttons module: one minimap tray, adjustable icon size/spacing
+  and columns, per-button exclusions, original click/tooltip behavior and
+  restoration when disabled. Protected native controls remain unchanged.
+- Add Gear Advisor with automatic class starter guides, simple build-role
+  choices, bag comparisons, tooltip scores and optional custom stat weights.
+  Advice works without editing weights. Estimates do not simulate procs,
+  set bonuses or special Forever effects; verify equip requirements yourself.
+- All three modules have their own dashboard cards, themed settings, profile
+  support and shared typography. Existing combat fixes are retained.
+
 # 0.8.13 - 2026-11-08
 
 - Stop repeated nameplate aura errors when the client restricts aura access.

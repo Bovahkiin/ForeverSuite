@@ -15,6 +15,7 @@ Thumbs.db
 !/work/check_native_chrome.lua
 !/work/check_extensions.lua
 !/work/check_systems.lua
+!/work/check_services.lua
 !/work/package_release.py
 !/work/build_github_release.py
 !/work/check_release_pipeline.py

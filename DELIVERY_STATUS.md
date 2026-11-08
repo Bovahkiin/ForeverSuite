@@ -1,4 +1,10 @@
-# Current patch - 0.8.13
+# Current patch - 0.9.0
+
+Three new themed modules: Mail, Addon Buttons and Gear Advisor.
+Beginner class advice is automatic; custom weights are optional.
+Full-suite and package validation gate the GitHub release.
+
+# Patch - 0.8.13
 
 Fix the four error signatures captured in the local General.log.
 Regression tests and release validation run before distribution.

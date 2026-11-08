@@ -6,6 +6,7 @@ FS.moduleCardColors = {
     UnitFrames={.20,.80,.65}, ActionBars={.22,.52,1.00}, Nameplates={.95,.30,.30},
     Character={.92,.80,.46}, Profiles={.40,.65,.90},
     Workbench={.43,.75,.88},
+    Mail={.88,.69,.36}, MinimapButtons={.28,.84,.96}, GearAdvisor={.71,.87,.49},
     Map={.46,.78,.29}, Quests={.98,.86,.22}, Loot={1.00,.46,.17}, Buffs={.14,.88,.78},
     Cooldowns={.91,.39,.78}, Combat={1.00,.38,.49}, Professions={.77,.56,.38}, AuctionHouse={.74,.90,.23},
     Social={.70,.63,1.00}, Chat={.91,.73,.90}, Guild={.38,.74,.58}, QoL={.98,.58,.72}, Bank={.52,.90,.70}, Bindings={.70,.79,.88},
@@ -143,6 +144,9 @@ function FS:CreateConfigWindow()
         {"QoL","Leveling & QoL","Level progress and convenient tools","INV_Misc_Book_11"},
         {"Bank","Bank","Grouped bank items and search","INV_Misc_Bag_10"},
         {"Bindings","Key Bindings","Choose keys for action, stance and pet bars","INV_Misc_Gear_01"},
+        {"Mail","Mail","Read mail and collect attachments or money","INV_Letter_15"},
+        {"MinimapButtons","Addon Buttons","Collect minimap addon buttons in one tray","INV_Misc_EngGizmos_17"},
+        {"GearAdvisor","Gear Advisor","Compare equipment with customizable stat weights","INV_Chest_Chain_05"},
     }
     for _,d in ipairs(additions) do modules[#modules+1]={name=d[1],title=d[2],detail=d[3],icon="Interface\\Icons\\"..d[4]} end
     frame.cardCount=#modules; frame.cardPage=1; frame.moduleOrder={}

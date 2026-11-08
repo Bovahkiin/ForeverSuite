@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.8.13",lines={"Fix repeated nameplate aura errors when data is restricted.","Ignore unsupported target-of-target nameplate events.","Fix secret-size decorative border errors and settings layout errors."}},
+    {version="0.9.0",lines={"Mail: themed inbox, search, letters and selected/all attachment and money collection. COD and GM mail stay manual.","Addon Buttons: one minimap tray with adjustable icons, exclusions and original addon clicks.","Gear Advisor: automatic class beginner guides, build-role choices, tooltip scores and optional custom weights.","Starter scores are estimates. Check equip requirements, special effects and set bonuses yourself."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

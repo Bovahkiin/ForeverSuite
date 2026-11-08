@@ -41,7 +41,7 @@ for _,name in ipairs({'Map','Quests','Loot','Buffs','Cooldowns','Combat','Profes
     FS:SetModuleEnabled(name,false); assert((not M.window or not M.window:IsShown()) and not FS:IsModuleEnabled(name))
     FS:SetModuleEnabled(name,true)
 end
-FS:ShowConfig(); local f=FS.window; assert(f.cardCount==21)
+FS:ShowConfig(); local f=FS.window; assert(f.cardCount==24)
 f.nextModules:Click(); assert(f.cardPage==2 and f.cards.Quests.card:IsShown() and not f.cards.Bags.card:IsShown())
 f.nextModules:Click(); assert(f.cardPage==3 and f.cards.Bank.card:IsShown())
 f.previousModules:Click(); f.previousModules:Click(); assert(f.cardPage==1)
@@ -741,7 +741,7 @@ C_FriendList,GetNumGuildMembers,GetGuildRosterInfo,GetGuildInfo,ChatFrame_SendTe
 
 -- TEST: Fixed profile controls remain visible on every module page and save update switch without a separate card
 ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles; FS:ShowConfig(); local f=FS.window; local bar=f.profiles
-assert(bar==P.bar and not f.cards.Profiles and f.cardCount==21)
+assert(bar==P.bar and not f.cards.Profiles and f.cardCount==24)
 for page=1,3 do f.cardPage=page; FS:RefreshConfig(); assert(bar:IsShown()) end
 FS:ConfigureModule('Chat'); assert(bar:IsShown() and FS.modules.Chat.settings:IsShown() and FS.modules.Chat.settings.point[1]=='CENTER' and FS.modules.Chat.settings.point[2]==UIParent)
 assert(-bar.point[3]+bar:GetHeight()<176 and -FS.settingsTop+420<f:GetHeight()-44)

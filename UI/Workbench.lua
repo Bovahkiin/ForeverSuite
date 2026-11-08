@@ -96,7 +96,7 @@ function E:Form(title,fields,save)
     f:SetHeight(y+height+24); f:SetScale(math.min(1,(UIParent:GetWidth()-32)/720,(UIParent:GetHeight()-32)/f:GetHeight()))
     FS:CloseOtherWindows(f); f:Show(); return f
 end
-function E:TextDialog(title,text,readOnly,validate,apply)
+function E:TextDialog(title,text,readOnly,validate,apply,onReturn)
     if not self:Allowed() then return end
     local f=self.dialog
     if not f then
@@ -121,9 +121,10 @@ function E:TextDialog(title,text,readOnly,validate,apply)
         end)
         f.apply=H:Button(f,FS.Text.apply,274,-520,210,function()
             if not E:Allowed() then f.status:SetText(FS.Text.leaveCombat); return end
-            if f.candidate and f.applyAction and f.applyAction(f.candidate) then f:Hide(); W:ShowWindow() end
+            local returnAction=f.returnAction
+            if f.candidate and f.applyAction and f.applyAction(f.candidate) then f:Hide(); if returnAction then returnAction() else W:ShowWindow() end end
         end)
-        f.cancel=H:Button(f,FS.Text.cancel,524,-520,210,function() f:Hide(); W:ShowWindow() end)
+        f.cancel=H:Button(f,FS.Text.cancel,524,-520,210,function() local returnAction=f.returnAction; f:Hide(); if returnAction then returnAction() else W:ShowWindow() end end)
         edit:SetScript('OnTextChanged',function() f:ResizeText(); if not f.readOnly then f.candidate=nil; f.apply:SetEnabled(false) end end)
         function f:Layout()
             self.scrollTop=math.max(60,20+H:TextHeight(self.heading,712,2)+12); self.scroll:ClearAllPoints(); self.scroll:SetPoint('TOPLEFT',24,-self.scrollTop)
@@ -132,9 +133,9 @@ function E:TextDialog(title,text,readOnly,validate,apply)
             for i,button in ipairs({self.preview,self.apply,self.cancel}) do button:ClearAllPoints(); button:SetPoint('TOPLEFT',({24,274,524})[i],-y); height=math.max(height,H:FitButton(button,2)) end
             self:SetHeight(y+height+24); self:SetScale(math.min(1,(UIParent:GetWidth()-32)/760,(UIParent:GetHeight()-32)/self:GetHeight()))
         end
-        f:SetScript('OnHide',function() f.candidate=nil; f.validate=nil; f.applyAction=nil end); UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteTextDialog'
+        f:SetScript('OnHide',function() f.candidate=nil; f.validate=nil; f.applyAction=nil; f.returnAction=nil end); UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteTextDialog'
     end
-    f:Hide(); H:Skin(f); FS:FontTree(f); f.readOnly=readOnly; f.validate=validate; f.applyAction=apply; f.candidate=nil
+    f:Hide(); H:Skin(f); f.fsFontModule=W.activeOwner or 'Workbench'; FS:FontTree(f); f.readOnly=readOnly; f.validate=validate; f.applyAction=apply; f.returnAction=onReturn; f.candidate=nil
     f:SetBackdropBorderColor(unpack(FS.moduleCardColors[W.activeOwner] or {.12,.72,.86})); f.heading:SetText(title); f.edit:SetText(text or '')
     f.status:SetText(readOnly and 'Select all, then Ctrl+C to copy. This window does not send messages.' or 'Paste a ForeverSuite export, then Preview before applying.')
     f.preview:SetText(readOnly and 'Select all' or FS.Text.preview); f.apply:SetShown(not readOnly); f.apply:SetEnabled(false); f.cancel:SetText(readOnly and FS.Text.close or FS.Text.cancel)

@@ -1,3 +1,15 @@
+ForeverSuite 0.9.0 - 2026-11-08
+PASS: all 317 scenario groups, 70-file Lua startup, artwork and metadata checks.
+PASS: six release-pipeline tests; 150-file package CRC and source validation.
+17 new service scenario groups; syntax/startup covers 70 Lua files.
+The full 317-scenario suite, artwork and release pipeline run before publishing.
+The mailbox tests model delayed replies, skipped COD/GM, filtering, shifted
+indexes, cancellation, bag space and stalled replies. Minimap tests preserve
+callbacks and restore geometry; advisor tests cover all class guides, role
+changes, custom weights, item comparisons, unavailable stats and profile data.
+Live mailbox hardware actions and third-party minimap layout need an in-game
+check after updating via WoWUp. No direct game-folder installation.
+
 ForeverSuite 0.8.13 - 2026-11-08
 PASS: all 300 scenario groups, Lua startup, metadata and artwork checks.
 PASS: six release-pipeline tests; 147-file release ZIP CRC and source validation.

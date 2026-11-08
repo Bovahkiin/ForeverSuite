@@ -2,6 +2,7 @@ local _,FS=...
 local S,H=FS.Style,FS.HUD
 local N={windows={},art={},fonts={},controls={},bars={},progress={},geometry={},plainControls=setmetatable({},{__mode="k"})}; FS.NativeWindows=N
 N.definitions={
+    {"MailFrame","Mail","Social","Mailbox","styleWindow"},
     {"FriendsFrame","Social","Social","Contacts","styleContacts"}, {"ContactsFrame","Social","Social","Contacts","styleContacts"},
     {"ProfessionsBookFrame","Professions","Professions","Professions"},
     {"ProfessionsFrame","Professions","Professions","Professions"}, {"TradeSkillFrame","Professions","Professions","Crafting"}, {"CraftFrame","Professions","Professions","Crafting"},

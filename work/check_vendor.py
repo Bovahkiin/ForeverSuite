@@ -77,6 +77,7 @@ function M:SetHeight(h) self.h = h end
 function M:GetWidth() return self.w or 140 end
 function M:GetHeight() return self.h or 140 end
 function M:GetFrameLevel() return self.frameLevel or 1 end
+function M:GetFrameStrata() return self.frameStrata or 'MEDIUM' end
 function M:GetName() return self.name end
 function M:GetScale() return self.frameScale or (type(self.scale)=="number" and self.scale) or 1 end
 function M:GetAlpha() return self.alpha or 1 end
@@ -179,6 +180,7 @@ function M:GetFontString() return self.fontString end
 function M:SetBackdropBorderColor(...) self.border={...} end
 function M:SetBackdropColor(...) self.backdropColor={...} end
 function M:SetColorTexture(...) self.color={...} end
+function M:SetFrameStrata(value) self.frameStrata=value end
 function M:SetAllPoints(...) self.allPoints={...} end
 function CreateFrame(kind,name,parent,template)
     local f = setmetatable({name=name,kind=kind,template=template,attributes={},scripts={},events={},shown=true,parent=parent,lines={}}, {
@@ -1426,6 +1428,10 @@ for section in Path('work/check_extensions.lua').read_text().split('-- TEST: ')[
     checks[title] = 'do\n' + script + '\nend'
 
 for section in Path('work/check_systems.lua').read_text().split('-- TEST: ')[1:]:
+    title, script = section.split('\n', 1)
+    checks[title] = 'do\n' + script + '\nend'
+
+for section in Path('work/check_services.lua').read_text().split('-- TEST: ')[1:]:
     title, script = section.split('\n', 1)
     checks[title] = 'do\n' + script + '\nend'
 

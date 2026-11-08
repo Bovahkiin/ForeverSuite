@@ -2,6 +2,8 @@ local _, FS = ...
 function FS:UpdateMinimapButton()
     local button = self.minimapButton
     if not button then return end
+    local collector=self.modules.MinimapButtons
+    if collector and collector.collected[button] then button:SetShown(self.db.minimap.show); return end
     local angle = math.rad(self.db.minimap.angle)
     local radius = math.max(Minimap:GetWidth(), Minimap:GetHeight()) / 2 + 8
     button:ClearAllPoints()

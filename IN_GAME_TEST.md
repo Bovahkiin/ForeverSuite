@@ -1,3 +1,17 @@
+## 0.9.0 Mail, Addon Buttons and Gear Advisor
+
+1. Update through WoWUp. Check the three new cards on the last dashboard page.
+2. At a mailbox: search, read a letter, collect one mail, collect matching mail,
+   and cancel the queue. Test money-only/items-only settings and full bags.
+   COD/GM mail must remain manual; no mail is sent, deleted or returned.
+3. Open the minimap tray and use original addon left/right clicks and tooltips.
+   Change columns/size, exclude a button, then disable the module and check
+   that its original position, size and parent return. Check combat handling.
+4. In Gear Advisor leave Auto selected. Check your class guide, choose your
+   build role, inspect a bag upgrade and its tooltip. Compare rings and weapon
+   setups manually. Test missing item data without false upgrade claims.
+5. Save/reload profiles, change themes and maximum font size in all three.
+
 ## 0.8.13 repeated Lua errors
 
 1. Update through WoWUp and reload outside combat.

@@ -8,7 +8,22 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.8.13 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.9.0 · **Client:** WoW Forever · **Interface:** 16001
+
+## New in 0.9.0
+
+- **Mail:** open a mailbox to use themed inbox tools, search letters and collect
+  money/items. COD and GM mail are never collected automatically. Sending,
+  deleting and returning mail stay with the game's normal controls.
+- **Addon Buttons:** click the new minimap tray icon for your addon buttons.
+  Open its module to exclude icons or change size, spacing and column count.
+  Recognized addon buttons are collected; secure/native controls are excluded.
+- **Gear Advisor:** automatic beginner stat guides for each class, with role
+  choices for hybrids. Start with **Auto** and **Class default**, then choose
+  **Class guide** for plain-language help. Custom weights are optional.
+  Scores compare item stats, not actual DPS: equip requirements, procs, sockets
+  and set effects still need manual judgement. Custom scale text uses entries
+  such as `Agility=2, Stamina=0.2`; this is not a Pawn scale importer.
 
 ## Features
 
@@ -151,7 +166,7 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **300 offline scenarios**, Lua startup,
+The current development checks cover **317 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
 every aspect of the game. In version 0.8.5, the author has confirmed that layout
 restoration survives reload and that combat and logout no longer produce the
