@@ -1,4 +1,19 @@
-# Current patch - 0.8.10
+# Current patch - 0.8.12
+
+Feed Pet takes priority over inventory options and targets the clicked stack.
+Hunter pets display the client's real happiness icon and a feeding/diet tooltip.
+The compact pet placement from 0.8.11 is included. Custom placements persist.
+Local targeted checks pass; the GitHub release workflow gates publication on
+the full suite. Distribution uses GitHub releases; the local game is not changed.
+
+# Patch - 0.8.11
+
+The default pet frame is smaller and follows the player's frame below it.
+Saved custom pet positions/scales remain independent. No SavedVariables file
+is edited; the new default applies whenever no custom pet placement exists.
+Protected changes wait until combat ends. See VALIDATION.txt for checks.
+
+# Patch - 0.8.10
 
 Adds pet/level information, profile text persistence hardening, matching bag art,
 supported addon-system choices, manual item sales and native-window corrections.

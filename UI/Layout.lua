@@ -38,6 +38,7 @@ function L:Apply(id)
     self.applying=true
     f:SetScale(scale); f:ClearAllPoints(); f:SetPoint("CENTER",UIParent,"BOTTOM",offsetX,offsetY)
     self.applying=false
+    if id=="Unit:player" then FS.modules.UnitFrames:ApplyPetDefault() end
 end
 function L:ConstrainSaved(id)
     local target=self.targets[id]; local saved=FS.db.layout.frames[id]
@@ -49,7 +50,10 @@ function L:ConstrainSaved(id)
     saved.x=math.max(-UIParent:GetWidth()/2+halfWidth,math.min(UIParent:GetWidth()/2-halfWidth,saved.x))
     saved.y=math.max(halfHeight,math.min(UIParent:GetHeight()-halfHeight,saved.y))
 end
-function L:ApplyAll() for id in pairs(self.targets) do self:Apply(id) end end
+function L:ApplyAll()
+    for id in pairs(self.targets) do self:Apply(id) end
+    FS.modules.UnitFrames:ApplyPetDefault()
+end
 -- Only move our own menu, never the game's meter or protected action bars.
 function L:AvoidMeterOverlap()
     if self.active or self.applying or InCombatLockdown() or not FS.db or not FS:IsModuleEnabled("ActionBars") or not FS.db.actionBars.menu then return end

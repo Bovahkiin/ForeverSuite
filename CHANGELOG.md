@@ -1,3 +1,28 @@
+# 0.8.12 - 2026-11-08
+
+- Fix Feed Pet: left-clicking a bag item with an active item-targeting spell
+  now targets that exact stack instead of opening Item Options. WoW validates
+  food suitability and reports invalid targets. Ordinary item clicks are unchanged.
+- Revalidate item identity/locks and preserve vendor, cursor and combat guards;
+  never fall through to equipping, selling or picking up an invalid spell target.
+- Add the real hunter-pet happiness indicator: green Happy, yellow Content,
+  red Unhappy, with feeding advice, readable damage modifier and food types in
+  the tooltip. Hide unavailable/restricted data and non-hunter pet happiness.
+- Retain the smaller pet frame (75% of the player's scale) beneath the player
+  by default, while preserving custom pet placement and size.
+- Add an optional direct-publish checkbox to the GitHub release button. The
+  default remains a draft; direct publishing only occurs after all checks pass.
+
+# 0.8.11 - 2026-11-08
+
+- Make the default pet frame 75% of the player's frame size and align it
+  below the player's frame, leaving room for the player cast bar.
+- Follow the player's moved/resized frame while the pet uses default placement.
+- Preserve explicit Move Frames pet positions and sizes and legacy custom
+  coordinates. Independent pet movement continues to work.
+- Keep protected placement changes outside combat. Add three regressions for
+  following the player, persisted custom placement and combat deferral.
+
 # 0.8.10 - 2026-11-08
 
 - Add a movable, optional pet unit frame with name, portrait, level, health,

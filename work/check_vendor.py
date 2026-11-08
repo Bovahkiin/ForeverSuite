@@ -96,6 +96,8 @@ function M:SetMinMaxValues(lo,hi) self.minimum,self.maximum=lo,hi end
 function M:SetValue(value) self.value=value end
 function M:SetReverseFill(value) self.reverse=value end
 function M:SetTexCoord(...) self.coords={...} end
+function M:SetAtlas(atlas) self.atlas=atlas end
+function M:GetAtlas() return self.atlas end
 function M:GetTexCoord() return unpack(self.coords or {0,1,0,1}) end
 function M:SetUnit(unit) self.unit=unit end
 function M:SetFrameLevel(v) self.frameLevel = v end
@@ -308,6 +310,14 @@ function C_Container.PickupContainerItem(bag,slot)
 end
 function C_Container.UseContainerItem(bag,slot)
     local item = TEST.bags[bag][slot]
+    if TEST.targeting then
+        TEST.actions[#TEST.actions+1]={kind='spell-target',bag=bag,slot=slot,id=item.itemID}
+        if TEST.data[item.itemID].petFood then
+            item.stackCount=item.stackCount-1; if item.stackCount==0 then TEST.bags[bag][slot]=nil end
+            TEST.targeting=false
+        end
+        return
+    end
     if not MerchantFrame:IsShown() then
         local data=TEST.data[item.itemID]
         assert(data.equippable, 'Only equipment uses the direct container route away from merchants')

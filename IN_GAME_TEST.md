@@ -1,3 +1,25 @@
+## 0.8.12 hunter feeding and happiness
+
+1. Update through WoWUp and reload outside combat. Summon your hunter pet and
+   check its happiness icon and tooltip. Compare it with the native pet sheet.
+2. Activate Feed Pet, then left-click suitable food in ForeverSuite inventory.
+   Only that stack should be used; Item Options must not open.
+3. Try unsuitable food: the client should explain the failure and the addon
+   must not eat, equip, pick up or sell that item. Cancel the spell normally.
+4. Feed the pet and check that its happiness icon updates. Dismiss and summon
+   pets, and check that warlock pets do not receive a hunter happiness badge.
+5. Verify ordinary left-click options, right-click use/equip, BoE confirmation
+   and manual vendor sales still work. Check combat and saved pet positions.
+
+## 0.8.11 compact pet placement
+
+1. Reload outside combat and summon a pet. With default pet placement, it should
+   appear smaller and left-aligned below your actual player frame.
+2. Move and resize the player frame: the default pet should follow beneath it.
+3. Move/resize the pet separately, reload and check that choice remains saved.
+4. Enter combat, dismiss/summon a pet where possible and verify there are no
+   blocked layout actions. Settings changes should apply after combat ends.
+
 ## 0.8.10 verification
 
 1. /reload after installing. Check player/target/focus levels; summon, dismiss,

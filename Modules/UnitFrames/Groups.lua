@@ -1,5 +1,60 @@
 local _,FS=...
 local U,H=FS.modules.UnitFrames,FS.HUD
+local moods={
+    [1]={atlas="UI-PetMad",title="Unhappy",note="Feed your pet suitable food to improve its happiness."},
+    [2]={atlas="UI-PetNeutral",title="Content",note="Feeding can improve your pet's happiness."},
+    [3]={atlas="UI-PetHappiness",title="Happy",note="Your pet is happy. It does not need more food right now."},
+}
+function U:CreatePetHappiness(f)
+    local badge=CreateFrame("Frame",nil,f); f.happiness=badge
+    badge:SetSize(22,22); badge:SetPoint("BOTTOMRIGHT",f.portrait,"BOTTOMRIGHT",2,-2)
+    badge:SetFrameLevel(f:GetFrameLevel()+4); badge:EnableMouse(true)
+    if badge.SetMouseClickEnabled then badge:SetMouseClickEnabled(false) end
+    badge.icon=badge:CreateTexture(nil,"OVERLAY"); badge.icon:SetAllPoints()
+    badge:SetScript("OnEnter",function(b) self:PetHappinessTooltip(b) end)
+    badge:SetScript("OnLeave",function() GameTooltip:Hide() end)
+    badge:Hide()
+end
+function U:RefreshPetHappiness()
+    local badge=self.frames.pet and self.frames.pet.happiness; if not badge then return end
+    local get=C_PetInfo and C_PetInfo.GetPetHappiness or GetPetHappiness
+    local happiness,damage=FS.Tools:Call(get)
+    local _,hunter=FS.Tools:Call(HasPetUI)
+    if not UnitExists("pet") or (HasPetUI and (not H:Safe(hunter) or not hunter))
+        or not H:Safe(happiness) or type(happiness)~="number" or not moods[happiness] then
+        badge.mood=nil; badge.damage=nil; badge:Hide(); return
+    end
+    badge.mood=happiness; badge.damage=FS.Tools:Number(damage) and damage or nil
+    badge.icon:SetAtlas(moods[happiness].atlas); badge:Show()
+end
+function U:PetHappinessTooltip(badge)
+    self:RefreshPetHappiness(); local mood=badge.mood and moods[badge.mood]; if not mood then return end
+    GameTooltip:SetOwner(badge,"ANCHOR_RIGHT")
+    GameTooltip:AddLine(_G["PET_HAPPINESS"..badge.mood] or mood.title)
+    GameTooltip:AddLine(mood.note,1,1,1,true)
+    if badge.damage then GameTooltip:AddLine("Pet damage: "..H:Number(badge.damage).."%",1,1,1) end
+    local get=C_PetInfo and C_PetInfo.GetPetFoodTypes or GetPetFoodTypes
+    local diet=FS.Tools:Call(get); local names={}
+    if type(diet)=="table" then for _,food in ipairs(diet) do
+        if H:Safe(food) and type(food)=="string" then names[#names+1]=food end
+    end end
+    if #names>0 then GameTooltip:AddLine("Diet: "..table.concat(names,", "),1,1,1,true) end
+    GameTooltip:Show()
+end
+function U:ApplyPetDefault()
+    if InCombatLockdown() or not FS.db then return end
+    local pet,player=self.frames.pet,self.frames.player
+    local position=FS.db.unitFrames.pet
+    -- A saved mover placement (including its scale) always wins. Keep legacy
+    -- hand-positioned pets too; only the original default follows the player.
+    if not pet or not player or FS.db.layout.frames["Unit:pet"] or position.x~=-430 or position.y~=150 then return end
+    local scale=player:GetScale()*.75
+    pet:SetScale(scale)
+    local point,relative,anchor,x,y=pet:GetPoint()
+    if pet:GetNumPoints()~=1 or point~="TOPLEFT" or relative~=player or anchor~="BOTTOMLEFT" or x~=0 or y~=-36 then
+        pet:ClearAllPoints(); pet:SetPoint("TOPLEFT",player,"BOTTOMLEFT",0,-36)
+    end
+end
 function U:CreateGroup(kind,count)
     self.groups=self.groups or {}
     if self.groups[kind] then return end
@@ -50,6 +105,7 @@ function U:SettingsChanged()
         if enabled then RegisterStateDriver(header,"visibility",kind=="party" and "[group:raid] hide; [group:party] show; hide" or "[group:raid] show; hide")
         else if UnregisterStateDriver then UnregisterStateDriver(header,"visibility") end; header:Hide() end
     end
+    self:ApplyPetDefault()
     self:Native(self.active); self:RefreshSettings(); FS.Layout:Collect(); FS.Layout:ApplyAll()
 end
 local oldNative=U.Native
@@ -80,9 +136,11 @@ local oldInitialize=U.Initialize
 function U:Initialize()
     oldInitialize(self)
     FS:RegisterClientEvent(self.events,"GROUP_ROSTER_UPDATE"); FS:RegisterClientEvent(self.events,"PLAYER_FOCUS_CHANGED")
+    FS:RegisterClientEvent(self.events,"UNIT_HAPPINESS"); FS:RegisterClientEvent(self.events,"PET_UI_UPDATE")
     local original=self.events:GetScript("OnEvent")
     self.events:SetScript("OnEvent",function(frame,event,unit)
-        if event=="UNIT_PET" and unit=="player" then self:RefreshUnit("pet")
+        if event=="UNIT_HAPPINESS" or event=="PET_UI_UPDATE" then self:RefreshPetHappiness()
+        elseif event=="UNIT_PET" and unit=="player" then self:RefreshUnit("pet"); self:RefreshPetHappiness()
         elseif event=="GROUP_ROSTER_UPDATE" then self:SettingsChanged()
         elseif unit and self.frames[unit] then self:RefreshUnit(unit)
         elseif event=="PLAYER_FOCUS_CHANGED" then self:RefreshUnit("focus")

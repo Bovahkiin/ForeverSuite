@@ -25,6 +25,10 @@ Previews blijven in `.previews`; de `.toc` staat in de hoofdmap.
 6. Controleer de patchnotes en het bestand `ForeverSuite-VERSIE-forever.zip`.
 7. Klik **Publish release** wanneer je de update wilt uitbrengen.
 
+Wil je de release meteen na de controles publiceren? Vink bij **Run workflow**
+de optie **Direct publiceren na geslaagde controles** aan. Dan maakt GitHub
+direct een gepubliceerde release en zijn stappen 5–7 niet nodig.
+
 De knop controleert de addon, maakt de ZIP met de juiste mapstructuur en voegt
 de patchnotes en controlecode toe. Een bestaand versienummer wordt niet overschreven.
 Voor een volgende update moeten het versienummer in `ForeverSuite.toc` en

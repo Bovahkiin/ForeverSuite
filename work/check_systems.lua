@@ -1,3 +1,89 @@
+-- TEST: Feed Pet left-click targets the exact food stack once and bypasses the item options panel
+ResetTest(); local B=ForeverSuite.modules.Bags; MerchantFrame:Hide()
+TEST.data[710]={quality=1,price=1,petFood=true}; AddItem(1,710,3); AddItem(2,710,2)
+B:ShowWindow(); local c=B.window.cells[2]; local row=c.row; local before=TEST.bags[row.bag][row.slot].stackCount
+local uses=TEST.secureUses or 0; TEST.targeting=true
+c.scripts.PreClick(c,'LeftButton'); c.scripts.OnClick(c,'LeftButton',true); assert(#TEST.actions==0)
+c.scripts.OnClick(c,'LeftButton',false)
+assert(#TEST.actions==1 and TEST.actions[1].kind=='spell-target' and TEST.actions[1].bag==row.bag and TEST.actions[1].slot==row.slot)
+assert(TEST.bags[row.bag][row.slot].stackCount==before-1 and TEST.bags[0][1].stackCount==3)
+assert(not TEST.targeting and not B.selected and not B.window.itemPanel:IsShown() and (TEST.secureUses or 0)==uses)
+B:Refresh(); Click(B.window.cells[1]); assert(B.window.itemPanel:IsShown(), 'Ordinary left-click still opens options')
+
+-- TEST: Invalid food stays under client validation while stale locked empty and transaction-owned slots cannot be targeted
+ResetTest(); local B=ForeverSuite.modules.Bags; local V=ForeverSuite.modules.Vendor; MerchantFrame:Hide()
+TEST.data[711]={quality=1,price=1}; AddItem(1,711,2); B:ShowWindow(); local c=B.window.cells[1]; local row=c.row
+TEST.targeting=true; c.scripts.PreClick(c,'LeftButton'); c.scripts.OnClick(c,'LeftButton',false)
+assert(#TEST.actions==1 and TEST.targeting and TEST.bags[0][1].stackCount==2 and not B.window.itemPanel:IsShown())
+TEST.actions={}; TEST.bags[0][1].isLocked=true; assert(B:TargetBagItem(row)); TEST.bags[0][1].isLocked=false
+V.busy=true; B:TargetBagItem(row); V.busy=false; V.pending={}; B:TargetBagItem(row); V.pending=nil
+TEST.combat=true; B:TargetBagItem(row); TEST.combat=false; TEST.repairMode=true; B:TargetBagItem(row); TEST.repairMode=false
+TEST.cursor={}; B:TargetBagItem(row); TEST.cursor=nil
+B:TargetBagItem({empty=true}); B:TargetBagItem({stock=true}); B:TargetBagItem(nil)
+AddItem(1,711,2); B:TargetBagItem(row); assert(#TEST.actions==0 and TEST.targeting)
+TEST.targeting=false
+
+-- TEST: Unit spell cursors never use inventory items and item-ID targeting takes priority over merchant selling
+ResetTest(); local B=ForeverSuite.modules.Bags; local V=ForeverSuite.modules.Vendor
+TEST.data[712]={quality=1,price=1,petFood=true}; AddItem(1,712,2); B:ShowWindow(); local row=V:ReadItem(0,1)
+local oldItem,oldID=SpellCanTargetItem,SpellCanTargetItemID
+SpellCanTargetItem=function() return false end; SpellCanTargetItemID=function() return false end
+TEST.targeting=true; assert(B:TargetBagItem(row)); assert(#TEST.actions==0 and TEST.targeting)
+SpellCanTargetItemID=function() return true end; assert(B:TargetBagItem(row))
+assert(#TEST.actions==1 and TEST.actions[1].kind=='spell-target' and TEST.bags[0][1].stackCount==1 and not B.window.itemPanel:IsShown())
+SpellCanTargetItem,SpellCanTargetItemID=oldItem,oldID; TEST.targeting=false
+
+-- TEST: Hunter pet happiness shows the three real mood atlases updates on events and explains feeding in its tooltip
+ResetTest(); local FS=ForeverSuite; local U=FS.modules.UnitFrames; local oldAPI,oldUI=C_PetInfo,HasPetUI
+TEST.units.pet={name='Crab',health=80,maxHealth=100,power=35,maxPower=100,level=9}; local mood=1
+C_PetInfo={GetPetHappiness=function() return mood,75,0 end,GetPetFoodTypes=function() return {'Fish','Bread'} end}
+HasPetUI=function() return true,true end; U:SettingsChanged(); local badge=U.frames.pet.happiness
+assert(badge and badge:IsShown() and badge.icon.atlas=='UI-PetMad')
+GameTooltip.lines={}; badge.scripts.OnEnter(badge); assert(table.concat(GameTooltip.lines,' '):find('Feed your pet',1,true) and table.concat(GameTooltip.lines,' '):find('Fish, Bread',1,true))
+TEST.combat=true; mood=2; U.events.scripts.OnEvent(U.events,'UNIT_HAPPINESS','pet'); assert(badge.icon.atlas=='UI-PetNeutral')
+mood=3; U.events.scripts.OnEvent(U.events,'PET_UI_UPDATE'); assert(badge.icon.atlas=='UI-PetHappiness' and badge.mood==3)
+TEST.combat=false; TEST.units.pet=nil; U.events.scripts.OnEvent(U.events,'UNIT_PET','player'); assert(not badge:IsShown() and not badge.mood)
+C_PetInfo,HasPetUI=oldAPI,oldUI
+
+-- TEST: Happiness hides for non-hunter pets unavailable data and restricted values without inventing a mood
+ResetTest(); local FS=ForeverSuite; local U=FS.modules.UnitFrames; local oldAPI,oldUI,oldLegacy=C_PetInfo,HasPetUI,GetPetHappiness
+TEST.units.pet={name='Pet',health=80,maxHealth=100,power=35,maxPower=100}; local mood=3
+C_PetInfo={GetPetHappiness=function() return mood end}; HasPetUI=function() return true,false end
+U:SettingsChanged(); local badge=U.frames.pet.happiness; assert(not badge:IsShown())
+HasPetUI=function() return true,true end; mood=nil; U:RefreshPetHappiness(); assert(not badge:IsShown())
+local token={}; local oldSecret=issecretvalue; issecretvalue=function(v) return v==token end
+mood=token; U:RefreshPetHappiness(); assert(not badge:IsShown()); issecretvalue=oldSecret
+C_PetInfo=nil; GetPetHappiness=nil; U:RefreshPetHappiness(); assert(not badge:IsShown())
+GetPetHappiness=function() return 2 end; U:RefreshPetHappiness(); assert(badge:IsShown() and badge.mood==2)
+C_PetInfo,HasPetUI,GetPetHappiness=oldAPI,oldUI,oldLegacy; TEST.units.pet=nil; U:RefreshPetHappiness()
+
+-- TEST: Default pet frame is compact and follows the customized player frame without creating saved positions
+ResetTest(); local FS=ForeverSuite; local U=FS.modules.UnitFrames; local L=FS.Layout
+FS.db.layout.frames['Unit:player']={x=-260,y=510,scale=1.2}; U:SettingsChanged()
+local pet,player=U.frames.pet,U.frames.player; local point,relative,anchor,x,y=pet:GetPoint()
+assert(point=='TOPLEFT' and relative==player and anchor=='BOTTOMLEFT' and x==0 and y==-36)
+assert(math.abs(pet:GetScale()/player:GetScale()-.75)<.00001 and pet:GetWidth()==270)
+assert(not FS.db.layout.frames['Unit:pet'] and FS.db.unitFrames.pet.x==-430 and FS.db.unitFrames.pet.y==150)
+FS.db.layout.frames['Unit:player']={x=100,y=600,scale=.8}; L:Apply('Unit:player')
+assert(math.abs(pet:GetScale()-.6)<.00001 and select(2,pet:GetPoint())==player)
+
+-- TEST: Customized pet positions and sizes survive the new default across serialized reloads
+ResetTest(); local FS=ForeverSuite; local U=FS.modules.UnitFrames
+FS.db.layout.frames['Unit:pet']={x=150,y=350,scale=1.1}; U:SettingsChanged()
+local pet=U.frames.pet; assert(pet:GetScale()==1.1 and select(2,pet:GetPoint())==UIParent)
+local E=FS.Extensions; ForeverSuiteDB=assert(E:Decode(E:Encode(FS.db))); FS:InitializeDatabase(); U:SettingsChanged()
+assert(pet:GetScale()==1.1 and FS.db.layout.frames['Unit:pet'].x==150 and select(2,pet:GetPoint())==UIParent)
+FS.db.layout.frames['Unit:pet']=nil; FS.db.unitFrames.pet={x=-300,y=260}; U:SettingsChanged()
+assert(select(2,pet:GetPoint())==UIParent and FS.db.unitFrames.pet.x==-300)
+
+-- TEST: Compact pet placement defers protected layout changes until combat ends
+ResetTest(); local U=ForeverSuite.modules.UnitFrames; U:SettingsChanged(); local pet=U.frames.pet
+local point={pet:GetPoint()}; local scale=pet:GetScale(); TEST.combat=true
+U.frames.player:SetScale(1.4); U:ApplyPetDefault(); U:SettingsChanged()
+assert(U.pending and pet:GetScale()==scale and select(2,pet:GetPoint())==point[2])
+TEST.combat=false; U.events.scripts.OnEvent(U.events,'PLAYER_REGEN_ENABLED')
+assert(not U.pending and math.abs(pet:GetScale()-.75)<.00001)
+
 -- TEST: Pet frame tracks summoned pets health power portrait levels and secure visibility without moving in combat
 ResetTest(); local FS=ForeverSuite; local U=FS.modules.UnitFrames
 TEST.units.pet={name='Hunter companion',health=80,maxHealth=100,power=35,maxPower=100,level=10}

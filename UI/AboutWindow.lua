@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.8.10",lines={"Player, target and focus frames show levels. A movable pet frame shows your companion's health, power and level.","Text choices are committed to the active profile immediately and reapplied after startup. The font editor remembers its scope.","Bag buttons follow your selected theme. Collection slot icons, mount controls and masked profession progress are corrected.","Addon systems lets you choose supported waypoint and nameplate providers. Choices are remembered per character.","Sell item can sell ordinary unmarked items at a merchant, while keeping safety rules and displaying any blocked reason."}},
+    {version="0.8.12",lines={"Feed Pet now targets the clicked food stack instead of opening Item Options. The game still validates food suitability.","Hunter pet frames show a happiness icon: green Happy, yellow Content, red Unhappy. Hover for feeding advice and diet.","Keep the compact pet frame below the player by default, with independent saved pet layouts preserved.","GitHub releases can now publish automatically after all checks pass. Updates are distributed through GitHub and WoWUp."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

@@ -1,3 +1,18 @@
+ForeverSuite 0.8.12 - 2026-11-08
+30 targeted system scenario groups pass locally, including five new cases for
+exact-stack Feed Pet clicks, invalid targets, merchant priority, mood events,
+and missing/restricted happiness data. Source startup covers 67 Lua files.
+The release workflow requires the full 296-scenario suite plus texture,
+startup and metadata checks before creating/publishing a release.
+Actual Feed Pet hardware actions, native mood icons and food errors require
+an in-game check after updating through WoWUp. No direct game-folder install.
+
+ForeverSuite 0.8.11 - 2026-11-08
+Passed: 291 offline scenario groups plus startup/texture/metadata checks.
+Targeted checks passed for compact default anchoring, custom player scaling,
+persisted custom pet coordinates/scales and combat deferral.
+Actual in-game placement still requires a reload and visual check.
+
 ForeverSuite 0.8.10 - 2026-11-08
 Passed: 288 offline scenario groups plus 67-file startup, texture
 and metadata checks. See work/latest-test.txt for the completed run.

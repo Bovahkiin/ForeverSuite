@@ -154,6 +154,7 @@ function B:CreateWindow()
         cell:HookScript("OnClick", function(c, mouse, down)
             if down or InCombatLockdown() then return end
             if not c.row then return end
+            if mouse=="LeftButton" and self:TargetBagItem(c.row) then return end
             self.selected = c.row; self.status = nil; self.itemOptions = false
             local rule = c.row.id and V:Settings().rules[c.row.id]
             f.keep:SetText(tostring(rule and rule.keep or 0)); f.target:SetText(tostring(rule and rule.target or 0))

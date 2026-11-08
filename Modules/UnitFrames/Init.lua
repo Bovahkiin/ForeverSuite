@@ -32,6 +32,7 @@ function U:CreateUnit(unit)
     f.powerBG = f.power:CreateTexture(nil, "BACKGROUND"); f.powerBG:SetAllPoints(); f.powerBG:SetColorTexture(0.1, 0.12, 0.16, 1)
     f:SetScript("OnEnter", function(b) GameTooltip:SetOwner(b, "ANCHOR_TOP"); GameTooltip:SetUnit(unit); GameTooltip:Show() end)
     f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    if unit=="pet" then self:CreatePetHappiness(f) end
     -- Existence/visibility is controlled by secure code even when targets change in combat.
     self:CreateCast(f); RegisterUnitWatch(f); return f
 end
@@ -66,6 +67,7 @@ function U:RefreshUnit(unit)
         f.powerValue:SetText(H:Number(power).." / "..H:Number(powerMax))
     else f.powerValue:SetText("") end
     if SetPortraitTexture then SetPortraitTexture(f.portrait, unit) end
+    if unit=="pet" then self:RefreshPetHappiness() end
     self:RefreshCast(unit)
 end
 function U:Native(enabled)

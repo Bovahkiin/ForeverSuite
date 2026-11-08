@@ -110,6 +110,25 @@ function B:EquipBagItem(row)
     -- Never confirm binding or pick a different copy by item name.
     C_Container.UseContainerItem(current.bag, current.slot)
 end
+function B:TargetBagItem(row)
+    if not (SpellIsTargeting and SpellIsTargeting()) then return false end
+    -- An active spell cursor owns the click. Never fall through to item options,
+    -- equipment, selling or pickup, even when this particular slot is invalid.
+    if InCombatLockdown() or V.busy or V.pending or InRepairMode() or CursorHasItem()
+        or not row or row.empty or row.stock then return true end
+    if (SpellCanTargetItem or SpellCanTargetItemID)
+        and not (SpellCanTargetItem and SpellCanTargetItem())
+        and not (SpellCanTargetItemID and SpellCanTargetItemID()) then return true end
+    local current=V:ReadItem(row.bag,row.slot)
+    if not current or current.locked or current.id~=row.id or current.link~=row.link
+        or (row.guid and row.guid~=current.guid) then return true end
+    -- Match the native left-click targeting route. The client checks food type,
+    -- applies Feed Pet, and reports unsuitable targets without eating the food.
+    C_Container.UseContainerItem(current.bag,current.slot)
+    self.selected=nil; self.itemOptions=false; self.status=nil
+    if self.window then self.window.itemPanel:Hide() end
+    return true
+end
 function B:BindItemUse(control, row, suffix)
     if InCombatLockdown() then return end
     control:SetAttribute("type" .. suffix, nil); control:SetAttribute("item" .. suffix, nil)
