@@ -170,7 +170,10 @@ function FS:ThemeSettings(f,name)
         b:SetBackdropBorderColor(color[1],color[2],color[3],1)
         if not b.fsSettingsHover then
             b.fsSettingsHover=true
-            b:HookScript("PostClick",function() if f:IsShown() then FS:ThemeSettings(f,f.fsSettingsName) end end)
+            local kind=b:GetObjectType()
+            if kind=="Button" or kind=="CheckButton" then
+                b:HookScript("PostClick",function() if f:IsShown() then FS:ThemeSettings(f,f.fsSettingsName) end end)
+            end
             b:HookScript("OnEnter",function(control) local c=FS.moduleCardColors[f.fsSettingsName] or color; control:SetBackdropBorderColor(c[1],c[2],c[3],1) end)
             b:HookScript("OnLeave",function(control) local c=FS.moduleCardColors[f.fsSettingsName] or color; control:SetBackdropBorderColor(c[1],c[2],c[3],1) end)
         end
@@ -284,11 +287,16 @@ function FS:SettingsSignature(f)
     for _,b in ipairs({f:GetChildren()}) do text(b); values[#values+1]=tostring(b:IsShown()); if b.fsLabel then text(b.fsLabel) end end
     return table.concat(values,"|")
 end
-function FS:BindSettings(f,name)
+function FS:BindSettings(f,name,refresh)
     if not f then return end
+    self:CloseOtherWindows(f)
+    if self.Layout and self.Layout.active then self.Layout:Stop() end
     -- Each settings page is an independent screen with an explicit return path.
     if f:GetParent() ~= UIParent then f:SetParent(UIParent) end
     f.fsSettingsName=name
+    self.settingsScreen=f
+    f:Show()
+    if refresh then refresh() end
     if not f.fsSettingsBound then
         f.fsSettingsBound=true
         local elapsed=0
@@ -305,9 +313,6 @@ function FS:BindSettings(f,name)
         back:SetText("Back to Control Center")
         back:SetScript("OnClick",function() f:Hide(); FS:ShowConfig() end)
     end
-    self:CloseOtherWindows(f)
-    self.settingsScreen=f
-    f:Show()
     f.fsSettingsSignature=self:SettingsSignature(f)
     GameTooltip:Hide()
 end

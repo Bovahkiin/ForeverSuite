@@ -369,25 +369,20 @@ function FS:RefreshConfig()
     for _, name in ipairs({ "UnitFrames", "ActionBars", "Nameplates" }) do self.modules[name]:RefreshSettings() end
 end
 function FS:ConfigureModule(name)
-    if not self.modules[name] then return end
+    local module=self.modules[name]
+    if not module then return end
     local frame = self:CreateConfigWindow()
     frame.moduleSearch:ClearFocus()
-    if not frame:IsShown() then self:ShowConfig() end
-    if frame.settings then frame.settings:Hide() end
-    if frame.gearSettings then frame.gearSettings:Hide() end
-    for _, module in pairs(self.modules) do if module.settings and module.name ~= "Gear" then module.settings:Hide() end end
-    if name~="Bags" and name~="Vendor" and name~="Gear" and self.modules[name].CreateSettings then
-        local module = self.modules[name]; local panel = module.settings or module:CreateSettings(frame)
-        panel:Show(); module:RefreshSettings(); self:BindSettings(panel,name); return
-    end
-    if name == "Gear" then
-        local panel = frame.gearSettings or self.modules.Gear:CreateSettings(frame)
-        panel:Show(); self.modules.Gear:RefreshSettings(); self:BindSettings(panel,name); return
+    if name~="Bags" and name~="Vendor" then
+        if not module.CreateSettings then return end
+        local panel = module.settings or module:CreateSettings(frame)
+        self:BindSettings(panel,name,function() module:RefreshSettings() end)
+        return
     end
     if not frame.settings then self.modules.Bags:CreateSettings(frame) end
     frame.settings.module = name
     frame.settings.advanced = false
-    frame.settings:Show(); self.modules.Bags:RefreshSettings(true, frame.settings); self:BindSettings(frame.settings,name)
+    self:BindSettings(frame.settings,name,function() self.modules.Bags:RefreshSettings(true, frame.settings) end)
 end
 function FS:OpenModule(name)
     if not self:IsModuleEnabled(name) then return end

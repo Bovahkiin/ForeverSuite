@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.11",lines={"Quick Tour highlights each control with a thicker gold outline.","Each tip appears next to the control it explains."}},
+    {version="0.9.12",lines={"Module settings open on their own screen, including Vendor & Junk and its advanced options."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

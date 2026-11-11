@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.9.11 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.9.12 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 

@@ -68,11 +68,12 @@ end
 -- TEST: More options and all custom forms are standalone screens with a working Control Center return
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local B=FS.Beginner
 for _,name in ipairs(FS.window.moduleOrder) do
- FS:ConfigureModule(name)
+ assert(B:ShowModule(name))
+ FindButton(B.moduleWindow,'More options'):Click()
  local module=FS.modules[name]
  local panel=(name=='Bags' or name=='Vendor') and FS.window.settings or module.settings
  assert(panel and panel:IsShown() and panel:GetParent()==UIParent,name)
- assert(not FS.window:IsShown(),name)
+ assert(not FS.window:IsShown() and not B.moduleWindow:IsShown() and FS.settingsScreen==panel,name)
  local back=panel.back or panel.fsForm and panel.fsForm.back
  assert(back,name); back:Click(); assert(FS.window:IsShown() and not panel:IsShown(),name)
 end

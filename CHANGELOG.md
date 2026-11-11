@@ -1,3 +1,8 @@
+# 0.9.12 - 2026-11-11
+
+- Close the Control Center and other suite windows before showing module settings.
+- Attach settings click handlers only to buttons so text fields can load correctly.
+
 # 0.9.11 - 2026-11-11
 
 - Give Quick Tour targets a thicker gold outline and place each tip beside the control it explains.
