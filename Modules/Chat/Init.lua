@@ -50,6 +50,7 @@ function C:settingsAction()
     local name=T:Text(frame and T:Call(frame.GetName,frame))
     local input=T:Call(ChatEdit_GetActiveWindow) or (frame and (frame.editBox or frame.EditBox)) or (name~="" and _G[name.."EditBox"]) or ChatFrame1EditBox
     if not input then FS:Print("Chat input is not available yet. Press Enter in game to start typing."); return end
+    FS:CloseSettingsScreens()
     if FS.window then FS.window:Hide() end
     if type(ChatEdit_ActivateChat)=="function" then local ok=pcall(ChatEdit_ActivateChat,input); if ok then return end end
     T:Call(input.Show,input); T:Call(input.SetFocus,input)

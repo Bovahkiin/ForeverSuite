@@ -174,10 +174,15 @@ function E:Undo()
     if not self:Allowed() then FS:Print(FS.Text.leaveCombat); return false end
     if not self.undo[1] then FS:Print('No settings change to undo.'); return false end
     local snapshot=table.remove(self.undo,1); self.undoing=true
+    local previousFrames=FS.db.layout.frames
     for key,value in pairs(snapshot) do
         if type(value)=="table" then for k,v in pairs(value) do FS.db[key][k]=copy(v) end else FS.db[key]=value end
     end
     for _,module in pairs(FS.modules) do if module.SettingsChanged then module:SettingsChanged() end end
+    for id in pairs(previousFrames) do
+        if not FS.db.layout.frames[id] then FS.Layout:RestoreTarget(id) end
+    end
+    FS.Layout:ApplyAll()
     FS.Typography:Apply(); FS.Themes:Refresh(); self:Refresh(); FS:RefreshConfig()
     self.undoing=false; self.skipUndo=(self.actionDepth or 0)>0; return true
 end
@@ -209,7 +214,8 @@ function E:Refresh()
     FS:RefreshConfig()
 end
 function E:ApplyPreset(name)
-    if name=="Readable text" then FS.db.typography.global.size=18; FS.db.typography.global.outline="Thin"
+    if name=="Standard text" then FS.db.typography.global.size=14; FS.db.typography.global.outline="Thin"
+    elseif name=="Readable text" then FS.db.typography.global.size=18; FS.db.typography.global.outline="Thin"
     elseif name=="Compact screen" then FS.db.typography.global.size=12; FS.db.unitFrames.scale=.85 end
     if name=='Compact screen' then for _,unit in ipairs({'player','target','focus'}) do local layout=FS.db.layout.frames['Unit:'..unit]; if layout then layout.scale=.85 end end end
 end

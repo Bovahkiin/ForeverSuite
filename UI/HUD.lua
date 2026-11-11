@@ -286,6 +286,8 @@ function FS:SettingsSignature(f)
 end
 function FS:BindSettings(f,name)
     if not f then return end
+    -- Each settings page is an independent screen with an explicit return path.
+    if f:GetParent() ~= UIParent then f:SetParent(UIParent) end
     f.fsSettingsName=name
     if not f.fsSettingsBound then
         f.fsSettingsBound=true
@@ -298,6 +300,14 @@ function FS:BindSettings(f,name)
         end)
     end
     self:ThemeSettings(f,name)
+    local back = f.back or (f.fsForm and f.fsForm.back)
+    if back then
+        back:SetText("Back to Control Center")
+        back:SetScript("OnClick",function() f:Hide(); FS:ShowConfig() end)
+    end
+    self:CloseOtherWindows(f)
+    self.settingsScreen=f
+    f:Show()
     f.fsSettingsSignature=self:SettingsSignature(f)
     GameTooltip:Hide()
 end

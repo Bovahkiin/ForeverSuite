@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.7",lines={"Control Center now scrolls its middle area while profiles and bottom actions stay visible, including with larger text and saved mover scale.","Use the mouse wheel, scrollbar or arrows. Search and page changes return to the results; saved placement preferences are preserved.","Themes now reach native-anchored decorations using fixed geometry without reading restricted frame dimensions.","Guided setup and the appearance picker apply and save the chosen theme in your active profile. Control Center displays its name."}},
+    {version="0.9.8",lines={"Use recommended settings or choose your layout, theme and text in four setup steps with a shared preview.","Module cards open separate settings screens. More options opens the full settings. Both have a Control Center return button.","The quick tour shows settings, frame placement and profiles. Select a Move Frames handle for alignment and restore tools.","Use Help with layout to recover positions, Other addons to choose who manages arrows and health bars, or Find a setting for common tasks."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

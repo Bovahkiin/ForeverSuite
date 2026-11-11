@@ -4,7 +4,7 @@ function FS:CreateConfigViewport(f)
     scroll:EnableMouseWheel(true); scroll:SetClipsChildren(true)
     local content=CreateFrame("Frame",nil,scroll); f.bodyContent=content; content:SetWidth(940); content:SetPoint("TOPLEFT",0,0); scroll:SetScrollChild(content)
     f.bodyNodes={f.moduleSearch,f.clearModuleSearch,f.moduleFilterButton,f.emptyModules,f.previousModules,f.nextModules,f.modulePage,
-        f.general,f.minimap,f.welcome,f.help,f.typography,f.setup,f.appearance,f.tools,f.undo,f.addons,f.disableAll}
+        f.general,f.minimap,f.welcome,f.help,f.typography,f.setup,f.appearance,f.tools,f.undo,f.addons,f.recovery,f.tour,f.workbench,f.disableAll}
     for _,card in pairs(f.cards) do f.bodyNodes[#f.bodyNodes+1]=card.card end
     for _,node in ipairs(f.bodyNodes) do node:SetParent(content) end
     scroll:SetScript("OnMouseWheel",function(_,delta) self:ScrollConfig((f.scrollOffset or 0)-delta*(f.scrollStep or 60)) end)

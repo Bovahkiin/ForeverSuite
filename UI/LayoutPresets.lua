@@ -1,7 +1,8 @@
 local _,FS=...
 local P={names={"Layout 1","Compact","Classic","Keep current"}}; FS.LayoutPresets=P
+P.labels={["Layout 1"]="Balanced (recommended)",Compact="Compact",Classic="Classic",["Keep current"]="Keep my layout"}
 P.descriptions={
-    ["Layout 1"]="Your reference layout: player and target above centered bars, pet below player, chat left, minimap and quests right.",
+    ["Layout 1"]="Balanced: player and target above centered bars, a smaller pet frame below player, chat left, minimap and quests right.",
     Compact="Player and target close to the centered bars, with more open space around the character.",
     Classic="Player and target near the upper-left corner, with navigation and quests on the right.",
     ["Keep current"]="Keep all current positions and sizes. No game layout is changed.",
@@ -129,6 +130,14 @@ function P:CreatePreview(parent)
 end
 function P:Preview(frame,name)
     local w,h=UIParent:GetWidth(),UIParent:GetHeight(); local plan=self:Plan(name,w,h)
+    if name=="Keep current" then
+        plan=self:Plan("Layout 1",w,h)
+        if plan then
+            for id, position in pairs(FS.db.layout.frames) do
+                if plan.frames[id] then plan.frames[id]=copy(position) end
+            end
+        end
+    end
     frame:SetHeight(712*math.max(.40,math.min(.70,h/w)))
     frame.notice:SetShown(not plan)
     for id,item in pairs(frame.parts) do

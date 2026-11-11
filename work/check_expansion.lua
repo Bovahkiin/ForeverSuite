@@ -36,7 +36,7 @@ ResetTest(); local FS=ForeverSuite; FS:ShowConfig()
 for _,name in ipairs({'Map','Quests','Loot','Buffs','Cooldowns','Combat','Professions','AuctionHouse','Chat','Social','Guild','QoL','Bank','Bindings'}) do
     local M=FS.modules[name]; FS:ConfigureModule(name); assert(M.settings:IsShown())
     M:ShowWindow()
-    if name=='Chat' then assert(M.settings:IsShown() and FS.window:IsShown() and not M.window)
+    if name=='Chat' then assert(M.settings:IsShown() and not FS.window:IsShown() and not M.window)
     else assert(M.window:IsShown() and not FS.window:IsShown()) end
     FS:SetModuleEnabled(name,false); assert((not M.window or not M.window:IsShown()) and not FS:IsModuleEnabled(name))
     FS:SetModuleEnabled(name,true)
@@ -743,8 +743,9 @@ C_FriendList,GetNumGuildMembers,GetGuildRosterInfo,GetGuildInfo,ChatFrame_SendTe
 ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles; FS:ShowConfig(); local f=FS.window; local bar=f.profiles
 assert(bar==P.bar and not f.cards.Profiles and f.cardCount==24)
 for page=1,3 do f.cardPage=page; FS:RefreshConfig(); assert(bar:IsShown()) end
-FS:ConfigureModule('Chat'); assert(bar:IsShown() and FS.modules.Chat.settings:IsShown() and FS.modules.Chat.settings.point[1]=='CENTER' and FS.modules.Chat.settings.point[2]==UIParent)
-assert(-bar.point[3]+bar:GetHeight()<176 and -FS.settingsTop+420<f:GetHeight()-44)
+FS:ConfigureModule('Chat'); assert(not bar:IsShown() and FS.modules.Chat.settings:IsShown() and FS.modules.Chat.settings.point[1]=='CENTER' and FS.modules.Chat.settings.point[2]==UIParent)
+FS.modules.Chat.settings.back:Click(); assert(bar:IsShown())
+assert(-bar.point[3]+bar:GetHeight()<176)
 FS.db.chat.fontSize=18; bar.name:SetText('Raid'); bar.save:Click(); assert(FS.db.profiles.current=='Raid' and FS.db.profiles.saved.Raid.chat.fontSize==18 and bar.name:GetText()=='')
 FS.db.chat.fontSize=12; bar.save:Click(); assert(FS.db.profiles.saved.Raid.chat.fontSize==12)
 bar.choice:Click(); assert(P.selected=='Default'); bar.use:Click(); assert(FS.db.profiles.current=='Default' and FS.db.chat.fontSize==14 and bar.current:GetText():find('Default',1,true))
@@ -840,10 +841,10 @@ LootFrame:Hide(); GetLootRollItemInfo,RollOnLoot,LootFrame,IsShiftKeyDown,GetNum
 
 -- TEST: Chat opens useful settings directly and typing uses native activation without clearing drafts or sending messages
 ResetTest(); local FS=ForeverSuite; local C=FS.modules.Chat; local old={ChatEdit_GetActiveWindow,ChatEdit_ActivateChat,ChatFrame1EditBox}; local activated
-C:ShowWindow(); assert(FS.window:IsShown() and C.settings:IsShown() and not C.window and C.settings.open:GetText()=='Start typing in chat')
+C:ShowWindow(); assert(not FS.window:IsShown() and C.settings:IsShown() and not C.window and C.settings.open:GetText()=='Start typing in chat')
 ChatFrame1EditBox=CreateFrame('EditBox',nil,UIParent); local input=ChatFrame1EditBox; input:SetText('My draft'); input:Hide()
 ChatEdit_GetActiveWindow=function() return input end; ChatEdit_ActivateChat=function(edit) activated=edit; edit:Show() end
-C.settings.open:Click(); assert(activated==input and input:IsShown() and input:GetText()=='My draft' and not FS.window:IsShown())
+C.settings.open:Click(); assert(activated==input and input:IsShown() and input:GetText()=='My draft' and not FS.window:IsShown() and not C.settings:IsShown())
 C:ShowWindow(); ChatEdit_ActivateChat=nil; input.SetFocus=function(self) self.focus=true end; C.settings.open:Click(); assert(input.focus and input:GetText()=='My draft' and not FS.window:IsShown())
 TEST.combat=true; C:ShowWindow(); assert(not FS.window:IsShown()); TEST.combat=false
 ChatEdit_GetActiveWindow,ChatEdit_ActivateChat,ChatFrame1EditBox=unpack(old); FS:ShowConfig()

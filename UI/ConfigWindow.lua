@@ -126,7 +126,10 @@ function FS:CreateConfigWindow()
     frame.searchHint=text(frame.moduleSearch,"Search modules or features...",12,-8,436); frame.searchHint:SetTextColor(.5,.65,.75)
     frame.moduleSearch:SetScript("OnTextChanged",function(b) if not frame.filterUpdating then self:SetModuleFilter(b:GetText()) end end)
     frame.moduleSearch:SetScript("OnEscapePressed",function() self:ClearModuleFilter() end)
-    frame.moduleSearch:SetScript("OnEnterPressed",function(b) b:ClearFocus(); if frame.filteredCount==1 then self:ConfigureModule(frame.filteredNames[1]) end end)
+    frame.moduleSearch:SetScript("OnEnterPressed",function(b)
+        b:ClearFocus()
+        if frame.moduleQuery~="" then FS.Beginner:Search(frame.moduleQuery) end
+    end)
     frame.clearModuleSearch=button(frame,"Clear",140,function() self:ClearModuleFilter() end)
     frame.moduleFilterButton=button(frame,"All modules",260,function()
         local nextMode={All="Enabled",Enabled="Disabled",Disabled="All"}; self:SetModuleFilter(nil,nextMode[frame.moduleFilter])
@@ -179,6 +182,7 @@ function FS:CreateConfigWindow()
         local icon = card:CreateTexture(nil, "ARTWORK"); icon:SetTexture(data.icon)
         icon:SetSize(42, 42); icon:SetPoint("TOPLEFT", 14, -16)
         local heading=text(card, data.title, 68, -12, 340, "ForeverSuiteFontLarge"); heading:SetTextColor(color[1], color[2], color[3])
+        data.detail = FS.Beginner.help[name] or data.detail
         local detail=text(card, data.detail, 68, -35, 345)
         local hint=text(card, "Settings", 68, -61, 240); hint:SetTextColor(0.55, 0.65, 0.75)
         local toggle = button(card, "", 92, function() self:SetModuleEnabled(name, not self:IsModuleEnabled(name)) end)
@@ -192,7 +196,7 @@ function FS:CreateConfigWindow()
         card:SetScript("OnEnter", function(c) frame.cards[name].hovered=true; self:PaintModuleCard(name); GameTooltip:SetOwner(c,"ANCHOR_RIGHT"); GameTooltip:AddLine(data.title); GameTooltip:AddLine(data.detail,.9,.94,1,true); GameTooltip:AddLine("Click to open settings.",.55,.75,.85,true); GameTooltip:Show() end)
         card:SetScript("OnLeave", function() frame.cards[name].hovered=false; self:PaintModuleCard(name); GameTooltip:Hide() end)
         card:SetScript("OnClick", function()
-            animation:Stop(); flash:Show(); animation:Play(); self:ConfigureModule(name)
+            animation:Stop(); flash:Show(); animation:Play(); FS.Beginner:ShowModule(name)
         end)
         frame.cards[name] = { toggle = toggle, card = card, rail=rail, icon=icon,hover=hover, animation = animation, flash = flash, page=math.floor((i-1)/8)+1,position=position,heading=heading,detail=detail,hint=hint,searchText=(data.name.." "..data.title.." "..data.detail):lower() }
         toggle:SetScript("OnEnter",function(b)
@@ -205,7 +209,9 @@ function FS:CreateConfigWindow()
         local terms={data.name,data.title,data.detail,type(module.description)=="string" and module.description or ""}
         for _,option in ipairs(module.options or {}) do if type(option.label)=="string" then terms[#terms+1]=option.label end end
         local aliases={Combat="dps hps damage healing",QoL="xp experience",Bindings="hotkeys shortcuts",ActionBars="hotkeys buttons"}
-        terms[#terms+1]=aliases[name] or ""; frame.cards[name].searchText=table.concat(terms," "):lower()
+        terms[#terms+1]=aliases[name] or ""
+        terms[#terms+1]=FS.Beginner:SearchText(name)
+        frame.cards[name].searchText=table.concat(terms," "):lower()
     end
     frame.previousModules=button(frame,"Previous modules",150,function() frame.cardPage=math.max(1,frame.cardPage-1); self:RefreshConfig(); self:ScrollConfig(0) end); frame.previousModules:SetPoint("TOPLEFT",24,-531)
     frame.nextModules=button(frame,"Next modules",150,function() frame.cardPage=math.min(frame.filteredPages or 1,frame.cardPage+1); self:RefreshConfig(); self:ScrollConfig(0) end); frame.nextModules:SetPoint("TOPRIGHT",-24,-531)
@@ -219,9 +225,12 @@ function FS:CreateConfigWindow()
     frame.typography=button(frame,"Text & Fonts",250,function() FS.Typography:Show() end); frame.typography:SetPoint("TOPLEFT",24,-740)
     frame.setup=button(frame,"Guided setup",290,function() FS.Installer:Show() end)
     frame.appearance=button(frame,"Appearance: 10 styles",250,function() FS.Installer:ShowThemes() end)
-    frame.tools=button(frame,"More tools / search",290,function() FS.modules.Workbench:ShowWindow() end)
+    frame.tools=button(frame,"Find a setting",290,function() FS.Beginner:Search(frame.moduleQuery) end)
     frame.undo=button(frame,"Undo last setting",290,function() FS.Extensions:Undo() end)
-    frame.addons=button(frame,"Addon systems",250,function() FS.Compatibility:Show() end)
+    frame.addons=button(frame,"Other addons",250,function() FS.Compatibility:Show() end)
+    frame.recovery=button(frame,"Help with layout",290,function() FS.Beginner:ShowRecovery() end)
+    frame.tour=button(frame,"Quick tour",290,function() FS.Beginner:ShowTour() end)
+    frame.workbench=button(frame,"More tools",250,function() FS.modules.Workbench:ShowWindow() end)
     frame.disableAll=button(frame,"Disable all modules",290,function() self:DisableAllModules() end)
     frame.disableAll:SetScript("OnEnter",function(b)
         GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Disable all modules")
@@ -320,6 +329,11 @@ function FS:LayoutConfigText()
     fitButton(f.undo,290,2); f.undo:ClearAllPoints(); f.undo:SetPoint("TOPLEFT",330,-y)
     fitButton(f.addons,250,2); f.addons:ClearAllPoints(); f.addons:SetPoint("TOPLEFT",636,-y)
     y=y+math.max(f.tools:GetHeight(),f.undo:GetHeight(),f.addons:GetHeight())+10
+    for i, b in ipairs({f.recovery,f.tour,f.workbench}) do
+        fitButton(b,i==3 and 250 or 290,2)
+        b:ClearAllPoints(); b:SetPoint("TOPLEFT",({24,330,636})[i],-y)
+    end
+    y=y+math.max(f.recovery:GetHeight(),f.tour:GetHeight(),f.workbench:GetHeight())+10
     fitButton(f.disableAll,290,2); f.disableAll:ClearAllPoints(); f.disableAll:SetPoint("TOPLEFT",24,-y)
     y=y+f.disableAll:GetHeight()+12
     local footer=28

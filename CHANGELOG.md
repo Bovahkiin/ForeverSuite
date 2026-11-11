@@ -1,3 +1,20 @@
+# 0.9.8 - 2026-11-11
+
+- Start with recommended settings or pick your own layout, theme and text.
+  The four-step setup uses one neutral preview with player, target, pet, chat
+  and quest frames. Balanced is the existing Layout 1 preset.
+- Module cards explain what each module does. Opening a card shows a separate
+  basic settings screen with saved state and a direct Control Center return.
+  More options opens the full settings on its own screen.
+- A three-tip quick tour introduces settings, frame placement and profiles.
+  Skip or dismiss it, or open it again from Control Center.
+- Select a Move Frames handle to center it, place it below the player, or
+  restore that frame. Saving confirms the active profile in chat.
+- Help with layout brings saved frames on screen, previews Balanced and
+  offers undo. Other addons explains waypoint and nameplate choices.
+- Search for settings and common tasks in English or Dutch, including lost
+  arrows, pet feeding, larger text and moving bags.
+
 # 0.9.7 - 2026-11-09
 
 - Give Control Center a scrollable middle area with fixed header, profiles and

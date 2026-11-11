@@ -1,3 +1,20 @@
+## 0.9.8 First-use setup and independent settings screens
+
+1. On fresh SavedVariables, use the recommended start. Compare Balanced,
+   Compact and Classic in the preview. Select one, finish, and verify the layout
+   and typography persist after reload. Run `/fs setup` to test the custom route.
+2. Finish the quick tour, then reopen it with `/fs tour` and try Skip and
+   Do not show again. Check that the highlighted control follows each tip.
+3. Open each module card and its More options screen. Only that settings screen
+   should be visible. Check Back to Control Center and a large font on a small
+   viewport. Test that moving frames and starting chat close the settings screen.
+4. Select a frame handle, center it, place it below the player, then restore
+   it. Save and reload. In Help with layout, recover offscreen positions and
+   undo a supported addon change. Confirm game bar positions in Edit Mode.
+5. Search for `letters groter`, `pet voeren`, `pijl terug` and
+   `tassen verplaatsen`. Follow each result, then inspect the saved provider
+   choices under Other addons with a supported guide or nameplate addon active.
+
 ## 0.9.7 Control Center viewport and themes
 
 1. With a saved Control Center scale/position, increase global font size and

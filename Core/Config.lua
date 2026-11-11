@@ -11,6 +11,8 @@ SlashCmdList.FOREVERSUITE = function(message)
     if type(message)=="string" and message:lower():match("^%s*audit%s*$") then if FS.initialized then FS.modules.Workbench:Choose('Maintenance') end; return end
     if type(message)=="string" and message:lower():match("^%s*status%s*$") then FS:PrintClientStatus(); return end
     if not FS.initialized then return end
+    if type(message)=="string" and message:lower():match("^%s*help%s*$") then FS.Beginner:ShowRecovery(); return end
+    if type(message)=="string" and message:lower():match("^%s*tour%s*$") then FS.Beginner:ShowTour(); return end
     if type(message)=="string" and message:lower():match("^%s*addons%s*$") then FS.Compatibility:Show(); return end
     if type(message)=="string" and message:lower():match("^%s*errors%s*$") then
         if not FS.runtimeErrors or #FS.runtimeErrors==0 then FS:Print("No blocked addon actions recorded this session.") end

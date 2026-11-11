@@ -240,7 +240,7 @@ for _,ratio in ipairs({.65,1.4}) do
  UIParent:SetSize(1024,768); FS.window:ClearAllPoints(); FS.window:SetPoint('BOTTOMLEFT',UIParent,'BOTTOMLEFT',900,-500)
  local function bounds(f)
   assert(f.point[1]=='CENTER' and f.point[2]==UIParent)
-  assert(f:GetWidth()*f:GetScale()*ratio<=976.01 and f:GetHeight()*f:GetScale()*ratio<=720.01,f.fsSettingsName)
+  assert(f:GetParent()==UIParent and f:GetWidth()*f:GetScale()<=976.01 and f:GetHeight()*f:GetScale()<=720.01,f.fsSettingsName)
  end
  for name,module in pairs(FS.modules) do if name~='Profiles' then
   FS:ConfigureModule(name); local f=(name=='Bags' or name=='Vendor') and FS.window.settings or module.settings; bounds(f)
@@ -393,12 +393,12 @@ assert(f.description:GetText():find(FS.version,1,true) and f.description:GetText
 f.patch:Click(); assert(FS.aboutWindow:IsShown() and not f:IsShown() and FS.aboutWindow.close:GetText()=='Back to setup')
 FS.aboutWindow.close:Click(); assert(f:IsShown() and I.step==1 and not FS.installerReturn)
 FS:ShowPatchLog(); assert(FS.aboutWindow.close:GetText()=='Close' and not FS.installerReturn); FS.aboutWindow.close:Click(); I:Show()
-f.next:Click(); f.choices[4]:Click(); assert(I.draft.theme=='Verdant Relic' and FS.db.appearance.theme=='Legacy' and not f.patch:IsShown())
+f.next:Click(); f.choices[4]:Click(); f.next:Click(); f.choices[4]:Click(); assert(I.draft.theme=='Verdant Relic' and FS.db.appearance.theme=='Legacy' and not f.patch:IsShown())
 assert(f.design.image.texture:find('04-Preview',1,true)); f.next:Click(); f.choices[1]:Click(); assert(I.draft.scale==.8 and FS.db.actionBars.scale==1)
-f.previous:Click(); assert(I.draft.theme=='Verdant Relic'); f.next:Click(); f.next:Click()
-f.choices[3]:Click(); assert(not I.draft.modules.Quests and FS:IsModuleEnabled('Quests'))
+f.previous:Click(); assert(I.draft.theme=='Verdant Relic'); f.next:Click()
+assert(I.draft.modules.Quests and FS:IsModuleEnabled('Quests'))
 FS.db.layout.frames.MainActionBar={x=77,y=123,scale=1}; local loot=FS:IsModuleEnabled('Loot')
-assert(I:Apply()); Drain(); assert(FS.db.appearance.theme=='Verdant Relic' and FS.db.actionBars.style=='Minimal' and FS.db.actionBars.scale==1 and not FS:IsModuleEnabled('Quests'))
+assert(I:Apply()); Drain(); assert(FS.db.appearance.theme=='Verdant Relic' and FS.db.actionBars.style=='Minimal' and FS.db.actionBars.scale==1 and FS:IsModuleEnabled('Quests'))
 assert(FS.db.layout.frames.MainActionBar.x==77 and FS.db.layout.frames.MainActionBar.y==123 and FS.db.layout.frames.MainActionBar.scale==1)
 assert(FS:IsModuleEnabled('Loot')==loot and FS.db.setup.completed and not I:NeedsSetup() and not f:IsShown())
 FS.db.layout.frames.MainActionBar=nil
@@ -547,7 +547,7 @@ assert(not table.concat(messages,'\n'):find('Platynator and ForeverSuite Namepla
 FS.Print=print; C_AddOns=old; FS.db.nameplates.enabled=enabled
 
 -- TEST: Ten theme choices change design previews without writing live profile choices
-ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.window.next:Click()
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.window.next:Click(); I.window.next:Click()
 assert(#FS.Themes.names==10 and #I.window.choices==10 and I.step==2)
 for i,name in ipairs(FS.Themes.names) do
     I.window.choices[i]:Click()

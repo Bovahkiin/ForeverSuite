@@ -8,25 +8,24 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.9.7 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 0.9.8 · **Client:** WoW Forever · **Interface:** 16001
 
-## New in 0.9.7
+## Getting started
 
-- **Accessible Control Center:** the module list and general options scroll
-  while the header, profiles and bottom actions remain fixed. Larger text no
-  longer pushes the bottom buttons off-screen, including with saved mover scale.
-- Mouse wheel, scrollbar and arrow buttons reach all options. Search and page
-  changes return to the results. Temporary viewport fitting preserves saved
-  positions and scale preferences.
-- **Theme application:** native-anchored decorations now receive themed artwork
-  using fixed corners without reading restricted frame sizes. Guided setup and
-  the theme-only picker apply and save the selected theme in the current profile.
-  Control Center shows the active theme name.
+- Choose **Use recommended settings** to start from Balanced, or customize your
+  layout, theme and text using the four-step setup. Preview each choice and
+  select **Apply & finish** to save it.
+- Click a module card for its main options. **More options** opens the full
+  settings. Both screens have **Back to Control Center**.
+- Open **Quick tour** for three tips on modules, moving frames and profiles.
+  **Help with layout** can bring saved frames back on screen or undo a change.
+- Type a task in the search field and press Enter. Try `letters groter`,
+  `pijl terug`, `pet voeren` or `tassen verplaatsen`.
 
 ## Features
 
 - **Guided setup:** a welcome screen, patch notes, ten visual themes with previews,
-  accessibility presets, and quick module choices.
+  three layouts, accessibility presets and a short tour.
 - **Consistent customization:** module colors, font family, size and outline
   settings, plus movable and resizable supported frames with a centered grid.
 - **Action bars and unit frames:** configurable bar appearances, player and target
@@ -117,10 +116,11 @@ button cycles through all modules, enabled modules and disabled modules. Muted
 icons identify disabled modules; their settings remain available on the card.
 
 Use **Move Frames** to reposition supported elements and drag their resize grips
-to change scale. Native secure action-bar placement remains controlled by the
-game. Leave combat before making layout changes.
+to change scale. Select a handle to center it, place it below the player, or
+restore that frame. Native action-bar placement remains in the game's Edit Mode.
+Leave combat before making layout changes.
 
-Open **More tools / search** for profile transfers, settings search, favorites,
+Open **More tools** for profile transfers, settings search, favorites,
 alerts, notes, checklists, session information, and waypoint queues.
 
 ## Commands
@@ -129,7 +129,9 @@ alerts, notes, checklists, session information, and waypoint queues.
 | --- | --- |
 | `/fs` | Open the Control Center |
 | `/fs setup` | Reopen guided setup |
-| `/fs tools` | Open More tools / search |
+| `/fs help` | Open layout recovery |
+| `/fs tour` | Start the three-tip tour |
+| `/fs tools` | Open More tools |
 | `/fs undo` | Undo the last supported settings change |
 | `/fs status` | Show client and compatibility information |
 | `/fs errors` | Show blocked addon actions recorded during this session |
@@ -164,7 +166,7 @@ ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
 clients is not established. Some features require client APIs that may be
 unavailable or restricted; those features skip unreadable data.
 
-The current development checks cover **365 offline scenarios**, Lua startup,
+The current development checks cover **377 offline scenarios**, Lua startup,
 runtime textures, and targeted map regressions. Offline checks do not reproduce
 every aspect of the game. In version 0.8.5, the author has confirmed that layout
 restoration survives reload and that combat and logout no longer produce the

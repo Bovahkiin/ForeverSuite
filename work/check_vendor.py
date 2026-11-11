@@ -807,15 +807,16 @@ assert(FS.minimapButton.normalTexture==FS.icon)
 """
 
 
-checks['Central fs dashboard configures modules in one window with click effects and reload'] = r"""
+checks['Central dashboard opens basic and standalone advanced settings with click effects and reload'] = r"""
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local V=FS.modules.Vendor
 B:ShowWindow(); SlashCmdList.FOREVERSUITE(''); local f=FS.window
 assert(f:IsShown() and not B.window:IsShown() and f.cards.Bags and f.cards.Vendor)
 Click(f.cards.Bags.card)
-assert(f.settings:IsShown() and f.settings.parent==f and f.cards.Bags.animation:IsPlaying())
-assert(f.cards.Bags.flash:IsShown() and f.settings.title:GetText()=='Bag settings')
+assert(FS.Beginner.moduleWindow:IsShown() and not f:IsShown() and f.cards.Bags.animation:IsPlaying())
+assert(f.cards.Bags.flash.shown); FS:ConfigureModule('Bags')
+assert(f.settings:IsShown() and f.settings.parent==UIParent and f.settings.title:GetText()=='Bag settings')
 assert(not B.window:IsShown() and (not V.window or not V.window:IsShown()))
-Click(f.cards.Vendor.card); assert(f.settings.title:GetText()=='Vendor settings')
+Click(f.cards.Vendor.card); FS:ConfigureModule('Vendor'); assert(f.settings.title:GetText()=='Vendor settings')
 local setting=f.settings.fields.restockBudget; setting:SetText('7')
 f.settings.fields.repairLimit:SetText('3'); f.settings.fields.moneyReserve:SetText('1'); f.settings.intensity:SetText('0.6')
 Click(FindButton(f.settings,'Save advanced settings')); assert(V:Settings().restockBudget==70000)
@@ -836,7 +837,7 @@ assert(V:Settings().rules[1].keep==20)
 Click(f.cards.Bags.toggle); assert(FS:IsModuleEnabled('Bags'))
 V:OpenMerchant(); Drain(); assert(B.window:IsShown())
 FS:ShowConfig(); Click(f.cards.Vendor.toggle); assert(FS:IsModuleEnabled('Vendor'))
-Click(f.cards.Bags.card); assert(f:IsShown() and f.settings:IsShown() and f.settings.module=='Bags')
+Click(f.cards.Bags.card); assert(not f:IsShown() and FS.Beginner.moduleWindow:IsShown() and FS.Beginner.moduleWindow.owner=='Bags')
 """
 
 checks['Beginner bag controls reveal actions only when relevant'] = r"""
@@ -862,17 +863,17 @@ checks['Separate module settings, disabled configuration and return navigation']
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local V=FS.modules.Vendor
 FS:ShowConfig(); local f=FS.window
 assert(not f.cards.Bags.open and not f.cards.Vendor.open)
-Click(f.cards.Bags.card); local s=f.settings; assert(s.module=='Bags' and not s.advanced and not s.mode:IsShown())
+Click(f.cards.Bags.card); Click(FindButton(FS.Beginner.moduleWindow,'More options')); local s=f.settings; assert(s.module=='Bags' and not s.advanced and not s.mode:IsShown())
 local n=0; for _,entry in ipairs(s.toggles) do if entry.control:IsShown() then n=n+1; assert(entry.key:find('bags.',1,true)==1 or entry.key=='glow.enabled') end end
 assert(n==4 and not s.save:IsShown() and not s.launch)
 Click(s.more); assert(s.advanced and s.intensity:IsShown() and not s.fields.repairLimit:IsShown())
 Click(s.back); assert(f:IsShown() and not s:IsShown())
-FS:SetModuleEnabled('Vendor',false); Click(f.cards.Vendor.card)
+FS:SetModuleEnabled('Vendor',false); Click(f.cards.Vendor.card); Click(FindButton(FS.Beginner.moduleWindow,'More options'))
 assert(s.module=='Vendor' and s.mode:IsShown() and not s.advanced)
 n=0; for _,entry in ipairs(s.toggles) do if entry.control:IsShown() then n=n+1; assert(not entry.key:find('bags.',1,true) and not entry.key:find('glow.',1,true)) end end
 assert(n==4)
 FS:SetModuleEnabled('Vendor',true); V:ShowWindow(false); assert(not f:IsShown() and V.window:IsShown())
-Click(V.window.tabs.Settings); assert(f:IsShown() and not V.window:IsShown() and s.module=='Vendor')
+Click(V.window.tabs.Settings); assert(not f:IsShown() and not V.window:IsShown() and s:IsShown() and s.module=='Vendor')
 B:ShowWindow(); assert(not f:IsShown() and not V.window:IsShown())
 Click(B.window.back); assert(f:IsShown() and not B.window:IsShown())
 V:ShowWindow(false); Click(V.window.back); assert(f:IsShown() and not V.window:IsShown())
@@ -1109,12 +1110,12 @@ TEST.equipment={[1]={id=1,current=0/0,maximum=100}}; assert(G:Snapshot().percent
 checks['Gear card opens dedicated settings, indicator opens overview and repairs share Vendor limits'] = r"""
 ResetTest(); local FS=ForeverSuite; local G=FS.modules.Gear; local V=FS.modules.Vendor
 FS:ShowConfig(); local f=FS.window; assert(f.cards.Gear and not f.cards.Gear.open)
-Click(f.cards.Gear.card); assert(f.gearSettings:IsShown() and (not f.settings or not f.settings:IsShown()))
+Click(f.cards.Gear.card); Click(FindButton(FS.Beginner.moduleWindow,'More options')); assert(f.gearSettings:IsShown() and (not f.settings or not f.settings:IsShown()))
 Click(f.gearSettings.threshold); assert(FS.db.gear.warningPercent==50)
 Click(f.gearSettings.back); assert(not f.gearSettings:IsShown())
 Click(G.indicator); assert(G.window:IsShown() and not f:IsShown())
 Click(G.window.settings); assert(f.gearSettings:IsShown() and not G.window:IsShown())
-FS:SetModuleEnabled('Gear',false); assert(not G.indicator:IsShown()); Click(f.cards.Gear.card); assert(f.gearSettings:IsShown())
+FS:SetModuleEnabled('Gear',false); assert(not G.indicator:IsShown()); Click(f.cards.Gear.card); Click(FindButton(FS.Beginner.moduleWindow,'More options')); assert(f.gearSettings:IsShown())
 FS:SetModuleEnabled('Gear',true); assert(G.indicator:IsShown())
 Open(); TEST.repair=60000; G:ShowWindow(); Click(G.window.repair); assert(V.repairConfirmation and G.window.repair:GetText()=='Confirm Repair')
 Click(G.window.repair); Drain(); assert(TEST.repair==0)
@@ -1199,7 +1200,8 @@ TEST.plates={}; TEST.plateMap={}
 checks['HUD Settings cards navigate separately, scale, reset and move outside combat'] = r"""
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window
 for _,name in ipairs({'UnitFrames','ActionBars','Nameplates'}) do
-    local m=FS.modules[name]; assert(not f.cards[name].open); Click(f.cards[name].card); assert(m.settings:IsShown())
+    local m=FS.modules[name]; assert(not f.cards[name].open); Click(f.cards[name].card)
+    assert(FS.Beginner.moduleWindow:IsShown()); FS:ConfigureModule(name); assert(m.settings:IsShown() and not f:IsShown())
 end
 assert(not FS.modules.UnitFrames.settings:IsShown() and not FS.modules.ActionBars.settings:IsShown())
 FS:ConfigureModule('UnitFrames'); local U=FS.modules.UnitFrames; Click(U.settings.scale); assert(FS.db.unitFrames.scale==1.1)
@@ -1440,6 +1442,10 @@ for section in Path('work/check_systems.lua').read_text().split('-- TEST: ')[1:]
     checks[title] = 'do\n' + script + '\nend'
 
 for section in Path('work/check_services.lua').read_text().split('-- TEST: ')[1:]:
+    title, script = section.split('\n', 1)
+    checks[title] = 'do\n' + script + '\nend'
+
+for section in Path('work/check_beginner.lua').read_text().split('-- TEST: ')[1:]:
     title, script = section.split('\n', 1)
     checks[title] = 'do\n' + script + '\nend'
 

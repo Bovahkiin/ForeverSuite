@@ -1,4 +1,10 @@
-# Current patch - 0.9.7
+# Current patch - 0.9.8
+
+Recommended setup, named layouts, shared previews, standalone module settings,
+quick tour, frame alignment, layout recovery, clearer addon choices and plain
+language search. Publish through the existing GitHub release workflow.
+
+# Patch - 0.9.7
 
 Scrollable Control Center body with fixed profiles/footer and saved-placement
 preservation. Restore live theme artwork on native-anchored decorations and

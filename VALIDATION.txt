@@ -1,3 +1,11 @@
+ForeverSuite 0.9.8 - 2026-11-11
+PASS: all 377 scenarios, Lua startup and artwork checks.
+PASS: six release-pipeline checks; 156-file package source validation.
+Covers recommended and custom setup, shared previews, tour dismissal, all 24
+module screens, advanced return navigation, search, frame alignment, recovery,
+other addon choices, combat guards and large text. Actual client rendering is
+covered by the manual checks in IN_GAME_TEST.md.
+
 ForeverSuite 0.9.7 - 2026-11-09
 PASS: 65 service groups including seven new viewport/theme scenarios.
 PASS: all 365 scenarios, startup and artwork checks.

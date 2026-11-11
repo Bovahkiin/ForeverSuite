@@ -23,8 +23,28 @@ function FS.Widgets:Button(parent, text, width, onClick)
     return button
 end
 
+function FS:CloseSettingsScreens(keep)
+    if self.settingsScreen~=keep then self.settingsScreen=nil end
+    if self.Beginner then
+        for _, key in ipairs({"moduleWindow", "searchWindow", "petHelp", "recoveryWindow", "tourWindow"}) do
+            local frame = self.Beginner[key]
+            if frame and frame ~= keep then frame:Hide() end
+        end
+    end
+    for _,module in pairs(self.modules) do
+        if module.settings and module.settings ~= keep then module.settings:Hide() end
+    end
+    if self.window then
+        for _, key in ipairs({"settings", "gearSettings"}) do
+            local frame = self.window[key]
+            if frame and frame ~= keep then frame:Hide() end
+        end
+    end
+end
+
 -- Modal suite windows share a single foreground screen. HUD bars stay visible.
 function FS:CloseOtherWindows(keep,returnToCenter)
+    self:CloseSettingsScreens(keep)
     if self.Extensions then for _,f in pairs({self.Extensions.form,self.Extensions.dialog}) do if f~=keep then f:Hide() end end end
     if self.Installer and self.Installer.window and self.Installer.window~=keep then self.Installer.window:Hide() end
     if self.WindowManager then self.WindowManager:HideNativeWindows(keep) end

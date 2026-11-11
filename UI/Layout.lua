@@ -160,6 +160,10 @@ function L:CreateGrid()
         end
         self.applying=false; self:ApplyAll(); FS.modules.Nameplates:SettingsChanged(); FS:ShowConfig()
     end)
+    f.selection=H:Label(toolbar,"Click a handle for alignment tools.",12,-80,736)
+    f.center=H:Button(toolbar,"Center selected frame",12,-110,234,function() self:AlignSelected("center") end)
+    f.below=H:Button(toolbar,"Below player frame",262,-110,234,function() self:AlignSelected("below") end)
+    f.restore=H:Button(toolbar,"Restore this frame",512,-110,234,function() self:AlignSelected("restore") end)
     f:Hide(); UISpecialFrames[#UISpecialFrames+1]="ForeverSuiteMoveFrames"
     f:SetScript("OnHide",function() if self.active then self:Stop() end end)
 end
@@ -171,8 +175,67 @@ function L:UpdateToolbar()
         local point={b:GetPoint()}; b:ClearAllPoints(); b:SetPoint("TOPLEFT",point[4] or point[2],-y)
         height=math.max(height,FS.HUD:FitButton(b,3))
     end
+    y=y+height+14
+    f.selection:ClearAllPoints(); f.selection:SetPoint("TOPLEFT",12,-y)
+    y=y+FS.HUD:TextHeight(f.selection,736,2)+10
+    height=0
+    for i,b in ipairs({f.center,f.below,f.restore}) do
+        b:ClearAllPoints(); b:SetPoint("TOPLEFT",12+(i-1)*250,-y)
+        b:SetEnabled(self.selected~=nil)
+        height=math.max(height,FS.HUD:FitButton(b,2))
+    end
     f.toolbar:SetHeight(y+height+12)
     f.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/760,(UIParent:GetHeight()-40)/f.toolbar:GetHeight()))
+end
+function L:Select(id)
+    if not self.active or not self.targets[id] then return end
+    self.selected=id
+    self.overlay.selection:SetText("Selected: "..self.targets[id].title)
+    for key,handle in pairs(self.handles) do
+        handle:SetBackdropBorderColor(key==id and .95 or .12,key==id and .68 or .72,key==id and .24 or .86,1)
+    end
+    self:UpdateToolbar()
+end
+function L:RestoreTarget(id)
+    local target=self.targets[id]
+    if not target then return end
+    self.applying=true
+    FS.HUD:RestorePoints(target.frame,target.points)
+    target.frame:SetScale(target.scale)
+    self.applying=false
+    if id=="Unit:pet" or id=="Unit:player" then FS.modules.UnitFrames:ApplyPetDefault() end
+end
+function L:AlignSelected(action)
+    if not self.active or not self.selected or not FS.modules.Profiles:Allowed() then return false end
+    local id=self.selected
+    local target=self.targets[id]
+    local f=target.frame
+    if action=="restore" then
+        FS.db.layout.frames[id]=nil
+        self:RestoreTarget(id)
+    else
+        local anchor=action=="below" and self.targets["Unit:player"]
+        if action=="below" and (not anchor or id=="Unit:player") then
+            FS:Print("Choose another frame to place below the player frame."); return false
+        end
+        local x,y=f:GetCenter()
+        local ratio=f:GetEffectiveScale()/UIParent:GetEffectiveScale()
+        if not FS.Tools:Number(x) or not FS.Tools:Number(y) then return false end
+        local placement={x=0,y=y*ratio,scale=f:GetScale()}
+        if anchor then
+            local px,py=anchor.frame:GetCenter()
+            if not FS.Tools:Number(px) or not FS.Tools:Number(py) then return false end
+            local playerRatio=anchor.frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
+            placement.x=px*playerRatio-UIParent:GetWidth()/2
+            placement.y=py*playerRatio-anchor.frame:GetHeight()*playerRatio/2-f:GetHeight()*ratio/2-10
+        end
+        FS.db.layout.frames[id]=placement
+        self:ConstrainSaved(id); self:Apply(id)
+    end
+    local handle=self.handles[id]
+    handle:ClearAllPoints(); handle:SetPoint("CENTER",f,"CENTER")
+    handle.caption:SetText(target.title.."  "..math.floor(f:GetScale()*100+.5).."%")
+    return true
 end
 function L:Checkpoint()
     self.before={}; for id,v in pairs(FS.db.layout.frames) do self.before[id]={x=v.x,y=v.y,scale=v.scale} end
@@ -186,6 +249,7 @@ function L:SaveChanges(close)
         if h.dragging then h.dragging=false; h:StopMovingOrSizing(); self:Save(id,h) end
     end
     FS.modules.Profiles:PersistCurrent(); self:Checkpoint()
+    FS:Print("Layout saved to profile "..FS.db.profiles.current..".")
     self.overlay.toolbarHint:SetText("Saved to profile: "..FS.db.profiles.current..". Cancel reverts changes made after this save.")
     self:UpdateToolbar()
     if close then self:Stop(); FS:ShowConfig() end
@@ -223,6 +287,8 @@ function L:Start()
     if self.active then self:Stop(); return end
     self:CreateGrid(); self:Collect()
     self:Checkpoint()
+    self.selected=nil
+    FS:CloseSettingsScreens()
     if FS.window then FS.window:Hide() end
     self.active=true; self.overlay.toolbarHint:SetText("MOVE FRAMES  |  Drag handles to move. Drag the corner arrow to resize."); self.overlay:Show(); self:UpdateToolbar()
     for id,target in pairs(self.targets) do
@@ -249,8 +315,10 @@ function L:Start()
             h.resize:SetScript("OnEnter",function(b) GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Drag to resize"); GameTooltip:AddLine("Outward: larger. Inward: smaller."); GameTooltip:Show() end)
             h.resize:SetScript("OnLeave",function() GameTooltip:Hide() end)
             h:SetScript("OnDragStart",function(frame)
+                self:Select(id)
                 if not InCombatLockdown() then frame.dragging=true; frame:StartMoving() end
             end)
+            h:SetScript("OnMouseDown",function() self:Select(id) end)
             h:SetScript("OnUpdate",function(frame)
                 if frame.dragging and self.active and not InCombatLockdown() then self:Save(id,frame,nil,true) end
             end)

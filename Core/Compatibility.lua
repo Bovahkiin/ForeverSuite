@@ -207,6 +207,7 @@ function C:Scan()
     if self.window and self.window:IsShown() then return end
     if FS.Installer:NeedsSetup() or FS.Installer.window and FS.Installer.window:IsShown()
         or FS.window and FS.window:IsShown() or FS.aboutWindow and FS.aboutWindow:IsShown()
+        or FS.settingsScreen and FS.settingsScreen:IsShown()
         or FS.Typography.window and FS.Typography.window:IsShown() then
         self.waiting=self:NeedsChoice("waypoints") or self:NeedsChoice("nameplates"); return
     end
@@ -218,7 +219,7 @@ function C:Show(category,automatic)
     if not self.window then
         local H=FS.HUD; local f=CreateFrame("Frame","ForeverSuiteAddonChoices",UIParent,"BackdropTemplate"); self.window=f
         H:Skin(f); f:SetPoint("CENTER"); f:SetSize(660,440); f:SetFrameStrata("DIALOG"); f:EnableMouse(true); f:SetClampedToScreen(true)
-        f.title=H:Label(f,"ADDON SYSTEMS",22,-20,610)
+        f.title=H:Label(f,"WORK WITH OTHER ADDONS",22,-20,610)
         f.nav=H:Button(f,"Waypoints",22,-55,300,function() self:Show("waypoints") end)
         f.plates=H:Button(f,"Nameplates",338,-55,300,function() self:Show("nameplates") end)
         f.help=H:Label(f,"",22,-102,610); f.rows={}
@@ -231,21 +232,28 @@ function C:Show(category,automatic)
             FS.Extensions.skipUndo=true
             f:Hide(); if self.category=="nameplates" then ReloadUI() else self:Scan() end
         end)
-        f.later=H:Button(f,"Choose later",338,-365,300,function() self.snoozed[self.category]=true; f:Hide(); self:Scan() end)
+        f.later=H:Button(f,"Choose later",338,-365,300,function()
+            self.snoozed[self.category]=true; f:Hide()
+            if f.automatic then self:Scan() else FS:ShowConfig() end
+        end)
         UISpecialFrames[#UISpecialFrames+1]="ForeverSuiteAddonChoices"
         f:SetScript("OnHide",function() if not self.applying then self.snoozed[self.category]=true end end)
     end
-    local f=self.window; self.selected=self:Data()[self.category] or "ForeverSuite"
+    local f=self.window; f.automatic=automatic==true; self.selected=self:Data()[self.category] or "ForeverSuite"
     local candidates=self:Candidates(self.category)
     local found=false; for _,p in ipairs(candidates) do if p.id==self.selected then found=true end end; if not found then self.selected="ForeverSuite" end
-    f.help:SetText(self.category=="waypoints" and "Choose one navigation arrow. Your guides remain available. The choice is remembered for this character." or "Choose one nameplate system. Other listed nameplate addons are disabled for this character after a UI reload. Their saved settings are kept.")
+    f.help:SetText(self.category=="waypoints" and "Choose which addon shows your destination arrow. ForeverSuite follows tracked quests; RestedXP and Zygor follow guide steps; TomTom uses its saved destinations. Your choice is remembered for this character." or "Choose which addon draws health bars above units. ForeverSuite uses its own designer; choosing Plater or another addon uses that addon's settings. Apply and reload UI to activate your choice.")
     local y=20+FS.HUD:TextHeight(f.title,610,2)+14
     for i,b in ipairs({f.nav,f.plates}) do b:ClearAllPoints(); b:SetPoint("TOPLEFT",i==1 and 22 or 338,-y); FS.HUD:FitButton(b,2,32) end
     y=y+math.max(f.nav:GetHeight(),f.plates:GetHeight())+16
     f.help:ClearAllPoints(); f.help:SetPoint("TOPLEFT",22,-y)
     y=y+FS.HUD:TextHeight(f.help,610,5)+18
     local function labels()
-        for i,p in ipairs(candidates) do f.rows[i]:SetText((self.selected==p.id and "[x] " or "")..p.label) end
+        local saved=self:Data()[self.category]
+        for i,p in ipairs(candidates) do
+            local state=p.id==saved and " (saved choice)" or p.active and " (enabled)" or ""
+            f.rows[i]:SetText((self.selected==p.id and "[x] " or "")..p.label..state)
+        end
     end
     for i,p in ipairs(candidates) do
         if not f.rows[i] then f.rows[i]=FS.HUD:Button(f,"",22,0,616,function() end) end
@@ -256,10 +264,11 @@ function C:Show(category,automatic)
     labels(); f.status:SetText(automatic and "More than one system was detected. Nothing changes until you apply your choice." or "Your saved choice can be changed here at any time.")
     f.status:ClearAllPoints(); f.status:SetPoint("TOPLEFT",22,-y); y=y+FS.HUD:TextHeight(f.status,610,4)+16
     f.apply:SetText(self.category=="nameplates" and "Apply and reload UI" or "Apply waypoint choice")
+    f.later:SetText(automatic and "Choose later" or "Back to Control Center")
     for i,b in ipairs({f.apply,f.later}) do b:ClearAllPoints(); b:SetPoint("TOPLEFT",i==1 and 22 or 338,-y); FS.HUD:FitButton(b,3,32) end
     f:SetHeight(y+math.max(f.apply:GetHeight(),f.later:GetHeight())+22)
     f:SetScale(math.min(1,(UIParent:GetWidth()-24)/660,(UIParent:GetHeight()-24)/f:GetHeight()))
-    if not automatic and FS.window then FS.window:Hide() end
+    if not automatic then FS:CloseOtherWindows(f) end
     f:Show()
 end
 function C:Initialize()

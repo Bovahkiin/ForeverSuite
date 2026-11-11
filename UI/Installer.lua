@@ -3,6 +3,25 @@ local I={}; FS.Installer=I
 local H=FS.HUD
 local modules={"ActionBars","UnitFrames","Quests","Map","Chat","Nameplates"}
 local titles={ActionBars="Action bars",UnitFrames="Unit frames",Quests="Quest tracker",Map="Map & navigation",Chat="Chat",Nameplates="Nameplates"}
+local steps = {1, 5, 2, 3}
+
+function I:StepIndex()
+    for index, step in ipairs(steps) do if step == self.step then return index end end
+    return 1
+end
+
+function I:Recommended()
+    self:Draft()
+    self.draft.layout = "Layout 1"
+    self.draft.theme = FS.Themes.names[1]
+    self.draft.style = "Minimal"
+    self.draft.scale = 1
+    self.draft.preset = "Standard text"
+    for _, name in ipairs(modules) do self.draft.modules[name] = true end
+    self.quickStart = true
+    self.step = 5
+    self:Refresh()
+end
 function I:NeedsSetup() return FS.db and not FS.db.setup.completed and not FS.db.setup.dismissed end
 function I:Draft()
     self.draft={theme=FS.Themes:Index(FS.db.appearance.theme) and FS.db.appearance.theme or FS.Themes.names[1],style=FS.db.actionBars.style,scale=math.min(1.2,math.max(.8,FS.db.actionBars.scale)),modules={}}
@@ -33,7 +52,9 @@ function I:Apply()
     FS.db.setup.completed=true; FS.db.setup.dismissed=false
     if not FS.Themes:Set(d.theme) then return false end
     FS.Layout:ApplyAll(); FS.modules.Profiles:PersistCurrent()
-    self.window:Hide(); FS:ShowConfig(); return true
+    self.window:Hide(); FS:ShowConfig()
+    if not FS.db.setup.tourCompleted and not FS.db.setup.tourDismissed then FS.Beginner:ShowTour() end
+    return true
 end
 function I:Create()
     if self.window then return end
@@ -46,7 +67,10 @@ function I:Create()
             if self.step==2 then self.draft.theme=FS.Themes.names[index]
             elseif self.step==3 then
                 if index<=3 then self.draft.scale=({.8,1,1.2})[index]; self.draft.preset=nil
-                else self.draft.preset=index==4 and 'Readable text' or 'Compact screen'; self.draft.scale=index==4 and 1.2 or .8 end
+                else
+                    self.draft.preset=({[4]='Readable text',[5]='Compact screen',[6]='Standard text'})[index]
+                    self.draft.scale=index==4 and 1.2 or index==5 and .8 or 1
+                end
             elseif self.step==4 then local name=modules[index]; self.draft.modules[name]=not self.draft.modules[name]
             elseif self.step==5 then self.draft.layout=FS.LayoutPresets.names[index] end
             self:Refresh()
@@ -86,34 +110,46 @@ function I:Create()
     end
     f.status=H:Label(f,"",24,-560,712)
     f.patch=H:Button(f,"Patch Log",24,-560,180,function() self.window:Hide(); FS:ShowPatchLog(true); FS.aboutReturn=false end)
-    f.previous=H:Button(f,"Back",24,-620,170,function() self.step=math.max(1,self.step-1); self:Refresh() end)
+    f.recommended=H:Button(f,"Use recommended settings",24,-560,344,function() self:Recommended() end)
+    f.customize=H:Button(f,"Choose my own settings",392,-560,344,function() self.quickStart=false; self.step=5; self:Refresh() end)
+    f.previous=H:Button(f,"Back",24,-620,170,function()
+        self.step=steps[math.max(1,self:StepIndex()-1)]; self.quickStart=false; self:Refresh()
+    end)
     f.later=H:Button(f,"Set up later",205,-620,220,function() self:Dismiss() end)
     f.next=H:Button(f,FS.Text.next,530,-620,206,function()
         if self.themeOnly then
             if FS.Themes:Set(self.draft.theme) then FS.modules.Profiles:PersistCurrent(); self.window:Hide(); if FS.window then FS:ShowConfig() end end
-        elseif self.step==5 then self:Apply() else self.step=self.step+1; self:Refresh() end
+        elseif self.step==3 or self.quickStart and self.step==5 then self:Apply()
+        else self.step=steps[math.min(#steps,self:StepIndex()+1)]; self:Refresh() end
     end)
     UISpecialFrames[#UISpecialFrames+1]="ForeverSuiteInstaller"
     f:Hide()
 end
 function I:Refresh()
     local f=self.window; local d=self.draft; if not f or not d then return end
-    local titlesByStep={"Welcome to ForeverSuite","Choose your appearance","Text and screen presets","Choose your modules","Choose your layout"}
+    local titlesByStep={"Welcome to ForeverSuite","Choose your appearance","Choose readable text","Choose your modules","Choose your layout"}
     local descriptions={"ForeverSuite  |  v"..FS.version.."\nCreated by DeluxiZ\nA few quick choices to make your UI feel like yours.","Ten Blender styles. Select one to see its panel, button and arrow design. Gameplay positions stay unchanged.","Bar size buttons affect this preview only. Readable text stages size 18 and outlines; Compact screen stages size 12 and 85% unit frames. Apply & finish saves the preset.","Choose what ForeverSuite manages. Other modules keep their current settings."}
-    descriptions[5]="Choose a screen arrangement. Layout 1 follows DeluxiZ's reference; the preview uses neutral labels only. Positions are fitted to your screen when you finish."
+    descriptions[1]="ForeverSuite  |  v"..FS.version.."\nCreated by DeluxiZ\nUse the recommended start or choose your own layout, appearance and text. You can change every choice later."
+    descriptions[2]="Choose a theme. The same layout preview below shows its colors and frame artwork. Your choices are saved when you finish."
+    descriptions[3]="Choose a text preset. The preview shows your staged text size. Apply & finish saves the layout, theme and text to your profile. Bar size buttons change the preview only."
+    descriptions[5]="Choose Balanced, Compact or Classic. Player, target, pet, chat and quest positions are shown below. Each layout is fitted to your screen."
     f.title:SetText(titlesByStep[self.step]); f.description:SetText(descriptions[self.step])
     local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
     local y=100+H:TextHeight(f.title,712,2)+14; at(f.description,24,y); y=y+H:TextHeight(f.description,712,4)+20
-    local count=self.step==2 and 10 or self.step==3 and 5 or self.step==4 and 6 or self.step==5 and 4 or 0
+    local count=self.step==2 and 10 or self.step==3 and 6 or self.step==4 and 6 or self.step==5 and 4 or 0
     local rowHeight=36
     for index,button in ipairs(f.choices) do
         button:SetShown(index<=count)
         if index<=count then
             local caption,selected
             if self.step==2 then caption=string.format("%02d  %s",index,FS.Themes.names[index]); selected=d.theme==FS.Themes.names[index]
-            elseif self.step==3 then caption=({"Compact bars preview (80%)","Standard bars preview (100%)","Large bars preview (120%)","Readable text preset","Compact screen preset"})[index]; selected=index<=3 and not d.preset and d.scale==({.8,1,1.2})[index] or index==4 and d.preset=='Readable text' or index==5 and d.preset=='Compact screen'
+            elseif self.step==3 then caption=({"Compact bars preview (80%)","Standard bars preview (100%)","Large bars preview (120%)","Readable text (18)","Compact text (12)","Standard text (14)"})[index]; selected=index<=3 and not d.preset and d.scale==({.8,1,1.2})[index] or index==4 and d.preset=='Readable text' or index==5 and d.preset=='Compact screen' or index==6 and d.preset=='Standard text'
             elseif self.step==4 then local name=modules[index]; caption=titles[name]..": "..(d.modules[name] and "On" or "Off"); selected=d.modules[name]
-            else caption=FS.LayoutPresets.names[index]; selected=d.layout==caption end
+            else
+                local name=FS.LayoutPresets.names[index]
+                caption=FS.LayoutPresets.labels[name] or name
+                selected=d.layout==name
+            end
             button:SetText((selected and "[x] " or "")..caption); button:SetBackdropBorderColor(selected and .95 or .12,selected and .68 or .55,selected and .24 or .65,1)
             rowHeight=math.max(rowHeight,H:FitButton(button,2)+10)
         end
@@ -130,8 +166,21 @@ function I:Refresh()
     end
     at(f.previewTitle,24,y); y=y+H:TextHeight(f.previewTitle,712,1)+8; at(f.preview,24,y)
     local theme=FS.Themes:Index(d.theme) or 1
-    f.design:SetShown(self.step==2); f.preview:SetShown(self.step~=2 and self.step~=5); f.layoutPreview:SetShown(self.step==5)
-    if self.step==5 then at(f.layoutPreview,24,y); FS.LayoutPresets:Preview(f.layoutPreview,d.layout) end
+    f.design:Hide(); f.preview:SetShown(self.step==4); f.layoutPreview:SetShown(self.step~=4)
+    if self.step~=4 then
+        at(f.layoutPreview,24,y)
+        FS.LayoutPresets:Preview(f.layoutPreview,d.layout)
+        FS.Themes:Register(f.layoutPreview,"Panel",theme)
+        for _, item in pairs(f.layoutPreview.parts) do
+            FS.Themes:Register(item.frame,"Panel",theme)
+            item.frame.label:SetFont(FS.font,d.preset=='Readable text' and 13 or d.preset=='Compact screen' and 9 or 10,"")
+        end
+        local factor=d.scale or 1
+        for _,id in ipairs({"MainActionBar","MultiBarBottomLeft","MultiBarBottomRight"}) do
+            local item=f.layoutPreview.parts[id]
+            item.frame:SetHeight(item.frame:GetHeight()*factor)
+        end
+    end
     at(f.design,24,y); f.design.image:SetTexture(FS.Themes:Asset(theme,"Preview"))
     local preview=f.preview
     -- Welcome and text/size examples must work even when live modules are off.
@@ -156,19 +205,25 @@ function I:Refresh()
     preview.tray:SetFrameLevel(preview:GetFrameLevel()+1)
     for _,tile in ipairs(preview.tiles) do tile:SetFrameLevel(preview:GetFrameLevel()+2) end
     FS.modules.ActionBars:StyleTray(preview.tray,d.style,show("ActionBars"))
-    y=y+(self.step==2 and f.design:GetHeight() or self.step==5 and f.layoutPreview:GetHeight() or preview:GetHeight())+16
+    y=y+(self.step==4 and preview:GetHeight() or f.layoutPreview:GetHeight())+16
+    f.recommended:SetShown(self.step==1); f.customize:SetShown(self.step==1)
+    if self.step==1 then
+        at(f.recommended,24,y); at(f.customize,392,y)
+        y=y+math.max(H:FitButton(f.recommended,2),H:FitButton(f.customize,2))+12
+    end
     f.patch:SetShown(self.step==1)
     if self.step==1 then at(f.patch,24,y); y=y+H:FitButton(f.patch,2)+14 end
-    f.status:SetText(self.themeOnly and "Preview only — Apply style saves this appearance to your current profile." or "Step "..self.step.." / 5  |  Preview only — changes are saved when you finish."); at(f.status,24,y); y=y+H:TextHeight(f.status,712,2)+16
+    local summary=(FS.LayoutPresets.labels[d.layout] or d.layout).." | "..d.theme.." | "..(d.preset or "Current text")
+    f.status:SetText(self.themeOnly and "Apply style saves this appearance to your current profile." or (self.quickStart and "Recommended start  |  " or "Step "..self:StepIndex().." / 4  |  ")..summary); at(f.status,24,y); y=y+H:TextHeight(f.status,712,3)+16
     f.later:SetText(self.themeOnly and "Cancel" or "Set up later")
-    f.previous:SetEnabled(self.step>1 and not self.themeOnly); f.next:SetText(self.themeOnly and "Apply style" or self.step==5 and "Apply & finish" or FS.Text.next)
+    f.previous:SetEnabled(self:StepIndex()>1 and not self.themeOnly); f.next:SetText(self.themeOnly and "Apply style" or (self.step==3 or self.quickStart) and "Apply & finish" or FS.Text.next)
     local footer=0; for _,b in ipairs({f.previous,f.later,f.next}) do footer=math.max(footer,H:FitButton(b,2)) end
     at(f.previous,24,y); at(f.later,205,y); at(f.next,530,y); f:SetHeight(y+footer+24)
     f:SetScale(math.min(1,(UIParent:GetWidth()-48)/760,(UIParent:GetHeight()-48)/f:GetHeight()))
 end
 function I:Show()
     if InCombatLockdown() then FS:Print("Leave combat to open setup."); return false end
-    self:Create(); self:Draft(); self.hasOpenedSetup=true; self.themeOnly=false; self.step=1; FS.installerReturn=false
+    self:Create(); self:Draft(); self.hasOpenedSetup=true; self.themeOnly=false; self.quickStart=false; self.step=1; FS.installerReturn=false
     FS:CloseOtherWindows(self.window); self:Refresh(); self.window:Show(); return true
 end
 function I:ShowThemes()

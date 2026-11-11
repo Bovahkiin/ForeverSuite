@@ -123,6 +123,7 @@ end
 
 function V:ShowWindow(automatic)
     if not FS:IsModuleEnabled("Vendor") then return end
+    FS:CloseSettingsScreens()
     if FS.window then FS.window:Hide() end
     if FS.modules.Bags.window and not InCombatLockdown() then FS.modules.Bags.window:Hide() end
     if FS.modules.Gear and FS.modules.Gear.window then FS.modules.Gear.window:Hide() end

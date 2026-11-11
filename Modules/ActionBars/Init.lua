@@ -61,7 +61,7 @@ function A:Remember(bar,name)
 end
 function A:OpenNativeLayout()
     if InCombatLockdown() then FS:Print("Leave combat to edit action bars."); return end
-    if EditModeManagerFrame and ShowUIPanel then ShowUIPanel(EditModeManagerFrame)
+    if EditModeManagerFrame and ShowUIPanel then FS:CloseSettingsScreens(); ShowUIPanel(EditModeManagerFrame)
     else FS:Print("Set action bar position and size in the game's interface settings.") end
 end
 function A:SkinButton(b, enabled, bar)

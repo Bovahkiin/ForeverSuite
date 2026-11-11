@@ -300,7 +300,7 @@ assert(I.window:IsShown() and not FS.db.setup.completed and FS.db.layout.frames.
 local FS,I=StartupFixture(); FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD'); Drain()
 assert(I.window:IsShown()); I.window.next:Click(); I.draft.theme='Royal Aether'
 FS.events.scripts.OnEvent(FS.events,'PLAYER_ENTERING_WORLD'); FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain()
-assert(I.step==2 and I.draft.theme=='Royal Aether')
+assert(I.step==5 and I.draft.theme=='Royal Aether')
 
 -- TEST: Startup in combat remains pending and opens welcome automatically after combat
 local FS,I=StartupFixture(); TEST.combat=true
@@ -401,11 +401,11 @@ ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:DisableAllModules(); loc
 I:Show(); local f=I.window
 for _,step in ipairs({1,3}) do
     I.step=step; I:Refresh()
-    for _,r in ipairs({f.preview.player,f.preview.target,f.preview.quest,f.preview.chat,f.preview.nameplate,f.preview.waypoint,f.preview.health[1],f.preview.health[2],f.preview.tiles[1]}) do assert(r:IsShown()) end
-    assert(not f.preview.empty:IsShown())
+    for _,id in ipairs({'Unit:player','Unit:target','Unit:pet','QuestTracker','ChatFrame1','MainActionBar','Waypoint'}) do assert(f.layoutPreview.parts[id].frame:IsShown()) end
 end
-f.choices[3]:Click(); assert(f.preview.tiles[1]:GetWidth()==36*1.2)
-f.choices[4]:Click(); assert(f.preview.player.font[2]==18 and FS.db.typography.global.size==0)
+local bar=f.layoutPreview.parts.MainActionBar.frame; local height=bar:GetHeight()
+f.choices[3]:Click(); assert(math.abs(bar:GetHeight()-height*1.2)<.01)
+f.choices[4]:Click(); assert(f.layoutPreview.parts['Unit:player'].frame.label.font[2]==13 and FS.db.typography.global.size==0)
 for _,name in ipairs(FS.window.moduleOrder) do assert(not FS:IsModuleEnabled(name),name) end
 f:Hide()
 
@@ -414,17 +414,17 @@ ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:DisableAllModules(); loc
 assert(f.preview.empty:IsShown() and not f.preview.player:IsShown() and not f.preview.tiles[1]:IsShown())
 f.choices[2]:Click(); assert(I.draft.modules.UnitFrames and f.preview.player:IsShown() and not f.preview.empty:IsShown())
 assert(not f.preview.quest:IsShown() and not FS:IsModuleEnabled('UnitFrames'))
-f.previous:Click(); assert(I.step==3 and f.preview.quest:IsShown() and f.preview.tiles[1]:IsShown())
-f.next:Click(); assert(I.step==4 and f.preview.player:IsShown() and not f.preview.quest:IsShown() and not I.draft.modules.Quests)
+I.step=3; I:Refresh(); assert(f.layoutPreview:IsShown() and not I.draft.modules.Quests)
+f.previous:Click(); assert(I.step==2 and f.layoutPreview:IsShown())
 f:Hide()
 
 -- TEST: All ten style images and preset previews remain available while live modules stay off
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:DisableAllModules(); local I=FS.Installer; I:Show(); local f=I.window
 I.step=2; I:Refresh()
 for i,name in ipairs(FS.Themes.names) do
-    f.choices[i]:Click(); assert(f.design:IsShown() and f.design.image.texture==FS.Themes:Asset(i,'Preview'))
-    f.next:Click(); assert(I.step==3 and f.preview.player:IsShown() and f.preview.tiles[1]:IsShown())
-    f.choices[5]:Click(); assert(f.preview.player.font[2]==12 and not FS.db.setup.completed)
+    f.choices[i]:Click(); assert(f.layoutPreview:IsShown() and FS.Themes.frames[f.layoutPreview].parts[1].texture==FS.Themes:Asset(i,'Panel'))
+    f.next:Click(); assert(I.step==3 and f.layoutPreview.parts['Unit:player'].frame:IsShown() and f.layoutPreview.parts.MainActionBar.frame:IsShown())
+    f.choices[5]:Click(); assert(f.layoutPreview.parts['Unit:player'].frame.label.font[2]==9 and not FS.db.setup.completed)
     f.previous:Click()
 end
 for _,name in ipairs(FS.window.moduleOrder) do assert(not FS:IsModuleEnabled(name),name) end
@@ -436,11 +436,11 @@ FS.db.layout.frames.Clock={x=10,y=300,scale=1}; I:Show(); assert(I.draft.layout=
 I.window:Hide()
 
 -- TEST: Layout choices and neutral schematic preview never write live positions before finish
-ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.step=4; I:Refresh(); I.window.next:Click()
-assert(I.step==5 and I.window.next:GetText()=='Apply & finish' and I.window.layoutPreview:IsShown())
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.window.next:Click()
+assert(I.step==5 and I.window.next:GetText()=='Next' and I.window.layoutPreview:IsShown())
 for i,name in ipairs(FS.LayoutPresets.names) do
     I.window.choices[i]:Click(); assert(I.draft.layout==name and next(FS.db.layout.frames)==nil)
-    local preview=I.window.layoutPreview; assert(preview.notice:IsShown()==(name=='Keep current'))
+    local preview=I.window.layoutPreview; assert(not preview.notice:IsShown())
     if name~='Keep current' then assert(preview.parts['Unit:player'].frame:IsShown() and preview.parts['Unit:target'].frame:IsShown()) end
 end
 I:Dismiss(); assert(next(FS.db.layout.frames)==nil)
@@ -507,7 +507,7 @@ state.restore(); local api=C_EditMode; C_EditMode=nil; assert(not P:Prepare('Cla
 
 -- TEST: Finishing a selected layout saves fitted addon positions in the current profile and Keep current preserves them
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.step=5; I.draft.layout='Layout 1'; I.draft.nativeLayout=false
-I:Refresh(); I.window.next:Click(); assert(FS.db.setup.completed and FS.db.layout.preset=='Layout 1')
+I.step=3; I:Refresh(); I.window.next:Click(); assert(FS.db.setup.completed and FS.db.layout.preset=='Layout 1')
 local frames=FS.db.profiles.saved[FS.db.profiles.current].layout.frames; assert(frames['Unit:player'] and frames['Unit:target'])
 local x=FS.db.layout.frames['Unit:player'].x; FS:InitializeDatabase(); assert(FS.db.layout.frames['Unit:player'].x==x)
 I:Show(); assert(I.draft.layout=='Keep current'); I.draft.nativeLayout=true; assert(I:Apply())
@@ -581,7 +581,7 @@ assert(FS.Themes:Set('Legacy')); for _,part in ipairs(FS.Themes.frames[frame].pa
 -- TEST: Guided setup finish applies the chosen theme to live UI and active profile with explicit dashboard feedback
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local I=FS.Installer; local f=FS.window
 I:Show(); I.step=2; I:Refresh(); I.window.choices[4]:Click(); assert(FS.db.appearance.theme=='Legacy')
-I.draft.layout='Keep current'; I.step=5; I:Refresh(); I.window.next:Click()
+I.draft.layout='Keep current'; I.step=3; I:Refresh(); I.window.next:Click()
 assert(not I.window:IsShown() and FS.db.appearance.theme=='Verdant Relic' and f.appearance:GetText()=='Theme: Verdant Relic')
 assert(FS.Themes.frames[f].parts[1].texture==FS.Themes:Asset(4,'Panel'))
 assert(FS.db.profiles.saved[FS.db.profiles.current].appearance.theme=='Verdant Relic')

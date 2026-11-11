@@ -51,7 +51,7 @@ UnitName,GetNormalizedRealmName=oldName,oldRealm
 
 -- TEST: Setup text presets preview without changing live settings and apply only on finish
 local FS,E=ExtensionFixture(); local I=FS.Installer; I:Show(); I.step=3; I:Refresh(); local old=FS.db.typography.global.size
-I.window.choices[4]:Click(); assert(I.draft.preset=='Readable text' and FS.db.typography.global.size==old and I.window.preview.player.font[2]==18)
+I.window.choices[4]:Click(); assert(I.draft.preset=='Readable text' and FS.db.typography.global.size==old and I.window.layoutPreview.parts['Unit:player'].frame.label.font[2]==13)
 assert(I:Apply() and FS.db.typography.global.size==18 and FS.db.typography.global.outline=='Thin')
 I:Show(); I.step=3; I:Refresh(); I.window.choices[5]:Click(); assert(I:Apply() and FS.db.typography.global.size==12 and FS.db.unitFrames.scale==.85)
 
@@ -463,10 +463,10 @@ f.cardPage=1; FS:RefreshConfig()
 -- TEST: Dashboard search keyboard opens a unique result and Escape clears filters without changing profiles
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:ClearModuleFilter(); local f=FS.window; local name=FS.db.profiles.current
 f.moduleSearch:SetText('Nameplates'); f.moduleSearch.scripts.OnTextChanged(f.moduleSearch)
-local configure=FS.ConfigureModule; local chosen; FS.ConfigureModule=function(self,n) chosen=n end
-f.moduleSearch.scripts.OnEnterPressed(f.moduleSearch); assert(chosen=='Nameplates')
+local search=FS.Beginner.Search; local chosen; FS.Beginner.Search=function(self,query) chosen=query end
+f.moduleSearch.scripts.OnEnterPressed(f.moduleSearch); assert(chosen=='nameplates')
 FS:SetModuleFilter('','All'); chosen=nil; f.moduleSearch.scripts.OnEnterPressed(f.moduleSearch); assert(chosen==nil)
-FS.ConfigureModule=configure; FS:SetModuleFilter('loot','Disabled'); f.moduleSearch.scripts.OnEscapePressed(f.moduleSearch)
+FS.Beginner.Search=search; FS:SetModuleFilter('loot','Disabled'); f.moduleSearch.scripts.OnEscapePressed(f.moduleSearch)
 assert(f.moduleQuery=='' and f.moduleFilter=='All' and FS.db.profiles.current==name)
 f.cardPage=2; FS:RefreshConfig(); f.moduleSearch.scripts.OnEscapePressed(f.moduleSearch); assert(f.cardPage==2)
 f.cardPage=1; FS:RefreshConfig()

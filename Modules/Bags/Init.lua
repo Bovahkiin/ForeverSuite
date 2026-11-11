@@ -87,6 +87,7 @@ end
 function B:ShowWindow()
     if InCombatLockdown() then return end
     if not FS:IsModuleEnabled("Bags") then return end
+    FS:CloseSettingsScreens()
     if FS.window then FS.window:Hide() end
     if FS.modules.Vendor.window then FS.modules.Vendor.window:Hide() end
     if FS.modules.Gear and FS.modules.Gear.window then FS.modules.Gear.window:Hide() end
