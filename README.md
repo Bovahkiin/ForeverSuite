@@ -19,8 +19,8 @@ profile. Made by **DeluxiZ**.
   settings. Both screens have **Back to Control Center**.
 - Open **Quick tour** for three tips on modules, moving frames and profiles.
   **Help with layout** can bring saved frames back on screen or undo a change.
-- Type a task in the search field and press Enter. Try `letters groter`,
-  `pijl terug`, `pet voeren` or `tassen verplaatsen`.
+- Type a task in the search field and press Enter. Try `text size`,
+  `restore waypoint`, `feed pet` or `move bags`.
 
 ## Features
 
