@@ -328,12 +328,21 @@ C_Map=nil; C_Minimap=nil; C_QuestLog=nil; GetCVar=nil; QuestMapFrame_OpenToQuest
 -- TEST: Native spellbook clears suite dialogs and sits below menu; suite dialogs hide native windows
 ResetTest(); local FS=ForeverSuite; local W=FS.WindowManager
 SpellBookFrame=CreateFrame('Frame',nil,UIParent); SpellBookFrame:SetPoint('TOPLEFT',UIParent,'TOPLEFT',10,-10); SpellBookFrame:Hide()
-W:Install(); FS:ShowConfig(); SpellBookFrame:Show(); Drain()
+W:Install(); FS:ShowConfig(); SpellBookFrame:Show(); assert(SpellBookFrame:GetAlpha()==0); Drain()
+assert(SpellBookFrame:GetAlpha()==1 and FS.NativeWindows.windows[SpellBookFrame].enabled)
 assert(not FS.window:IsShown() and SpellBookFrame.point[1]=='TOPLEFT' and SpellBookFrame.point[5]==-76)
 FS:ShowPatchLog(); assert(not SpellBookFrame:IsShown() and FS.aboutWindow:IsShown())
 SpellBookFrame:Show(); Drain(); assert(not FS.aboutWindow:IsShown())
 FS:SetModuleEnabled('ActionBars',false); assert(SpellBookFrame.point[5]==-10)
 FS:SetModuleEnabled('ActionBars',true); SpellBookFrame:Hide(); SpellBookFrame=nil
+local previous=PlayerSpellsFrame
+PlayerSpellsFrame=CreateFrame('Frame',nil,UIParent); local talents=PlayerSpellsFrame
+talents:SetAlpha(.7); talents:Hide(); W:Install()
+talents:Show(); assert(talents:GetAlpha()==0); Drain()
+assert(talents:GetAlpha()==.7 and FS.NativeWindows.windows[talents].enabled)
+talents:Hide(); talents:Show(); talents:Hide(); Drain(); assert(talents:GetAlpha()==.7)
+TEST.combat=true; talents:Show(); assert(talents:GetAlpha()==.7)
+talents:Hide(); TEST.combat=false; Drain(); PlayerSpellsFrame=previous
 
 -- TEST: Own XP bar replaces native overlapping strips and restores native input on disable
 ResetTest(); local FS=ForeverSuite; local W=FS.WindowManager
@@ -384,6 +393,7 @@ C_QuestLog=nil; WorldMapFrame:Hide(); WorldMapFrame=originalMap
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local C=FS.modules.Character
 TEST.data[901]={quality=1,price=1,classID=4}; AddItem(1,901,1)
 B:ShowWindow(); CharacterFrame:Show(); assert(B.window:IsShown() and CharacterFrame:IsShown() and C.root:IsShown())
+assert(CharacterFrame:GetAlpha()==0); Drain(); assert(CharacterFrame:GetAlpha()==1)
 CharacterFrame:Hide(); assert(B.window:IsShown()); B.window:Hide()
 CharacterFrame:Show(); B:ShowWindow(); assert(B.window:IsShown() and CharacterFrame:IsShown())
 local cell; for _,button in ipairs(B.window.cells) do if button.row and button.row.id==901 then cell=button; break end end

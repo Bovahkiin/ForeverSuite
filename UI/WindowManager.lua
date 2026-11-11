@@ -1,9 +1,26 @@
 local _,FS=...
-local W={native={},xpNative={}}; FS.WindowManager=W
+local W={native={},xpNative={},openingFrames={}}; FS.WindowManager=W
 local names={"SpellBookFrame","PlayerSpellsFrame","QuestLogFrame","ProfessionsBookFrame","ProfessionsFrame","TradeSkillFrame","CraftFrame","FriendsFrame","ContactsFrame","AchievementFrame","CollectionsJournal","WardrobeFrame","CommunitiesFrame","GuildFrame","EncounterJournal","WorldMapFrame"}
+function W:PrepareOpen(frame,finish)
+    if InCombatLockdown() or self.openingFrames[frame] or (frame.IsForbidden and frame:IsForbidden()) then return false end
+    local alpha=frame:GetAlpha()
+    if not FS.Tools:Number(alpha) then return false end
+    self.openingFrames[frame]=true
+    frame:SetAlpha(0)
+    -- Finish after the game's show handlers have created and positioned the content.
+    C_Timer.After(0,function()
+        local ok,err=true
+        if frame:IsShown() and not InCombatLockdown() then ok,err=pcall(finish) end
+        self.openingFrames[frame]=nil
+        local current=frame:GetAlpha()
+        if FS.Tools:Number(current) and current==0 then frame:SetAlpha(alpha) end
+        if not ok then error(err,0) end
+    end)
+    return true
+end
 function W:QueueNativeShown(frame,name)
     local state=self.native[frame]
-    if not state or state.placing or self.opening then return end
+    if not state or state.placing or self.opening or self.openingFrames[frame] then return end
     self.pendingNative={frame=frame,name=name}
     if self.nativeWorkPending then return end; self.nativeWorkPending=true
     C_Timer.After(0,function()
@@ -33,7 +50,16 @@ function W:Install()
         while parent do if self.native[parent] then nested=true; break end; parent=parent.GetParent and parent:GetParent() end
         if frame and not nested and not self.native[frame] and not (frame.IsForbidden and frame:IsForbidden()) then
             local state={name=name}; self.native[frame]=state
-            frame:HookScript("OnShow",function(f) self:QueueNativeShown(f,name) end)
+            frame:HookScript("OnShow",function(f)
+                if (name=="SpellBookFrame" or name=="PlayerSpellsFrame") and FS:IsModuleEnabled("ActionBars")
+                    and (not FS.db.extras or FS.db.extras.nativeWindows~=false)
+                    and self:PrepareOpen(f,function()
+                        self:NativeShown(f,name)
+                        FS.NativeWindows:Refresh()
+                        FS.Layout:Apply(name)
+                    end) then return end
+                self:QueueNativeShown(f,name)
+            end)
             if name=="SpellBookFrame" or name=="PlayerSpellsFrame" then
                 hooksecurefunc(frame,"SetPoint",function(f)
                     if not state.placing and not self.opening and f:IsShown() then self:QueueNativeShown(f,name) end

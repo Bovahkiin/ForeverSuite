@@ -1,3 +1,8 @@
+# 0.9.10 - 2026-11-11
+
+- Apply ForeverSuite styling and placement before revealing Character Info,
+  Spellbook and Talents when opening them outside combat.
+
 # 0.9.9 - 2026-11-11
 
 - Keep the Quick Tour text and buttons above the Control Center cards.

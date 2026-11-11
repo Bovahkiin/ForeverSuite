@@ -296,7 +296,13 @@ function C:Apply()
 end
 function C:InstallHooks()
     if not CharacterFrame or self.hooked then return end; self.hooked=true
-    CharacterFrame:HookScript("OnShow",function() if FS:IsModuleEnabled(self.name) then FS:CloseOtherWindows(CharacterFrame) end; self:Apply() end)
+    CharacterFrame:HookScript("OnShow",function(frame)
+        if FS:IsModuleEnabled(self.name) then
+            FS:CloseOtherWindows(frame)
+            FS.WindowManager:PrepareOpen(frame,function() self:Apply() end)
+        end
+        self:Apply()
+    end)
     for _,method in ipairs({"RefreshDisplay","ShowSubFrame"}) do if CharacterFrame[method] then hooksecurefunc(CharacterFrame,method,function() self:Apply() end) end end
     local elapsed=0
     CharacterFrame:HookScript("OnUpdate",function(_,dt)
