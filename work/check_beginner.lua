@@ -17,9 +17,13 @@ I:Show(); I:Recommended(); I.draft.nativeLayout=false; I:Refresh(); I.window.nex
 assert(FS.db.setup.completed and not I.window:IsShown() and FS.db.typography.global.size==14)
 assert(FS.db.profiles.saved[FS.db.profiles.current].typography.global.size==14)
 assert(FS.Beginner.tourWindow:IsShown() and FS.Beginner.tourStep==1)
+local tour=FS.Beginner.tourWindow
+assert(tour.frameStrata=='FULLSCREEN_DIALOG' and tour.highlight.frameStrata==tour.frameStrata)
+assert(tour:GetFrameLevel()>tour.highlight:GetFrameLevel() and not FS.Themes.frames[tour.highlight])
 FS.Beginner.tourWindow.next:Click(); assert(FS.Beginner.tourStep==2)
 FS.Beginner.tourWindow.next:Click(); assert(FS.Beginner.tourStep==3)
 FS.Beginner.tourWindow.next:Click(); assert(FS.db.setup.tourCompleted and not FS.Beginner.tourWindow:IsShown())
+FS.Beginner:ShowTour(); FS.window:Hide(); assert(not tour:IsShown() and not tour.highlight:IsShown())
 FS.Beginner:ShowTour(); FS.Beginner.tourWindow.dismiss:Click(); assert(FS.db.setup.tourDismissed)
 I:Show(); I.draft.layout='Keep current'; I.step=3; assert(I:Apply()); assert(not FS.Beginner.tourWindow:IsShown())
 

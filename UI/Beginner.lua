@@ -276,7 +276,7 @@ function B:Search(query, page)
         entries[#entries + 1] = {text = "Next results", enabled = page < pages, run = function() self:Search(query, page + 1) end}
     end
     return self:Present(f, entries, #results .. " results for '" .. query .. "'. Page " .. page .. " / " .. pages .. ".\n" ..
-        (#results == 0 and "Try 'letters groter', 'pijl terug', 'pet voeren' or a module name." or "Choose a result to open the relevant setting or tool."))
+        (#results == 0 and "Try 'text size', 'restore waypoint', 'feed pet' or a module name." or "Choose a result to open the relevant setting or tool."))
 end
 
 function B:RestoreWaypoint()
@@ -352,7 +352,8 @@ function B:ShowTour(index)
         self.tourWindow = f
         H:Skin(f)
         f:SetSize(620, 230)
-        f:SetFrameStrata("DIALOG")
+        -- Keep the tour above the dashboard and its scroll content.
+        f:SetFrameStrata("FULLSCREEN_DIALOG")
         f:SetClampedToScreen(true)
         f:EnableMouse(true)
         f.heading = H:Label(f, "", 20, -18, 580)
@@ -364,12 +365,15 @@ function B:ShowTour(index)
             else self:ShowTour(self.tourStep + 1) end
         end)
         f.highlight=CreateFrame("Frame",nil,UIParent,"BackdropTemplate")
+        f.highlight.fsThemeTransparent=true
         H:Skin(f.highlight)
         f.highlight:SetBackdropColor(0,0,0,0)
         f.highlight:SetBackdropBorderColor(.95,.68,.24,1)
         f.highlight:EnableMouse(false)
-        f.highlight:SetFrameStrata("DIALOG")
+        f.highlight:SetFrameStrata("FULLSCREEN_DIALOG")
+        f:SetFrameLevel(f.highlight:GetFrameLevel()+1)
         f:SetScript("OnHide",function() f.highlight:Hide() end)
+        FS.window:HookScript("OnHide",function() f:Hide() end)
         f:Hide()
         UISpecialFrames[#UISpecialFrames + 1] = f:GetName()
     end

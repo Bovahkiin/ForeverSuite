@@ -1,3 +1,9 @@
+# 0.9.9 - 2026-11-11
+
+- Keep the Quick Tour text and buttons above the Control Center cards.
+- Keep the tour highlight transparent and close it with the Control Center.
+- Use English search examples in the README and the search help.
+
 # 0.9.8 - 2026-11-11
 
 - Start with recommended settings or pick your own layout, theme and text.
