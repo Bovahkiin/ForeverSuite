@@ -52,8 +52,11 @@ function EnterCombat()
 end
 function M:SetScript(k,v) self.scripts[k] = v end
 function M:GetScript(k) return self.scripts[k] end
+function M:HasScript(k)
+    return k ~= 'PostClick' or self.kind == 'Button' or self.kind == 'CheckButton' or self.kind == 'DropdownButton'
+end
 function M:HookScript(k, f)
-    assert(k ~= 'PostClick' or self.kind == 'Button' or self.kind == 'CheckButton', 'PostClick requires a button')
+    assert(self:HasScript(k), 'PostClick requires a button')
     local old = self.scripts[k]
     self.scripts[k] = function(...) if old then old(...) end; f(...) end
 end
