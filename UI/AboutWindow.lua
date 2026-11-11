@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="0.9.10",lines={"Character Info, Spellbook and Talents are styled before they become visible.","Quick Tour text and buttons appear above the Control Center cards.","Search help shows English examples."}},
+    {version="0.9.11",lines={"Quick Tour highlights each control with a thicker gold outline.","Each tip appears next to the control it explains."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

@@ -337,9 +337,9 @@ function B:ShowRecovery()
 end
 
 local tour = {
-    {title = "1 / 3  Find your settings", text = "Open ForeverSuite with /fs or its minimap button. Click a module card for its main settings. More options opens the full settings screen.", target = "moduleSearch"},
-    {title = "2 / 3  Place your interface", text = "Move Frames lets you drag and resize supported frames. Click a handle for Center, Below player or Restore this frame. Save keeps your layout.", target = "move"},
-    {title = "3 / 3  Keep your profile", text = "Your changes are saved automatically. Use Save in Profiles to keep a named setup. Use loads the profile you selected. Help with layout can recover misplaced frames.", target = "profiles"},
+    {title = "1 / 3  Search for settings", text = "Type a module name or a task like 'text size' into the highlighted search box. Press Enter to see matching settings and tools.", target = "moduleSearch"},
+    {title = "2 / 3  Move Frames", text = "Open the highlighted Move Frames button to drag or resize parts of your interface. Select a handle for alignment options, then click Save.", target = "move", above = true},
+    {title = "3 / 3  Profiles", text = "Use Save in the highlighted Profiles panel to keep a named setup. To switch profiles, choose one and click Use.", target = "profiles"},
 }
 
 function B:ShowTour(index)
@@ -365,10 +365,8 @@ function B:ShowTour(index)
             else self:ShowTour(self.tourStep + 1) end
         end)
         f.highlight=CreateFrame("Frame",nil,UIParent,"BackdropTemplate")
-        f.highlight.fsThemeTransparent=true
-        H:Skin(f.highlight)
-        f.highlight:SetBackdropColor(0,0,0,0)
-        f.highlight:SetBackdropBorderColor(.95,.68,.24,1)
+        f.highlight:SetBackdrop({edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=4})
+        f.highlight:SetBackdropBorderColor(1,.82,.23,1)
         f.highlight:EnableMouse(false)
         f.highlight:SetFrameStrata("FULLSCREEN_DIALOG")
         f:SetFrameLevel(f.highlight:GetFrameLevel()+1)
@@ -380,7 +378,7 @@ function B:ShowTour(index)
     self.tourStep = index
     local step = tour[index]
     f.heading:SetText(step.title)
-    f.text:SetText(step.text.."\nThe related control has a gold border in the Control Center.")
+    f.text:SetText(step.text)
     local y = 18 + H:TextHeight(f.heading, 580, 2) + 12
     f.text:ClearAllPoints(); f.text:SetPoint("TOPLEFT", 20, -y)
     y = y + H:TextHeight(f.text, 580, 6) + 16
@@ -395,11 +393,17 @@ function B:ShowTour(index)
     f:ClearAllPoints(); f:SetPoint("CENTER")
     local target = FS.window[step.target]
     if target then
-        FS:ScrollConfig(step.target == "moduleSearch" and 0 or FS.window.scrollMaximum)
+        if step.target == "moduleSearch" then FS:ScrollConfig(0) end
         f.highlight:ClearAllPoints()
-        f.highlight:SetPoint("TOPLEFT",target,"TOPLEFT",-3,3)
-        f.highlight:SetPoint("BOTTOMRIGHT",target,"BOTTOMRIGHT",3,-3)
+        f.highlight:SetPoint("TOPLEFT",target,"TOPLEFT",-6,6)
+        f.highlight:SetPoint("BOTTOMRIGHT",target,"BOTTOMRIGHT",6,-6)
         f.highlight:Show()
+        f:ClearAllPoints()
+        if step.above then
+            f:SetPoint("BOTTOM",target,"TOP",0,18)
+        else
+            f:SetPoint("TOP",target,"BOTTOM",0,-18)
+        end
     end
     f:Show()
     return true
