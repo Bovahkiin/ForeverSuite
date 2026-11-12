@@ -1,7 +1,6 @@
 local _,FS=...
 FS.patchNotes={
     {version="1.0.0",lines={"Preview and align frames in Layout Studio, and compare or restore profiles.","Plan crafts, review character stock, and import or share waypoint routes.","Track boss drops, preparation and private Run Notes from the Dungeon & Raid Journal.","Reduced background updates and memory allocations across the interface."}},
-    {version="0.9.12",lines={"Module settings open on their own screen, including Vendor & Junk and its advanced options."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end
