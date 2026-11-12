@@ -1,10 +1,11 @@
 local _,FS=...
 local N={name="Nameplates",key="nameplates",custom={},nativeStates={}}; FS:RegisterModule(N.name,N)
 local H=FS.HUD
+local threatLabels={[1]="Threat rising",[2]="Losing threat",[3]="You have aggro"}
 function N:Release(saved)
     saved.canvas:Hide(); saved.unit=nil
     local state=self.nativeStates[saved.native]
-    if state then
+    if state and state.hidden then
         state.hidden=false
         if not (saved.native.IsForbidden and saved.native:IsForbidden()) then saved.native:SetAlpha(state.alpha) end
     end
@@ -55,8 +56,9 @@ function N:ApplyVisibility()
     self.applyingCVars=false
 end
 function N:RefreshPlates()
-    if C_NamePlate and C_NamePlate.GetNamePlates then
-        for _,plate in ipairs(C_NamePlate.GetNamePlates()) do self:Update(plate,plate.namePlateUnitToken) end
+    local plates=FS.Tools:Call(C_NamePlate and C_NamePlate.GetNamePlates)
+    if H:Safe(plates) and type(plates)=="table" then
+        for _,plate in ipairs(plates) do self:Update(plate,plate.namePlateUnitToken) end
     end
 end
 function N:QueuePlateRefresh()
@@ -75,6 +77,9 @@ function N:CreateCanvas(parent,anchor)
     f.threat=H:Label(f,"",0,32,190); FS:ApplyFont(f.threat,10,"OUTLINE"); f.threat:SetJustifyH("CENTER")
     FS.modules.UnitFrames:CreateCast(f); f.cast:SetSize(190,16); f.cast.label:SetWidth(180)
     if self.CreateExtras then self:CreateExtras(f) end
+    return f
+end
+function N:CreateAuras(f)
     f.auras={}
     for i=1,8 do
         local cell=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(cell,true); cell:EnableMouse(false)
@@ -82,7 +87,6 @@ function N:CreateCanvas(parent,anchor)
         cell.icon=cell:CreateTexture(nil,"ARTWORK"); cell.icon:SetAllPoints(); cell.cooldown=CreateFrame("Cooldown",nil,cell,"CooldownFrameTemplate")
         cell.cooldown:SetAllPoints(); cell.cooldown:EnableMouse(false); cell:Hide(); f.auras[i]=cell
     end
-    return f
 end
 function N:LayoutCanvas(f,anchor,design)
     if f.fsAnchor~=anchor then f:ClearAllPoints(); f:SetPoint("CENTER",anchor,"CENTER",0,0); f.fsAnchor=anchor end
@@ -116,8 +120,7 @@ function N:Update(plate,unit)
     local selected=H:Safe(target) and target==true
     local threat=UnitThreatSituation and UnitThreatSituation("player",unit)
     if not H:Safe(threat) then threat=nil end
-    local labels={[1]="Threat rising",[2]="Losing threat",[3]="You have aggro"}
-    f.threat:SetText(labels[threat] or ""); f.threat:SetTextColor(1,threat==3 and .3 or .75,.2)
+    f.threat:SetText(threatLabels[threat] or ""); f.threat:SetTextColor(1,threat==3 and .3 or .75,.2)
     local health,maximum=UnitHealth(unit),UnitHealthMax(unit)
     f.health:SetMinMaxValues(0,maximum); f.health:SetValue(health)
     if H:Safe(health) and H:Safe(maximum) and type(health)=="number" and type(maximum)=="number" and maximum>0 then
@@ -131,19 +134,31 @@ function N:Update(plate,unit)
     if C_Secrets and C_Secrets.ShouldAurasBeSecret then
         auraAccess=FS.Tools:Call(C_Secrets.ShouldAurasBeSecret)==false
     end
-    for i,cell in ipairs(f.auras) do
-        local filter=db.auraType=="Buffs" and "HELPFUL" or "HARMFUL"; if db.onlyMine then filter=filter.."|PLAYER" end
+    local filter=db.auraType=="Buffs" and "HELPFUL" or "HARMFUL"
+    if db.onlyMine then filter=filter.."|PLAYER" end
+    local readAuras=auraAccess and db.debuffs and C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+    for i=1,f.auras and #f.auras or (readAuras and db.auraCount or 0) do
         local aura
-        if auraAccess and db.debuffs and i<=db.auraCount and C_UnitAuras then
-            aura=FS.Tools:Call(C_UnitAuras.GetAuraDataByIndex,unit,i,filter)
+        if readAuras and i<=db.auraCount then
+            aura=FS.Tools:Call(readAuras,unit,i,filter)
         end
         if not H:Safe(aura) or type(aura)~="table" then aura=nil end
-        cell.cooldown:Hide()
+        if aura and not f.auras then self:CreateAuras(f); self:StyleAuras(f,db) end
+        local cell=f.auras and f.auras[i]
         if aura then
-            cell.icon:SetTexture(aura.icon); cell:Show()
+            cell.icon:SetTexture(aura.icon); if not cell:IsShown() then cell:Show() end
             local d,e=aura.duration,aura.expirationTime
-            if db.auraCountdown and H:Safe(d) and H:Safe(e) and type(d)=="number" and type(e)=="number" and d>0 then cell.cooldown:SetCooldown(e-d,d); cell.cooldown:Show() end
-        else cell:Hide() end
+            if db.auraCountdown and H:Safe(d) and H:Safe(e) and type(d)=="number" and type(e)=="number" and d>0 then
+                if cell.duration~=d or cell.expiration~=e then
+                    cell.cooldown:SetCooldown(e-d,d); cell.duration,cell.expiration=d,e
+                end
+                if not cell.cooldown:IsShown() then cell.cooldown:Show() end
+            else cell.cooldown:Hide(); cell.duration,cell.expiration=nil,nil end
+        elseif cell then
+            if cell:IsShown() then cell:Hide() end
+            if cell.cooldown:IsShown() then cell.cooldown:Hide() end
+            cell.duration,cell.expiration=nil,nil
+        end
     end
     f:Show()
 end
@@ -184,7 +199,9 @@ function N:Initialize()
         elseif event=="UNIT_THREAT_SITUATION_UPDATE" or event=="UNIT_THREAT_LIST_UPDATE" then
             for plate,saved in pairs(self.custom) do if saved.unit then self:Update(plate,saved.unit) end end
         elseif event=="NAME_PLATE_UNIT_REMOVED" then
-            for _,saved in pairs(self.custom) do if saved.unit==unit then self:Release(saved) end end
+            if H:Safe(unit) and type(unit)=="string" then
+                for _,saved in pairs(self.custom) do if saved.unit==unit then self:Release(saved) end end
+            end
         elseif H:Safe(unit) and type(unit)=="string" then
             -- UNIT_* also fires for targettarget/pettarget. Those tokens are
             -- rejected by GetNamePlateForUnit; only resolve documented units.

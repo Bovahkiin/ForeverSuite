@@ -11,20 +11,28 @@ L.options={{key="fast",label="Fast loot"},{key="styleWindow",label="Style loot w
     {key="rollSort",label="Sort active rolls",values={"Ending soon","Name"}},{key="showRollCount",label="Roll item quantities"},
     {key="showRollTime",label="Roll time remaining"},{key="autoOpenRolls",label="Open helper for new rolls"}}
 L.rolls={}; L.qualities={All=-1,["Common+"]=1,["Uncommon+"]=2,["Rare+"]=3,["Epic+"]=4}
+local ownLootFormats={"LOOT_ITEM_SELF","LOOT_ITEM_SELF_MULTIPLE","LOOT_ITEM_PUSHED_SELF","LOOT_ITEM_PUSHED_SELF_MULTIPLE","LOOT_ITEM_CREATED_SELF","LOOT_ITEM_CREATED_SELF_MULTIPLE"}
 function L:Normalize()
     local history=self:Data().history
     for i=#history,1,-1 do if type(history[i])~="table" or T:Text(history[i].text)=="" then table.remove(history,i) end end
     while #history>self:Data().historyLimit do table.remove(history) end
 end
-function L:OwnMessage(message)
-    for _,key in ipairs({"LOOT_ITEM_SELF","LOOT_ITEM_SELF_MULTIPLE","LOOT_ITEM_PUSHED_SELF","LOOT_ITEM_PUSHED_SELF_MULTIPLE","LOOT_ITEM_CREATED_SELF","LOOT_ITEM_CREATED_SELF_MULTIPLE"}) do
+function L:OwnMessage(message,includeCrafted)
+    for _,key in ipairs(ownLootFormats) do
         local format=T:Text(_G[key]); local prefix=format:match("^(.-)%%")
-        if prefix and #prefix>0 and message:sub(1,#prefix)==prefix then return true end
+        if prefix and #prefix>0 and message:sub(1,#prefix)==prefix then
+            return includeCrafted~=false or not key:find("CREATED",1,true)
+        end
     end
-    return message:find("^You receive ")~=nil or message:find("^You create ")~=nil
+    return message:find("^You receive ")~=nil or (includeCrafted~=false and message:find("^You create ")~=nil)
 end
 function L:ForgetRoll(id)
     self.rolls[id]=nil; if self.selected and self.selected.roll==id then self.selected=nil end
+end
+function L:ExpireRolls(now)
+    for id,roll in pairs(self.rolls) do
+        if now>=roll.expires then self:ForgetRoll(id) end
+    end
 end
 function L:Event(event,a,b)
     if event=="CHAT_MSG_LOOT" then
@@ -34,36 +42,41 @@ function L:Event(event,a,b)
     elseif event=="LOOT_OPENED" and self:Data().fast and not InCombatLockdown() and not (IsShiftKeyDown and IsShiftKeyDown()) then
         for i=(T:Call(GetNumLootItems) or 0),1,-1 do T:Call(LootSlot,i) end
     elseif event=="START_LOOT_ROLL" and T:Number(a) then
-        self.rolls[a]={id=a,expires=GetTime()+(T:Number(b) and b>0 and b/1000 or 60)}
+        local now=GetTime()
+        self:ExpireRolls(now)
+        self.rolls[a]={id=a,expires=now+(T:Number(b) and b>0 and b/1000 or 60)}
         if self:Data().showRolls and self:Data().autoOpenRolls and not InCombatLockdown() then self:ShowWindow() end
     elseif event=="CANCEL_LOOT_ROLL" and T:Number(a) then self:ForgetRoll(a) end
 end
 function L:Build()
-    self.rows={}; local data=self:Data(); local active={}; local pending=false
+    self.rows={}; local data=self:Data(); local active=self.rows; local pending=false
+    local now=GetTime()
+    self:ExpireRolls(now)
     if not data.showRolls and self.selected and self.selected.roll then self.selected=nil end
-    for id,roll in pairs(self.rolls) do
-        if GetTime()<roll.expires then
+    if data.showRolls then
+        for id,roll in pairs(self.rolls) do
             local _,name,count,quality,_,need,greed=T:Call(GetLootRollItemInfo,id)
             if T:Text(name)~="" then
                 local text="[Roll] "..name
-                if data.showRollCount then text=text.." x"..(count or 1) end
-                if data.showRollTime then text=text.." - "..math.ceil(roll.expires-GetTime()).."s" end
+                if data.showRollCount then text=text.." x"..(T:Number(count) and count or 1) end
+                if data.showRollTime then text=text.." - "..math.ceil(roll.expires-now).."s" end
                 active[#active+1]={roll=id,name=name,expires=roll.expires,need=need,greed=greed,link=T:Call(GetLootRollItemLink,id),text=text}
             end
-        else self:ForgetRoll(id) end
+        end
+        table.sort(active,function(a,b)
+            if data.rollSort=="Name" then
+                local an,bn=a.name:lower(),b.name:lower()
+                if an~=bn then return an<bn end
+            end
+            if a.expires~=b.expires then return a.expires<b.expires end
+            return a.roll<b.roll
+        end)
     end
-    table.sort(active,function(a,b)
-        local an,bn=a.name:lower(),b.name:lower()
-        if data.rollSort=="Name" and an~=bn then return an<bn end
-        if a.expires~=b.expires then return a.expires<b.expires end
-        return a.roll<b.roll
-    end)
-    if data.showRolls then for _,row in ipairs(active) do self.rows[#self.rows+1]=row end end
     if data.showHistory then
         local history=data.history; local minimum=self.qualities[data.historyQuality]
         for i=1,#history do
             local row=history[data.newestFirst and i or #history-i+1]; local quality
-            if T:Text(row.link)~="" then local _,_,q=T:Call(GetItemInfo,row.link); quality=T:Number(q) and q or nil end
+            if minimum>=0 and T:Text(row.link)~="" then local _,_,q=T:Call(GetItemInfo,row.link); quality=T:Number(q) and q or nil end
             if minimum<0 or quality==nil or quality>=minimum then
                 local text=row.text
                 if data.showTime and T:Number(row.time) and row.time>0 then local stamp=T:Call(date,"%H:%M",row.time); if T:Text(stamp)~="" then text="["..stamp.."] "..text end end

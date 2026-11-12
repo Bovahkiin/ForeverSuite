@@ -4,8 +4,8 @@
 ## IconTexture: Interface\AddOns\ForeverSuite\Assets\Icon-FS.tga
 ## Author: DeluxiZ
 ## X-License: MIT
-## Version: 0.9.12
-## SavedVariables: ForeverSuiteDB
+## Version: 1.0.0
+## SavedVariables: ForeverSuiteDB, ForeverSuiteStock
 
 Core/Init.lua
 Localization/enUS.lua

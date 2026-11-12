@@ -79,7 +79,9 @@ function B:CreateWindow()
         if x and y and ux and uy then FS.db.bags.x, FS.db.bags.y = x - ux / ratio, y - uy / ratio end
     end)
     f:SetScript("OnHide", function(frame)
+        self.view=nil
         if InCombatLockdown() then return end
+        for _,cell in ipairs(frame.cells or {}) do cell.row=nil end
         frame:StopMovingOrSizing(); GameTooltip:Hide()
         self.selected = nil; self.itemOptions = false
         frame.itemPanel:Hide(); frame.filterMenu:Hide()
@@ -415,10 +417,10 @@ function B:CreateSettings(host)
         { "autoRestock", "Buy supplies automatically", "Buy missing shopping-list items within your budget." },
         { "confirmRepair", "Confirm expensive repairs", "Ask before repairs that exceed your repair limit." },
         { "report", "Show sale reports", "Show a short report after each merchant visit." },
-        { "showPanel", "Show Vendor window", "Open Vendor if the Bags window is not set to open." },
+        { "showPanel", "Show Vendor window", "Open Vendor if Bags stays closed. Auto Junk runs quietly." },
         { "glow.enabled", "Highlight junk", "Items that can be sold get a colored border." },
         { "glow.pulse", "Animate the highlight", "Make the junk border pulse gently." },
-        { "bags.openAtMerchant", "Open bags at merchants", "Your bag opens when you speak to a merchant." },
+        { "bags.openAtMerchant", "Open bags at merchants", "Open your bags when you speak to a merchant, except in Auto Junk mode." },
         { "bags.replaceNative", "Use ForeverSuite bags", "Your usual bag key opens the skinned bag with automatic categories." },
         { "bags.showCooldowns", "Show item cooldowns", "Show remaining cooldowns on Hearthstone, potions and other usable items." },
         { "bags.showNewLoot", "Mark new loot", "New items show NEW until you hover over them. Moving an item does not make it new." },

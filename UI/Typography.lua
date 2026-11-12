@@ -1,5 +1,6 @@
 local _,FS=...
 local F={regions=setmetatable({},{__mode="k"}),roots=setmetatable({},{__mode="k"})}; FS.Typography=F
+local moduleRootKeys={"settings","window","root","tracker","navigator","coordinateFrame","indicator","editor","menuRoot","clock","bar"}
 local defaults={family="Default",scale=1,weight="Default",outline="Default",shadow="Default",size=0}
 FS.defaults.typography={global=defaults,modules={},scope="All modules"}
 F.families={Default=FS.font,["Arial Narrow"]=FS.font,["Friz Quadrata"]="Fonts\\FRIZQT__.TTF",["Morpheus"]="Fonts\\MORPHEUS.TTF",["Skurri"]="Fonts\\SKURRI.TTF",["Arial Bold"]="Interface\\AddOns\\ForeverSuite\\Assets\\Arial-Bold.ttf"}
@@ -30,9 +31,9 @@ function F:Owner(region)
         local name=frame.GetName and frame:GetName() or ""; if type(name)~="string" then name="" end
         if name:match("^ChatFrame%d") then return "Chat" end
         for moduleName,module in pairs(FS.modules) do
-            for _,key in ipairs({"settings","window","root","tracker","navigator","coordinateFrame","indicator","editor","menuRoot","clock","bar"}) do if module[key]==frame then frame.fsFontModule=moduleName; return moduleName end end
-            for _,unit in pairs(module.frames or {}) do if unit==frame then frame.fsFontModule=moduleName; return moduleName end end
-            for _,saved in pairs(module.custom or {}) do if type(saved)=="table" and saved.canvas==frame then frame.fsFontModule=moduleName; return moduleName end end
+            for _,key in ipairs(moduleRootKeys) do if module[key]==frame then frame.fsFontModule=moduleName; return moduleName end end
+            if module.frames then for _,unit in pairs(module.frames) do if unit==frame then frame.fsFontModule=moduleName; return moduleName end end end
+            if module.custom then for _,saved in pairs(module.custom) do if type(saved)=="table" and saved.canvas==frame then frame.fsFontModule=moduleName; return moduleName end end end
         end
         frame=frame.GetParent and frame:GetParent()
     end
@@ -62,17 +63,23 @@ function FS:StyleFont(region,size,flags)
     end
 end
 function FS:ReleaseFont(region) if F.regions[region] then local state=F.regions[region]; state.active=false; if region.SetShadowOffset then region:SetShadowOffset(unpack(state.shadow)) end end end
+local function discoverRoot(self,frame,owner)
+    if not frame or type(frame.GetRegions)~="function" or (frame.IsForbidden and frame:IsForbidden()) then return end
+    frame.fsFontModule=owner
+    if not self.roots[frame] then self.roots[frame]=true; FS:FontTree(frame) end
+end
 function F:Discover()
-    local function root(frame,owner)
-        if not frame or type(frame.GetRegions)~="function" or (frame.IsForbidden and frame:IsForbidden()) then return end
-        frame.fsFontModule=owner
-        if not self.roots[frame] then self.roots[frame]=true; FS:FontTree(frame) end
-    end
-    root(FS.window,"Core"); root(FS.aboutWindow,"Core"); root(self.window,"Core")
+    discoverRoot(self,FS.window,"Core")
+    discoverRoot(self,FS.aboutWindow,"Core")
+    discoverRoot(self,self.window,"Core")
     for name,module in pairs(FS.modules) do
-        for _,key in ipairs({"settings","window","root","tracker","navigator","coordinateFrame","indicator","editor","menuRoot","clock","bar"}) do root(module[key],name) end
-        for _,frame in pairs(module.frames or {}) do root(frame,name) end
-        for _,saved in pairs(module.custom or {}) do if type(saved)=="table" then root(saved.canvas,name) end end
+        for _,key in ipairs(moduleRootKeys) do discoverRoot(self,module[key],name) end
+        if module.frames then for _,frame in pairs(module.frames) do discoverRoot(self,frame,name) end end
+        if module.custom then
+            for _,saved in pairs(module.custom) do
+                if type(saved)=="table" then discoverRoot(self,saved.canvas,name) end
+            end
+        end
     end
 end
 function F:Apply()

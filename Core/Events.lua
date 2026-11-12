@@ -32,6 +32,7 @@ end
 events:SetScript("OnEvent", function(self, event, name, action)
     if event=="PLAYER_LOGOUT" then
         FS.startupPending=false
+        if FS.Extensions then FS.Extensions:FinishGathering('Logged out') end
         if FS.initialized and FS.modules.Profiles then FS.modules.Profiles:PersistCurrent() end
         return
     end

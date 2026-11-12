@@ -96,6 +96,10 @@ function Q:RenderPins(pool,parent,clusters,anchor)
         f.count:SetText(#group.members>1 and #group.members or ""); FS:SetMenuIcon(f.icon,self:PinIcon(f.location.row))
         f:ClearAllPoints(); f:SetPoint("CENTER",parent,anchor,group.x,group.y); f:Show()
     end
+    for i=#clusters+1,#pool do
+        local f=pool[i]
+        f:Hide(); f.location=nil; f.members=nil; f.clickIndex=nil
+    end
 end
 function Q:MinimapOffset(p,px,py,width,height,radius,facing)
     local east,north=(p.x-px)*width,(py-p.y)*height
@@ -108,20 +112,72 @@ function Q:MinimapOffset(p,px,py,width,height,radius,facing)
     if onEdge then x,y=x*.85/length,y*.85/length end
     return x*Minimap:GetWidth()/2,y*Minimap:GetHeight()/2,onEdge
 end
-function Q:UpdateQuestPins()
-    for _,pool in ipairs({self.minimapPins,self.worldPins}) do for _,f in ipairs(pool) do f:Hide(); f.location=nil end end
-    if not FS:IsModuleEnabled(self.name) then return end
-    local db=self:Data(); local map,px,py=FS.modules.Map:Position()
-    local world=WorldMapFrame; local canvas=world and world.ScrollContainer and world.ScrollContainer.Child
-    local worldMap=canvas and T:Call(world.GetMapID,world)
-    if db.worldMap and T:Number(worldMap) and world:IsShown() then
-        self:RenderPins(self.worldPins,canvas,self:Cluster(self:QuestLocations(worldMap),function(p) return p.x*canvas:GetWidth(),-p.y*canvas:GetHeight(),false end),"TOPLEFT")
+function Q:CachedPinLocations(layer,map)
+    self.pinLocations=self.pinLocations or {}
+    local cache=self.pinLocations[layer]
+    local now=GetTime()
+    if not cache or cache.map~=map or now-cache.time>=1 then
+        cache={map=map,time=now,locations=self:QuestLocations(map)}
+        self.pinLocations[layer]=cache
     end
-    if not db.minimap or not map or not Minimap or not Minimap:IsShown() then return end
+    return cache.locations
+end
+local function hidePins(pool)
+    for _,f in ipairs(pool) do
+        f:Hide(); f.location=nil; f.members=nil; f.clickIndex=nil
+    end
+end
+function Q:UpdateWorldPins()
+    local world=WorldMapFrame; local canvas=world and world.ScrollContainer and world.ScrollContainer.Child
+    if self:Data().worldMap and canvas and world:IsShown() then
+        local map=T:Call(world.GetMapID,world)
+        if T:Number(map) then
+            local points=self:CachedPinLocations("world",map)
+            local width,height=canvas:GetWidth(),canvas:GetHeight()
+            local layout=self.worldPinLayout
+            if not layout or layout.points~=points or layout.canvas~=canvas or layout.width~=width or layout.height~=height then
+                self:RenderPins(self.worldPins,canvas,self:Cluster(points,function(p) return p.x*width,-p.y*height,false end),"TOPLEFT")
+                self.worldPinLayout={points=points,canvas=canvas,width=width,height=height}
+            end
+            return
+        end
+    end
+    if self.worldPinLayout then hidePins(self.worldPins); self.worldPinLayout=nil end
+end
+function Q:UpdateMinimapPins()
+    if not self:Data().minimap or not Minimap or not Minimap:IsShown() then return end
+    local map,px,py=FS.modules.Map:Position()
+    if not T:Number(map) or not validPoint(px,py) then return end
     local radius=T:Call(C_Minimap and C_Minimap.GetViewRadius)
-    local width,height=self:MapSize(map)
+    local size=self.pinMapSize
+    if not size or size.map~=map then
+        local width,height=self:MapSize(map)
+        size=width and {map=map,width=width,height=height} or nil
+        self.pinMapSize=size
+    end
+    local width,height=size and size.width,size and size.height
     if not width or not T:Number(radius) or radius<=0 then return end
     local rotate=T:Call(GetCVar,"rotateMinimap")=="1"; local facing=rotate and T:Call(GetPlayerFacing) or nil
     if rotate and not T:Number(facing) then return end
-    self:RenderPins(self.minimapPins,Minimap,self:Cluster(self:QuestLocations(map),function(p) return self:MinimapOffset(p,px,py,width,height,radius,facing) end),"CENTER")
+    local points=self:CachedPinLocations("minimap",map)
+    local miniWidth,miniHeight=Minimap:GetWidth(),Minimap:GetHeight()
+    local layout=self.minimapPinLayout
+    if not layout or layout.points~=points or layout.x~=px or layout.y~=py or layout.radius~=radius
+        or layout.facing~=facing or layout.width~=miniWidth or layout.height~=miniHeight then
+        self:RenderPins(self.minimapPins,Minimap,self:Cluster(points,function(p) return self:MinimapOffset(p,px,py,width,height,radius,facing) end),"CENTER")
+        self.minimapPinLayout={points=points,x=px,y=py,radius=radius,facing=facing,width=miniWidth,height=miniHeight}
+    end
+    return true
+end
+function Q:UpdateQuestPins()
+    if not FS:IsModuleEnabled(self.name) then
+        hidePins(self.minimapPins); hidePins(self.worldPins)
+        self.worldPinLayout=nil; self.minimapPinLayout=nil; self.pinLocations=nil; self.pinMapSize=nil
+        return
+    end
+    self:UpdateWorldPins()
+    if not self:UpdateMinimapPins() then
+        if self.minimapPinLayout then hidePins(self.minimapPins); self.minimapPinLayout=nil end
+        self.pinMapSize=nil
+    end
 end

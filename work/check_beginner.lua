@@ -91,13 +91,46 @@ assert(FS.modules.Map.settings:GetParent()==UIParent and not FS.window:IsShown()
 -- TEST: Move Frames selects a handle and centers aligns or restores only that selected frame
 ResetTest(); local FS=ForeverSuite; local L=FS.Layout; FS:ShowConfig(); L:Start()
 L:Select('Unit:pet'); assert(L.selected=='Unit:pet' and L.overlay.center:IsEnabled())
-local playerBefore=FS.db.layout.frames['Unit:player']; assert(L:AlignSelected('center'))
-assert(FS.db.layout.frames['Unit:pet'].x==0 and FS.db.layout.frames['Unit:player']==playerBefore)
-assert(L:AlignSelected('below')); assert(FS.db.layout.frames['Unit:pet'].y<400)
-assert(L:AlignSelected('restore') and FS.db.layout.frames['Unit:pet']==nil)
+local playerBefore=L:Placements()['Unit:player']; assert(L:AlignSelected('center'))
+assert(L:Placements()['Unit:pet'].x==0 and L:Placements()['Unit:player']==playerBefore)
+assert(L:AlignSelected('below')); assert(L:Placements()['Unit:pet'].y<400)
+assert(L:AlignSelected('restore') and L:Placements()['Unit:pet']==nil)
 L:Select('Unit:player'); assert(not L:AlignSelected('below'))
 assert(L:SaveChanges(false)); assert(FS.db.profiles.saved[FS.db.profiles.current].layout.frames['Unit:pet']==nil)
 L:Stop()
+
+-- TEST: Move Frames aligns to a chosen reference without moving it or saving the preview
+ResetTest(); local FS=ForeverSuite; local L=FS.Layout
+local function frame(id,x,y,w,scale)
+    local f=CreateFrame('Frame',nil,UIParent); f:SetSize(w,40); f:SetScale(scale)
+    f:SetPoint('CENTER',UIParent,'CENTER')
+    f.GetCenter=function() return x/scale,y/scale end
+    f.GetEffectiveScale=function(self) return self:GetScale()*UIParent:GetEffectiveScale() end
+    L:Register(id,f,id)
+    return f
+end
+local first=frame('AlignSelectedTest',400,250,120,1.2)
+local second=frame('AlignReferenceTest',600,350,80,.8)
+L:Start()
+local selected=L.handles.AlignSelectedTest
+local reference=L.handles.AlignReferenceTest
+assert(not L.overlay.sameHeight:IsEnabled())
+selected:GetScript('OnMouseDown')(selected,'LeftButton')
+reference:GetScript('OnMouseDown')(reference,'RightButton')
+assert(L.overlay.sameHeight:IsEnabled() and L.overlay.leftEdges:IsEnabled())
+L.overlay.sameHeight:Click()
+local pos=L:Placements().AlignSelectedTest
+assert(math.abs(pos.y-350)<.01 and math.abs(pos.x-(400-UIParent:GetWidth()/2))<.01)
+L.overlay.leftEdges:Click()
+pos=L:Placements().AlignSelectedTest
+assert(math.abs(pos.x-(640-UIParent:GetWidth()/2))<.01 and math.abs(pos.y-250)<.01)
+assert(not L:Placements().AlignReferenceTest and not FS.db.layout.frames.AlignSelectedTest)
+selected:GetScript('OnMouseDown')(selected,'RightButton')
+assert(not L.overlay.sameHeight:IsEnabled() and not L:AlignSelected('left'))
+L.overlay.close:Click()
+assert(first:GetPoint()=='CENTER' and select(3,first:GetPoint())=='CENTER')
+assert(select(3,second:GetPoint())=='CENTER' and not FS.db.layout.frames.AlignSelectedTest)
+for _,id in ipairs({'AlignSelectedTest','AlignReferenceTest'}) do L.targets[id]=nil; L.handles[id]=nil end
 
 -- TEST: Recovery constrains saved frames preserves unrelated settings and commits repaired positions
 ResetTest(); local FS=ForeverSuite; local B=FS.Beginner; FS:ShowConfig(); FS.Layout:Collect()

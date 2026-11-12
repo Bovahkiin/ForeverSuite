@@ -31,6 +31,8 @@ function P:Save(name)
 end
 function P:Load(name)
     if not self:Allowed() or not FS.db.profiles.saved[name] then return false end
+    if FS.Extensions then FS.Extensions:FinishGathering('Profile changed') end
+    if FS.Layout.active then FS.Layout:Stop() end
     local manager=FS.db.profiles; local selected=copy(manager.saved[name])
     local currentSnapshot=self:Snapshot()
     if self.Backup then self:Backup(manager.current,currentSnapshot,"Before profile switch") end

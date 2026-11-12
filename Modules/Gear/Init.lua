@@ -13,10 +13,10 @@ function G:Snapshot()
         local link = GetInventoryItemLink and GetInventoryItemLink("player", slot)
         local icon = GetInventoryItemTexture and GetInventoryItemTexture("player", slot)
         local id = GetInventoryItemID and GetInventoryItemID("player", slot)
-        if V:IsSecret(link) then link = nil end
-        if V:IsSecret(icon) then icon = nil end
-        if V:IsSecret(id) then id = nil end
-        local row = { slot = slot, label = label, link = link, icon = icon, equipped = link ~= nil or id ~= nil or icon ~= nil }
+        if V:IsSecret(link) then link = nil; result.incomplete = true end
+        if V:IsSecret(icon) then icon = nil; result.incomplete = true end
+        if V:IsSecret(id) then id = nil; result.incomplete = true end
+        local row = { slot = slot, label = label, link = link, icon = icon, id = id, equipped = link ~= nil or id ~= nil or icon ~= nil }
         if row.equipped then
             result.equipped = result.equipped + 1
             local name

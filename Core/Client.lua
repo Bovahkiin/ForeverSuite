@@ -33,22 +33,54 @@ function FS:RegisterClientEvent(frame,event)
     return false
 end
 
-function FS:PrintClientStatus()
+function FS:ClientStatusLines()
     local client=self:RefreshClient()
-    self:Print("v"..self.version.." | Client "..tostring(client.version or "unknown").." | Build "..tostring(client.build or "unknown").." | Interface "..tostring(client.interface or "unknown"))
-    self:Print(client.isForever and "WoW Forever detected. Live install folder: _forever_/Interface/AddOns/ForeverSuite." or "This release targets WoW Forever, Interface 16001.")
+    local lines={
+        "v"..self.version.." | Client "..tostring(client.version or "unknown").." | Build "..tostring(client.build or "unknown").." | Interface "..tostring(client.interface or "unknown"),
+        client.isForever and "WoW Forever detected." or "This release targets WoW Forever, Interface 16001.",
+    }
     local names={}; for event in pairs(client.unsupportedEvents) do names[#names+1]=event end; table.sort(names)
-    self:Print(#names==0 and "All requested client events registered." or "Unavailable client events: "..table.concat(names,", "))
+    lines[#lines+1]=#names==0 and "All requested client events registered." or "Unavailable client events: "..table.concat(names,", ")
     local missing={}; for _,entry in ipairs(self:ClientCapabilities()) do if not entry.available then missing[#missing+1]=entry.label end end
-    if #missing>0 then self:Print('Unavailable client APIs: '..table.concat(missing,', ')) end
+    if #missing>0 then lines[#lines+1]='Unavailable client APIs: '..table.concat(missing,', ') end
     if C_AddOns and type(C_AddOns.IsAddOnLoaded)=="function" then
         for _,entry in ipairs({{"Baganator","Bags"},{"Chattynator","Chat"},{"Platynator","Nameplates"}}) do
             local ok,loaded=pcall(C_AddOns.IsAddOnLoaded,entry[1])
             if ok and loaded and self.db and self:IsModuleEnabled(entry[2]) then
-                self:Print(entry[1].." and ForeverSuite "..entry[2].." both manage the same UI. Choose one in the addon list or Control Center.")
+                lines[#lines+1]=entry[1].." and ForeverSuite "..entry[2].." both manage the same UI. Choose one in the addon list or Control Center."
             end
         end
     end
+    return lines
+end
+function FS:PrintClientStatus()
+    for _,line in ipairs(self:ClientStatusLines()) do self:Print(line) end
+end
+function FS:SupportReport()
+    local lines=self:ClientStatusLines()
+    local names={}
+    for name in pairs(self.modules) do names[#names+1]=name end
+    table.sort(names)
+    lines[#lines+1]=""
+    lines[#lines+1]="Modules"
+    for _,name in ipairs(names) do
+        lines[#lines+1]=name..": "..(self:IsModuleEnabled(name) and "Enabled" or "Disabled")
+    end
+    lines[#lines+1]=""
+    lines[#lines+1]="Navigation and nameplate providers enabled"
+    for _,category in ipairs({"waypoints","nameplates"}) do
+        local active={}
+        for _,provider in ipairs(self.Compatibility:Candidates(category)) do
+            if provider.active then active[#active+1]=provider.label end
+        end
+        lines[#lines+1]=category..": "..(#active>0 and table.concat(active,", ") or "None")
+    end
+    local errors=self.runtimeErrors or {}
+    lines[#lines+1]=""
+    lines[#lines+1]="Recent blocked or forbidden addon actions"
+    if #errors==0 then lines[#lines+1]="None recorded this session." end
+    for _,entry in ipairs(errors) do lines[#lines+1]=entry end
+    return table.concat(lines,"\n")
 end
 function FS:ClientCapabilities()
     local function fn(value) return type(value)=='function' end

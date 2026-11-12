@@ -1,7 +1,8 @@
 local _,FS=...
 local T=FS.Tools
-local M=T:Module("Map","map","Map","Coordinates, saved location pins, explored regions and dungeon or raid lockouts. Save a pin at your current location.",{coordinates=true,pins={}},{"ZONE_CHANGED_NEW_AREA","MAP_EXPLORATION_UPDATED","UPDATE_INSTANCE_INFO","PLAYER_ENTERING_WORLD"})
-M.options={{key="coordinates",label="Show coordinates"}}; M.pinFrames={}
+local M=T:Module("Map","map","Map","Coordinates, saved location pins, explored regions and dungeon or raid lockouts. Save a pin at your current location.",{coordinates=true,pins={},worldControls=true,worldPins=true,worldRoute=true},{"ZONE_CHANGED_NEW_AREA","MAP_EXPLORATION_UPDATED","UPDATE_INSTANCE_INFO","PLAYER_ENTERING_WORLD"})
+M.options={{key="coordinates",label="Show coordinates"}}
+M.pinFrames={}; M.routeFrames={}
 function M:Normalize()
     local valid={}
     for _,p in ipairs(self:Data().pins) do
@@ -46,25 +47,99 @@ function M:Build()
         if n and locked then self.rows[#self.rows+1]={text="[Lockout] "..n.." | "..(killed or 0).."/"..(encounters or 0).." bosses | "..math.ceil((reset or 0)/3600).."h until reset"} end
     end
 end
+function M:UpdateWorldControls(world)
+    local db=self:Data()
+    local f=self.worldControls
+    if f and f:GetParent()~=world then f:Hide(); self.worldControls=nil; f=nil end
+    local show=FS:IsModuleEnabled(self.name) and db.worldControls
+    if not show then if f then f:Hide() end; return end
+    if not f then
+        local H=FS.HUD
+        f=CreateFrame("Frame",nil,world,"BackdropTemplate"); self.worldControls=f
+        H:Skin(f); f:SetSize(432,36); f:SetPoint("BOTTOM",world,"BOTTOM",0,12)
+        f:SetFrameLevel(world:GetFrameLevel()+12)
+        f.zone=H:Button(f,"My zone",4,-3,100,function()
+            if InCombatLockdown() then return end
+            local id=T:Call(MapUtil and MapUtil.GetDisplayableMapForPlayer) or self:Position()
+            if id then T:Call(world.SetMapID,world,id); self:UpdatePins() end
+        end)
+        f.pins=H:Button(f,"",110,-3,100,function() self:ToggleWorldLayer("worldPins") end)
+        f.stops=H:Button(f,"",216,-3,106,function() self:ToggleWorldLayer("worldRoute") end)
+        f.routes=H:Button(f,"Routes",328,-3,100,function() FS.modules.Workbench:Choose("Route Library") end)
+    end
+    local pins=db.worldPins and "Pins: On" or "Pins: Off"
+    local stops=db.worldRoute and "Stops: On" or "Stops: Off"
+    if f.pins:GetText()~=pins then f.pins:SetText(pins) end
+    if f.stops:GetText()~=stops then f.stops:SetText(stops) end
+    local width=world:GetWidth()
+    if T:Number(width) and width>0 then
+        local scale=math.min(1,math.max(.2,(width-24)/432))
+        if f:GetScale()~=scale then f:SetScale(scale) end
+    end
+    f:Show()
+end
+function M:ToggleWorldLayer(key)
+    if InCombatLockdown() then return end
+    local db=self:Data()
+    db[key]=not db[key]
+    self:UpdatePins()
+end
+local function positionMarker(frame,canvas,p,width,height,point)
+    if frame:GetParent()~=canvas then frame:SetParent(canvas) end
+    local x,y=p.x*width,-p.y*height
+    local oldPoint,relative,_,oldX,oldY=frame:GetPoint()
+    if oldPoint~=point or relative~=canvas or oldX~=x or oldY~=y then
+        frame:ClearAllPoints(); frame:SetPoint(point,canvas,"TOPLEFT",x,y)
+    end
+    if not frame:IsShown() then frame:Show() end
+end
 function M:UpdatePins()
+    if InCombatLockdown() then return end
     local world=WorldMapFrame; local canvas=world and world.ScrollContainer and world.ScrollContainer.Child
-    if not canvas then return end
+    if not canvas or not world:IsShown() or (world.IsForbidden and world:IsForbidden()) or (canvas.IsForbidden and canvas:IsForbidden()) then return end
+    self:UpdateWorldControls(world)
     local id=T:Call(world.GetMapID,world)
-    for _,f in ipairs(self.pinFrames) do f:Hide() end
-    if not FS:IsModuleEnabled(self.name) then return end
-    local count=0
-    for i,p in ipairs(self:Data().pins) do
+    local width,height=canvas:GetWidth(),canvas:GetHeight()
+    local enabled=FS:IsModuleEnabled(self.name) and T:Number(width) and T:Number(height)
+    local db=self:Data()
+    local count,stopCount=0,0
+    for i,p in ipairs(enabled and db.worldPins and db.pins or {}) do
         if p.map==id then
             count=count+1; local f=self.pinFrames[count]
             if not f then
-                f=FS.HUD:Button(canvas,"+",0,0,20,function() self:Waypoint({pin=self.pinFrames[count].pin}) end)
-                f:SetScript("OnClick",function(b) self:Waypoint({pin=b.pin}) end)
-                f:SetScript("OnEnter",function(b) local pin=self:Data().pins[b.pin]; if pin then GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine(pin.name); GameTooltip:Show() end end)
+                f=FS.HUD:Button(canvas,"+",0,0,20,function() end)
+                f:SetScript("OnClick",function(b)
+                    if InCombatLockdown() then return end
+                    if IsShiftKeyDown and IsShiftKeyDown() then
+                        local E=FS.Extensions; local queue=E:Data().waypointQueue; local pin=self:Data().pins[b.pin]
+                        if E.gathering then FS:Print("Finish recording the run before adding stops.")
+                        elseif pin and #queue<50 then queue[#queue+1]=E.Copy(pin); self:UpdatePins(); FS:Print("Added stop: "..pin.name)
+                        elseif pin then FS:Print("The waypoint queue is full.") end
+                    else self:Waypoint({pin=b.pin}) end
+                end)
+                f:SetScript("OnEnter",function(b) local pin=self:Data().pins[b.pin]; if pin then GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine(pin.name); GameTooltip:AddLine("Shift-click to add a route stop."); GameTooltip:Show() end end)
                 f:SetScript("OnLeave",function() GameTooltip:Hide() end); f:SetSize(20,20); self.pinFrames[count]=f
             end
-            f.pin=i; f:ClearAllPoints(); f:SetPoint("CENTER",canvas,"TOPLEFT",p.x*canvas:GetWidth(),-p.y*canvas:GetHeight()); f:Show()
+            f.pin=i; positionMarker(f,canvas,p,width,height,"CENTER")
         end
     end
+    for i=count+1,#self.pinFrames do self.pinFrames[i]:Hide() end
+    local queue=FS.Extensions and FS.Extensions:Data().waypointQueue
+    for i,p in ipairs(enabled and db.worldRoute and queue or {}) do
+        if p.map==id then
+            stopCount=stopCount+1
+            local marker=self.routeFrames[stopCount]
+            if not marker then
+                marker=CreateFrame("Frame",nil,canvas,"BackdropTemplate"); self.routeFrames[stopCount]=marker
+                FS.HUD:Skin(marker); marker:SetSize(24,22); marker:EnableMouse(false)
+                marker.number=FS.Widgets:Label(marker); marker.number:SetPoint("CENTER")
+            end
+            local label=tostring(i)
+            if marker.number:GetText()~=label then marker.number:SetText(label) end
+            positionMarker(marker,canvas,p,width,height,"BOTTOMLEFT")
+        end
+    end
+    for i=stopCount+1,#self.routeFrames do self.routeFrames[i]:Hide() end
 end
 function M:Tick()
     if not self.coordinateFrame then

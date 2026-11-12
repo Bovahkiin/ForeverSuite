@@ -485,12 +485,20 @@ function V:ReviewSales()
         f:EnableMouse(true); f:SetFrameLevel(100)
         label(f, "REVIEW JUNK SALE", 18, -18, 490, "ForeverSuiteFontLarge")
         f.summary = label(f, "", 18, -52, 494); f.summary:SetHeight(40)
-        label(f, "Only the quantities listed below will be sold.", 18, -98, 494)
+        f.view=button(f, "Show kept items", 18, -95, 494, function()
+            f.showKept=not f.showKept; f.page=1; self:RefreshSaleReview()
+        end)
         f.rows = {}
         for i = 1, 7 do
             local row = { text = label(f, "", 58, -132 - (i - 1) * 32, 444) }
             row.text:SetHeight(28)
             row.icon = f:CreateTexture(nil, "ARTWORK"); row.icon:SetSize(26, 26); row.icon:SetPoint("TOPLEFT", 18, -128 - (i - 1) * 32)
+            row.keep = button(f, "Never sell", 392, -130 - (i - 1) * 32, 120, function()
+                if row.item and not self.busy and self:CanTransact() then
+                    self:KeepItem(row.item.id)
+                    self:RefreshSaleReview()
+                end
+            end)
             f.rows[i] = row
         end
         f.previous = button(f, "Previous", 18, -359, 110, function() f.page = math.max(1, f.page - 1); self:RefreshSaleReview() end)
@@ -502,7 +510,7 @@ function V:ReviewSales()
         UISpecialFrames[#UISpecialFrames + 1] = "ForeverSuiteSaleReview"
         f:Hide()
     end
-    f.page = 1; f.fingerprint = self:SaleFingerprint(self:BuildPlan()); f.feedback = nil
+    f.page = 1; f.showKept=false; f.fingerprint = self:SaleFingerprint(self:BuildPlan()); f.feedback = nil
     if FS.Layout then FS.Layout:Register("JunkReview",f,"Junk Review") end
     f:Show(); self:RefreshSaleReview()
 end
@@ -510,21 +518,38 @@ function V:RefreshSaleReview()
     local f = self.saleReview; if not f or not f:IsShown() then return end
     if not self:Settings().enabled or not self.merchantOpen then f:Hide(); return end
     local plan = self:BuildPlan()
-    local pages = math.max(1, math.ceil(#plan.sale / 7)); f.page = math.min(f.page, pages)
+    local entries=plan.sale
+    if f.showKept then
+        entries={}
+        for _,item in ipairs(plan.items) do
+            if item.sellCount<item.count then entries[#entries+1]=item end
+        end
+    end
+    local pages = math.max(1, math.ceil(#entries / 7)); f.page = math.min(f.page, pages)
+    f.view:SetText(f.showKept and "Show items for sale" or "Show kept items")
     f.summary:SetText(plan.units .. " items  |  " .. plan.slots .. " spaces freed\nExpected earnings: " .. self:Money(plan.value))
     for i, row in ipairs(f.rows) do
-        local item = plan.sale[(f.page - 1) * 7 + i]
+        local item = entries[(f.page - 1) * 7 + i]
+        row.item = not f.showKept and item or nil
+        row.keep:SetShown(row.item~=nil)
+        row.keep:SetEnabled(not self.busy and self:CanTransact())
+        row.text:SetWidth(f.showKept and 444 or 325)
         row.icon:SetTexture(item and item.icon or nil)
-        row.text:SetText(item and (item.name .. " x" .. item.sellCount .. "  |  " .. self:Money(item.price * item.sellCount)) or i == 1 and #plan.sale == 0 and "Nothing is ready to sell." or "")
+        local text=""
+        if item then
+            if f.showKept then text=item.name.." x"..(item.count-item.sellCount).."  |  "..(item.reason or "Kept")
+            else text=item.name.." x"..item.sellCount.."  |  "..self:Money(item.price*item.sellCount) end
+        elseif i==1 then text=f.showKept and "No items are being kept." or "Nothing is ready to sell." end
+        row.text:SetText(text)
     end
     f.pages:SetText("Page " .. f.page .. " of " .. pages)
     f.previous:SetShown(pages > 1); f.next:SetShown(pages > 1); f.pages:SetShown(pages > 1)
-    f.confirm:SetEnabled(plan.units > 0 and self:CanTransact() and not self.busy)
+    f.confirm:SetEnabled(not f.showKept and plan.units > 0 and self:CanTransact() and not self.busy)
     f.message:SetText(f.feedback or "Protected items and saved quantities stay in your bags.")
 end
 function V:ConfirmSaleReview()
     local f = self.saleReview
-    if not f or not f:IsShown() or self.busy or not self:CanTransact() then return end
+    if not f or not f:IsShown() or f.showKept or self.busy or not self:CanTransact() then return end
     local plan = self:BuildPlan(); local fingerprint = self:SaleFingerprint(plan)
     if fingerprint ~= f.fingerprint then
         f.fingerprint = fingerprint; f.feedback = "Your bags or rules changed. Review the updated list and click Sell again."

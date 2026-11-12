@@ -231,6 +231,8 @@ function FS:CreateConfigWindow()
     frame.recovery=button(frame,"Help with layout",290,function() FS.Beginner:ShowRecovery() end)
     frame.tour=button(frame,"Quick tour",290,function() FS.Beginner:ShowTour() end)
     frame.workbench=button(frame,"More tools",250,function() FS.modules.Workbench:ShowWindow() end)
+    frame.favorites=button(frame,"Favorite settings",290,function() FS.modules.Workbench:Choose("Favorites") end)
+    frame.nextSteps=button(frame,"Next steps",250,function() FS.modules.Workbench:Choose("Next steps") end)
     frame.disableAll=button(frame,"Disable all modules",290,function() self:DisableAllModules() end)
     frame.disableAll:SetScript("OnEnter",function(b)
         GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Disable all modules")
@@ -335,7 +337,9 @@ function FS:LayoutConfigText()
     end
     y=y+math.max(f.recovery:GetHeight(),f.tour:GetHeight(),f.workbench:GetHeight())+10
     fitButton(f.disableAll,290,2); f.disableAll:ClearAllPoints(); f.disableAll:SetPoint("TOPLEFT",24,-y)
-    y=y+f.disableAll:GetHeight()+12
+    fitButton(f.favorites,290,2); f.favorites:ClearAllPoints(); f.favorites:SetPoint("TOPLEFT",330,-y)
+    fitButton(f.nextSteps,250,2); f.nextSteps:ClearAllPoints(); f.nextSteps:SetPoint("TOPLEFT",636,-y)
+    y=y+math.max(f.disableAll:GetHeight(),f.favorites:GetHeight(),f.nextSteps:GetHeight())+12
     local footer=28
     for _,b in ipairs({f.reset,f.patchLog,f.move,f.credits,f.reload}) do footer=math.max(footer,fitButton(b,160,2)) end
     local height=math.max(800,y+footer+48)

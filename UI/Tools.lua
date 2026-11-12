@@ -1,9 +1,10 @@
 local _,FS=...
 local T={}; FS.Tools=T
+local emptyRows={}
+local function pack(...) return {n=select("#",...),...} end
 function T:Call(fn,...)
     if type(fn)~="function" then return nil end
-    local function pack(...) return {n=select("#",...),...} end
-    local result=pack(pcall(fn,...)); if not result[1] then return nil end
+    local result=pack(pcall(fn,...)); if not result[1] or result.n==1 then return nil end
     for i=2,result.n do if FS.HUD:Safe(result[i])==false then return nil end end
     return unpack(result,2,result.n)
 end
@@ -12,6 +13,20 @@ function T:Text(value) return FS.HUD:Safe(value) and type(value)=="string" and v
 function T:Edit(parent,x,y,width)
     local f=CreateFrame("EditBox",nil,parent,"BackdropTemplate"); FS.HUD:Skin(f); f:SetSize(width,30); f:SetPoint("TOPLEFT",x,y)
     f:SetAutoFocus(false); FS:ApplyFont(f,14,""); f:SetText(""); f:SetScript("OnEscapePressed",function(b) b:ClearFocus() end); return f
+end
+local function rowKey(row)
+    return row and (row.id or row.roll or row.index or row.command or row.name or row.pin or row.text)
+end
+local function matchingPage(rows,query,offset,size)
+    local page,count={},0
+    for _,row in ipairs(rows) do
+        local searchable=row.searchText or row.text or ""
+        if string.find(string.lower(searchable),query,1,true) then
+            count=count+1
+            if count>offset and count<=offset+size then page[#page+1]=row end
+        end
+    end
+    return page,count
 end
 function T:Module(name,key,title,description,defaults,events)
     local M={name=name,key=key,title=title,description=description,options={},actions={},rows={}}
@@ -110,7 +125,12 @@ function T:Module(name,key,title,description,defaults,events)
         for i=1,9 do
             local b=H:Button(f,"",16,-140-(i-1)*32,628,function() self.selected=f.cells[i].row; if self.OnSelect then self:OnSelect(self.selected) end; self:Render() end)
             b:SetScript("OnEnter",function(c)
-                if c.row then GameTooltip:SetOwner(c,"ANCHOR_RIGHT"); if c.row.link then GameTooltip:SetHyperlink(c.row.link) else GameTooltip:AddLine(c.row.text,1,1,1,true) end; GameTooltip:Show() end
+                if c.row then
+                    GameTooltip:SetOwner(c,"ANCHOR_RIGHT")
+                    if c.row.link then GameTooltip:SetHyperlink(c.row.link) else GameTooltip:AddLine(c.row.text,1,1,1,true) end
+                    if c.row.detailLine then GameTooltip:AddLine(c.row.detailLine,1,1,1,true) end
+                    GameTooltip:Show()
+                end
             end)
             b:SetScript("OnLeave",function() GameTooltip:Hide() end); f.cells[i]=b
         end
@@ -118,9 +138,10 @@ function T:Module(name,key,title,description,defaults,events)
         f.pageLabel=H:Label(f,"",142,-446,235)
         f.next=H:Button(f,FS.Text.next,384,-438,110,function() self.page=(self.page or 1)+1; self:Render() end)
         f.close=H:Button(f,FS.Text.close,510,-438,134,function() f:Hide() end)
-        f.input=T:Edit(f,16,-480,290)
+        local actionStart= #self.actions>3 and 206 or 316
+        f.input=T:Edit(f,16,-480,actionStart-26)
         f.actionButtons={}
-        for i,action in ipairs(self.actions) do f.actionButtons[i]=H:Button(f,action.label,316+(i-1)*110,-480,104,function()
+        for i,action in ipairs(self.actions) do f.actionButtons[i]=H:Button(f,action.label,actionStart+(i-1)*110,-480,104,function()
             local before=self.status; action.run(self,f.input:GetText())
             if self.status~=before then self.notice=self.status; self.noticeUntil=GetTime()+6 end
             self:Refresh()
@@ -138,7 +159,7 @@ function T:Module(name,key,title,description,defaults,events)
             for i,b in ipairs({self.previous,self.next,self.close}) do at(b,({16,384,510})[i],y); footer=math.max(footer,H:FitButton(b,2)) end
             at(self.pageLabel,142,y+4); y=y+footer+12
             local _,inputSize=self.input:GetFont(); self.input:SetHeight(math.max(30,(inputSize or 14)+12)); at(self.input,16,y); footer=self.input:GetHeight()
-            for i,b in ipairs(self.actionButtons) do at(b,316+(i-1)*110,y); footer=math.max(footer,H:FitButton(b,3)) end
+            for i,b in ipairs(self.actionButtons) do at(b,actionStart+(i-1)*110,y); footer=math.max(footer,H:FitButton(b,3)) end
             self:SetHeight(math.max(540,y+footer+20))
             if not FS.db.layout.frames["Tool:"..self.fsToolName] then self:SetScale(math.min(1,(UIParent:GetWidth()-32)/660,(UIParent:GetHeight()-32)/self:GetHeight())) end
         end
@@ -149,17 +170,29 @@ function T:Module(name,key,title,description,defaults,events)
     end
     function M:Render()
         local f=self.window; if not f or not f:IsShown() then return end
-        local rows={}; local query=string.lower(f.search:GetText() or "")
-        for _,row in ipairs(self.rows or {}) do if string.find(string.lower(row.text or ""),query,1,true) then rows[#rows+1]=row end end
-        local pages=math.max(1,math.ceil(#rows/9)); self.page=math.max(1,math.min(self.page or 1,pages))
-        local function key(row) return row and (row.id or row.roll or row.index or row.command or row.name or row.pin or row.text) end
+        local rows=self.rows or emptyRows
+        local query=string.lower(f.search:GetText() or "")
+        local size=#f.cells
+        local requested=math.max(1,self.page or 1)
+        local offset=(requested-1)*size
+        local count=#rows
+        local matches
+        if query~="" then matches,count=matchingPage(rows,query,offset,size) end
+        local pages=math.max(1,math.ceil(count/size))
+        self.page=math.min(requested,pages)
+        if self.page~=requested then
+            offset=(self.page-1)*size
+            if matches then matches=matchingPage(rows,query,offset,size) end
+        end
+        local selectedKey=rowKey(self.selected)
         for i,b in ipairs(f.cells) do
-            b.row=rows[(self.page-1)*9+i]; local caption=b.row and b.row.text or ""; b:SetText(#caption>88 and caption:sub(1,85).."..." or caption); b:SetShown(b.row~=nil)
-            local selected=b.row and self.selected and key(b.row)==key(self.selected)
+            if matches then b.row=matches[i] else b.row=rows[offset+i] end
+            local caption=b.row and b.row.text or ""; b:SetText(#caption>88 and caption:sub(1,85).."..." or caption); b:SetShown(b.row~=nil)
+            local selected=b.row and self.selected and rowKey(b.row)==selectedKey
             b:SetBackdropBorderColor(selected and 1 or .12,selected and .75 or .72,selected and .2 or .86,1)
         end
-        f.pageLabel:SetText("Page "..self.page.." / "..pages.."  |  "..#rows.." entries")
-        f.status:SetText(self.noticeUntil and GetTime()<self.noticeUntil and self.notice or self.status or (#rows==0 and "No entries to show yet." or "Select an entry for details."))
+        f.pageLabel:SetText("Page "..self.page.." / "..pages.."  |  "..count.." entries")
+        f.status:SetText(self.noticeUntil and GetTime()<self.noticeUntil and self.notice or self.status or (count==0 and "No entries to show yet." or "Select an entry for details."))
         if f.LayoutText then f:LayoutText() end
     end
     function M:Refresh() if self.Build then self:Build() end; self:Render() end
@@ -175,7 +208,8 @@ function T:Module(name,key,title,description,defaults,events)
         self:SyncLifecycle()
         self:RefreshSettings()
         if not FS:IsModuleEnabled(self.name) then if self.StopCapture then self:StopCapture() end; if self.window then self.window:Hide() end; return end
-        if self.Apply then self:Apply() end; self:Refresh()
+        if self.Apply then self:Apply() end
+        if self.window and self.window:IsShown() then self:Refresh() end
     end
     function M:SyncLifecycle()
         if not self.events or not self.ticker or InCombatLockdown() then return end

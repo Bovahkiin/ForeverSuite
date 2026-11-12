@@ -563,8 +563,13 @@ assert(V:CountItem(1)==30 and #TEST.actions==0 and not V.busy)
 ResetTest(); local V=ForeverSuite.modules.Vendor
 TEST.data[1]={quality=0,price=10}; TEST.data[2]={quality=1,price=10}
 AddItem(1,1,1); AddItem(2,2,1); V:SetRule(2,true,0,0); V:SetMode('auto')
+local bags=ForeverSuite.modules.Bags
+if bags.window then bags.window:Hide() end
+if V.window then V.window:Hide() end
+ForeverSuite.db.bags.openAtMerchant=true; V:Settings().showPanel=true
 Open(); assert(V:CountItem(1)==0 and V:CountItem(2)==1)
-V:CloseMerchant(); V:SetMode('custom'); Open(); assert(V:CountItem(2)==0)
+assert((not bags.window or not bags.window:IsShown()) and (not V.window or not V.window:IsShown()))
+V:CloseMerchant(); V:SetMode('custom'); Open(); assert(V:CountItem(2)==0 and bags.window:IsShown())
 ''',
     'combat, cursor, repair mode and spell targeting block transactions': r'''
 ResetTest(); local V=ForeverSuite.modules.Vendor
@@ -1100,6 +1105,18 @@ ResetTest(); local V=ForeverSuite.modules.Vendor
 TEST.data[1]={quality=0,price=10}; AddItem(1,1,2); Open(); V:ReviewSales(); V:ConfirmSaleReview()
 AddItem(2,1,3); Drain(); assert(V:CountItem(1)==3 and #TEST.actions==1 and TEST.actions[1].count==2)
 """
+checks['Junk review explains kept items and can protect an eligible stack before sale'] = r"""
+ResetTest(); local V=ForeverSuite.modules.Vendor
+TEST.data[1]={quality=0,price=10}; TEST.data[2]={quality=0,price=20}
+AddItem(1,1,2); AddItem(2,2,1); V:KeepItem(2); Open(); V:ReviewSales()
+local f=V.saleReview
+Click(f.view); assert(f.showKept and not f.confirm:IsEnabled())
+assert(f.rows[1].text:GetText():find('Always Keep',1,true))
+V:ConfirmSaleReview(); assert(#TEST.actions==0)
+Click(f.view); assert(f.rows[1].keep:IsShown())
+Click(f.rows[1].keep); assert(V:Settings().alwaysKeep[1] and not f.confirm:IsEnabled())
+assert(V:CountItem(1)==2 and #TEST.actions==0)
+"""
 checks['Gear durability totals, broken slots, empty values and warning rearming'] = r"""
 ResetTest(); local G=ForeverSuite.modules.Gear; local FS=ForeverSuite
 TEST.data[1]={quality=1,price=10}; TEST.equipment={[1]={id=1,current=20,maximum=100},[5]={id=1,current=0,maximum=50},[2]={id=1}}
@@ -1262,7 +1279,7 @@ assert(L.active and L.overlay:IsShown() and not L.targets.NameplatePreview)
 local handle=L.handles['Unit:player']
 handle.GetCenter=function() return 563,683 end
 L:Save('Unit:player',handle,1.2)
-local saved=FS.db.layout.frames['Unit:player']; local centerY=UIParent:GetHeight()/2
+local saved=L:Placements()['Unit:player']; local centerY=UIParent:GetHeight()/2
 assert(saved.x==64 and saved.y==centerY+math.floor((683-centerY)/32+.5)*32 and saved.scale==1.2)
 L.overlay.close:Click(); assert(not L.active and not FS.db.layout.frames['Unit:player'] and not L.targets.NameplatePreview)
 TEST.combat=true; L:Start(); assert(not L.active); TEST.combat=false
@@ -1286,10 +1303,10 @@ h.GetCenter=function() return x,683 end
 local originalPoint=h.SetPoint; local anchors=0
 h.SetPoint=function(...) anchors=anchors+1; originalPoint(...) end
 h.scripts.OnDragStart(h); h.scripts.OnUpdate(h,.016)
-assert(h.dragging and anchors==0 and FS.db.layout.frames['Unit:player'].x==63)
+assert(h.dragging and anchors==0 and L:Placements()['Unit:player'].x==63)
 assert(L.targets['Unit:player'].frame.point[4]==63)
 x=571; h.scripts.OnUpdate(h,.016); assert(L.targets['Unit:player'].frame.point[4]==71 and anchors==0)
-h.scripts.OnDragStop(h); assert(not h.dragging and anchors==1 and FS.db.layout.frames['Unit:player'].x==64)
+h.scripts.OnDragStop(h); assert(not h.dragging and anchors==1 and L:Placements()['Unit:player'].x==64)
 h.scripts.OnDragStart(h); L:Stop(); assert(not h.dragging)
 h.SetPoint=originalPoint
 """

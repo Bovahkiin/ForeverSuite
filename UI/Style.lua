@@ -392,34 +392,69 @@ function S:Refresh()
     if FS.NativeWindows then FS.NativeWindows:Refresh() end
     if FS.WindowManager then FS.WindowManager:UpdateExperience() end
 end
-function S:StructureSignature(kind)
-    -- Poll for newly created native windows/rows, not for a reason to rewrite
-    -- every existing frame's geometry, fonts and backdrop once per second.
-    local values,seen={},{}
-    local function visit(f,depth)
-        if not f or seen[f] or f.fsSuiteStyle or (f.IsForbidden and f:IsForbidden()) then return end
-        seen[f]=true; values[#values+1]=tostring(f); values[#values+1]=tostring(f:IsShown())
-        if depth>0 and f.GetChildren then for _,child in ipairs({f:GetChildren()}) do visit(child,depth-1) end end
+local discoveryKinds={"native","chat","meter"}
+local visitFrame
+local function visitChildren(state,depth,...)
+    for i=1,select("#",...) do
+        local child=select(i,...)
+        visitFrame(state,child,depth)
     end
-    if not kind or kind=="native" then for _,definition in ipairs(FS.NativeWindows and FS.NativeWindows.definitions or {}) do visit(_G[definition[1]],3) end end
-    if not kind or kind=="chat" then for i=1,NUM_CHAT_WINDOWS or 10 do
-        visit(_G["ChatFrame"..i],1); visit(_G["ChatFrame"..i.."Tab"],1); visit(_G["ChatFrame"..i.."EditBox"],1)
+end
+visitFrame=function(state,frame,depth)
+    if not frame or state.seen[frame] or frame.fsSuiteStyle or (frame.IsForbidden and frame:IsForbidden()) then return end
+    state.seen[frame]=true
+    local index=state.count+1
+    state.count=index
+    local shown=frame:IsShown()
+    if state.frames[index]~=frame or state.shown[index]~=shown then
+        state.changed=true
+        state.frames[index]=frame
+        state.shown[index]=shown
     end
+    if depth>0 and frame.GetChildren then visitChildren(state,depth-1,frame:GetChildren()) end
+end
+local function updateStructure(state,kind)
+    local previousCount=state.count
+    state.count=0
+    state.changed=false
+    if kind=="native" then
+        if FS.NativeWindows then
+            for _,definition in ipairs(FS.NativeWindows.definitions) do visitFrame(state,_G[definition[1]],3) end
+        end
+    elseif kind=="chat" then
+        for i=1,NUM_CHAT_WINDOWS or 10 do
+            local name="ChatFrame"..i
+            visitFrame(state,_G[name],1)
+            visitFrame(state,_G[name.."Tab"],1)
+            visitFrame(state,_G[name.."EditBox"],1)
+        end
+    else
+        visitFrame(state,DamageMeter,3)
+        visitFrame(state,DamageMeterSourceWindow,3)
+        for i=1,5 do visitFrame(state,_G["DamageMeterSessionWindow"..i],3) end
     end
-    if not kind or kind=="meter" then visit(DamageMeter,3); visit(DamageMeterSourceWindow,3)
-    for i=1,5 do visit(_G["DamageMeterSessionWindow"..i],3) end end
-    return table.concat(values,"|")
+    for frame in pairs(state.seen) do state.seen[frame]=nil end
+    for i=state.count+1,previousCount do
+        state.frames[i]=nil
+        state.shown[i]=nil
+    end
+    return state.changed or state.count~=previousCount
 end
 function S:Discover()
     if not FS.initialized or not FS.db or InCombatLockdown() then return end
     self.discovery=self.discovery or {}
-    for _,kind in ipairs({"native","chat","meter"}) do
-        local signature=self:StructureSignature(kind)
-        if self.discovery[kind]~=signature then
+    for _,kind in ipairs(discoveryKinds) do
+        local state=self.discovery[kind]
+        local first=not state
+        if first then
+            state={frames=setmetatable({},{__mode="v"}),shown={},seen={},count=0}
+            self.discovery[kind]=state
+        end
+        if updateStructure(state,kind) or first then
             if kind=="native" and FS.NativeWindows then FS.NativeWindows:Refresh()
             elseif kind=="chat" then self:Chat()
             elseif kind=="meter" then self:Meter() end
-            self.discovery[kind]=self:StructureSignature(kind)
+            updateStructure(state,kind)
         end
     end
 end

@@ -72,7 +72,9 @@ GetNumLootItems=nil; LootSlot=nil; GetLootRollItemInfo=nil; RollOnLoot=nil
 -- TEST: Buff reminders match spell IDs and disappear when the buff returns
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Buffs; FS.db.buffs.reminders={[17]=true}; local present=false
 C_UnitAuras={GetAuraDataByIndex=function(_,i,filter) if present and i==1 and filter=='HELPFUL' then return {name='Shield',spellId=17,expirationTime=0} end end}
-B:Tick(); assert(#B.missing==1 and B.reminder:IsShown()); present=true; B:Tick(); assert(#B.missing==0 and not B.reminder:IsShown())
+B:SettingsChanged(); assert(B.reminder:IsShown())
+present=true; B:Event('UNIT_AURA','target'); assert(B.reminder:IsShown())
+B:Event('UNIT_AURA','player'); assert(not B.reminder:IsShown())
 FS:SetModuleEnabled('Buffs',false); assert(not B.reminder:IsShown()); FS:SetModuleEnabled('Buffs',true); C_UnitAuras=nil
 
 -- TEST: Cooldowns show durations and charges, allow grouping and tolerate unavailable spells
@@ -129,6 +131,43 @@ A.actions[1].run(A,'1 20'); assert(FS.db.auctionHouse.shopping[1]==20)
 GetRealmName=function() return 'Other realm' end; assert(A:Prices()[1]==nil)
 GetNumAuctionItems=nil; GetAuctionItemInfo=nil; GetAuctionItemLink=nil; GetRealmName=nil; A.open=false
 
+-- TEST: Auction price observations keep the newest entries without dropping shopping goals
+ResetTest(); local A=ForeverSuite.modules.AuctionHouse
+local prices=A:Prices()
+for id=1,2001 do prices[id]={price=10,time=id,kind='per item'} end
+prices[3000]={price=-10,time=3000,kind='per item'}
+A:Data().shopping[1]=3
+A:Normalize()
+assert(not prices[1] and not prices[3000] and prices[2] and prices[2001])
+assert(A:Data().shopping[1]==3)
+A:StoreScan({[4000]={price=10,time=4000,kind='per item'}})
+assert(not prices[2] and prices[4000] and A:Data().shopping[1]==3)
+
+-- TEST: Auction shopping row starts the native search only when its Buy controls are available
+ResetTest(); local FS=ForeverSuite; local A=FS.modules.AuctionHouse
+local oldFrame,oldAPI,oldInfo=AuctionHouseFrame,C_AuctionHouse,C_Item.GetItemInfo
+local visible,ready,calls,query=true,true,0,nil
+local search={
+    IsVisible=function() return visible end,
+    SetSearchText=function(_,text) query=text end,
+    StartSearch=function() calls=calls+1 end,
+}
+AuctionHouseFrame={IsShown=function() return true end,SearchBar=search}
+C_AuctionHouse={IsThrottledMessageSystemReady=function() return ready end}
+C_Item.GetItemInfo=function(id) if id==45 then return 'Copper Ore' end end
+A:Data().shopping[45]=10
+A:ShowWindow(); A.selected=A.rows[1]
+local action=A.window.actionButtons[4]
+assert(action:GetWidth()+action.point[2]<=A.window:GetWidth())
+A.open=false; assert(not A:FindItem() and calls==0)
+A:Event('AUCTION_HOUSE_SHOW')
+visible=false; assert(not A:FindItem() and calls==0); visible=true
+ready=false; assert(not A:FindItem() and calls==0); ready=true
+TEST.combat=true; assert(not A:FindItem() and calls==0); TEST.combat=false
+action:Click(); assert(calls==1 and query=='Copper Ore' and not A.window:IsShown())
+assert(A:Data().shopping[45]==10)
+A.open=false; AuctionHouseFrame,C_AuctionHouse,C_Item.GetItemInfo=oldFrame,oldAPI,oldInfo
+
 -- TEST: Social online filter and whispers prepare input; QoL never invites automatically
 ResetTest(); local FS=ForeverSuite; local S=FS.modules.Social; local told,invited
 C_FriendList={GetNumFriends=function() return 2 end,GetFriendInfoByIndex=function(i) return {name=i==1 and 'Online' or 'Offline',connected=i==1} end}
@@ -162,7 +201,67 @@ C_TradeSkillUI={GetFilteredRecipeIDs=function() return {21,22} end,GetRecipeInfo
 C_Item.GetItemCount=function() return 5 end
 P.materials=nil; P:Build(); assert(#P.rows==1 and P.rows[1].modern)
 P:OnSelect(P.rows[1]); assert(#P.rows==1 and P.rows[1].text=='Copper bar | Need 2, have 5')
-P.materials=nil; C_TradeSkillUI=nil; C_Item.GetItemCount=nil
+local shopping=ForeverSuite.db.auctionHouse.shopping
+P.actions[2].run(P,'4'); assert(P.rows[1].required==8 and P.quantity==4)
+P.actions[2].run(P,'1.5'); assert(P.quantity==4)
+shopping[7]=12
+P.actions[3].run(P); assert(shopping[7]==12)
+shopping[7]=nil
+C_TradeSkillUI.GetRecipeSchematic=function() return {reagentSlotSchematics={
+    {quantityRequired=2,reagents={{itemID=7}}},
+    {quantityRequired=1,reagents={{itemID=7}}},
+    {quantityRequired=2,reagents={{itemID=8},{itemID=9}}},
+    {quantityRequired=2,required=false,reagents={{itemID=10}}},
+}} end
+P.actions[2].run(P,'4'); P.actions[3].run(P)
+assert(shopping[7]==12 and not shopping[8] and not shopping[9] and not shopping[10])
+assert(P.status:find('manual review',1,true))
+local savedStock,savedName,savedRealm=ForeverSuiteStock,UnitName,GetNormalizedRealmName
+UnitName=function() return 'Crafter' end; GetNormalizedRealmName=function() return 'Same Realm' end
+ForeverSuiteStock={
+    ['Crafter-Same Realm']={counts={[7]=100}},
+    ['Alt-Same Realm']={counts={[7]=4}},
+    ['Alt-Other Realm']={counts={[7]=50}},
+}
+shopping[7]=nil
+P.actions[3].run(P); assert(shopping[7]==12)
+P:Data().countAltStock=true
+P.actions[3].run(P); assert(shopping[7]==12)
+shopping[7]=nil
+P.actions[3].run(P); assert(shopping[7]==8 and P.status:find('transfer materials',1,true))
+ForeverSuiteStock,UnitName,GetNormalizedRealmName=savedStock,savedName,savedRealm
+P:Event('TRADE_SKILL_CLOSE'); assert(not P.materials and not P.planRecipe)
+C_TradeSkillUI=nil; C_Item.GetItemCount=nil
+
+-- TEST: Intermediate recipe planning uses batch yields and shared stock before adding raw materials
+ResetTest(); local FS=ForeverSuite; local P=FS.modules.Professions
+local oldAPI,oldCount=C_TradeSkillUI,C_Item.GetItemCount
+local function slot(id,count) return {quantityRequired=count,reagents={{itemID=id}}} end
+local schemas={
+    [11]={outputItemID=100,quantityMin=1,reagentSlotSchematics={slot(200,3)}},
+    [12]={outputItemID=200,quantityMin=2,reagentSlotSchematics={slot(300,2)}},
+    [13]={outputItemID=300,quantityMin=2,reagentSlotSchematics={slot(400,3)}},
+}
+local names={[11]='Final item',[12]='Bolts',[13]='Bars'}
+C_TradeSkillUI={
+    GetAllRecipeIDs=function() return {11,12,13} end,
+    GetRecipeInfo=function(id) return {name=names[id],learned=true} end,
+    GetRecipeSchematic=function(id) return schemas[id] end,
+}
+local stock={[200]=1,[300]=3,[400]=2}
+C_Item.GetItemCount=function(id) return stock[id] or 0 end
+P:Data().expandSubrecipes=true
+P:OnSelect({id=11,modern=true},2)
+assert(P.expanded and #P.rows==3)
+assert(P.rows[1].text=='Craft 2 x Bars' and P.rows[2].text=='Craft 3 x Bolts')
+assert(P.rows[3].text:find('Still need 4 x',1,true))
+P:AddPlanToShopping()
+local shopping=FS.db.auctionHouse.shopping
+assert(shopping[400]==6 and not shopping[200] and not shopping[300])
+schemas[13].reagentSlotSchematics={slot(200,3)}
+P:OnSelect({id=11,modern=true},2)
+assert(not P.expanded and #P.rows==1 and P.rows[1].required==6)
+P:ClearPlan(); C_TradeSkillUI,C_Item.GetItemCount=oldAPI,oldCount
 
 -- TEST: Modern commodity scans respect opt-out and save actual unit prices
 ResetTest(); local FS=ForeverSuite; local A=FS.modules.AuctionHouse; A.open=true
@@ -192,6 +291,7 @@ TEST.combat=false; FS.modules.Vendor.busy=true; FS:ResetDatabase(); assert(FS.db
 ResetTest(); local FS=ForeverSuite; local T=FS.Tools
 local a,b,c=T:Call(function() return nil,'middle',5 end); assert(a==nil and b=='middle' and c==5)
 assert(T:Call(function() error('unavailable') end)==nil)
+assert(type(T:Call(function() end))=='nil')
 FS.db.map.pins={false,{map=1,x='bad',y=.5,name='Bad'},{map=1,x=.5,y=.5,name='Good'}}
 FS.modules.Map:SettingsChanged(); assert(#FS.db.map.pins==1 and FS.db.map.pins[1].name=='Good')
 
@@ -455,16 +555,18 @@ local original=GetCursorPosition; local x,y=100,100; GetCursorPosition=function(
 L:Start(); local id='Unit:player'; local h=L.handles[id]; local f=L.targets[id].frame
 local before=f:GetScale(); assert(h.resize:IsShown())
 h.resize.scripts.OnMouseDown(h.resize,'LeftButton'); x=120; y=80
-h.resize.scripts.OnUpdate(h.resize,.01); assert(f:GetScale()>before and FS.db.layout.frames[id].scale==f:GetScale())
-local pos=FS.db.layout.frames[id]; local px,py=pos.x,pos.y
+h.resize.scripts.OnUpdate(h.resize,.01); assert(f:GetScale()>before and L:Placements()[id].scale==f:GetScale())
+local pos=L:Placements()[id]; local px,py=pos.x,pos.y
 local originalCenter=h.GetCenter; h.GetCenter=function() return 9000,8000 end
 x=10000; h.resize.scripts.OnUpdate(h.resize,.01); assert(f:GetScale()==1.4)
 x=-10000; h.resize.scripts.OnUpdate(h.resize,.01); assert(f:GetScale()==.6)
-assert(FS.db.layout.frames[id].x==px and FS.db.layout.frames[id].y==py)
+assert(L:Placements()[id].x==px and L:Placements()[id].y==py)
 h.resize.scripts.OnMouseUp(h.resize,'LeftButton'); h.GetCenter=originalCenter; assert(not h.resizeStart)
 Click(L.overlay.close); assert(f:GetScale()==before and not L.active)
 L:Start(); h.resize.scripts.OnDragStart(h.resize); EnterCombat(); h.resize.scripts.OnUpdate(h.resize,.01)
-assert(not L.active and not h.resizeStart); TEST.combat=false; GetCursorPosition=original
+assert(not L.active and not h.resizeStart and not FS.db.layout.frames[id])
+TEST.combat=false; assert(L:RestorePreview() and f:GetScale()==before)
+GetCursorPosition=original
 
 -- TEST: Skills and PvP use full readable viewport and suite progress bars without changing values
 ResetTest(); local FS=ForeverSuite; local C=FS.modules.Character
@@ -581,8 +683,8 @@ L.targets.Minimap=nil; L.handles.Minimap=nil
 local original=GetCursorPosition; local x,y=100,100; GetCursorPosition=function() return x,y end
 L:Start(); local h=L.handles.Minimap; assert(h and h.resize:IsShown() and L.targets.Minimap.frame==MinimapCluster)
 h.resize.scripts.OnMouseDown(h.resize,'LeftButton'); x=120; y=80; h.resize.scripts.OnUpdate(h.resize,.1)
-local scale=MinimapCluster:GetScale(); assert(scale>1 and FS.db.layout.frames.Minimap.scale==scale)
-h.resize.scripts.OnMouseUp(h.resize,'LeftButton'); L:Stop()
+local scale=MinimapCluster:GetScale(); assert(scale>1 and L:Placements().Minimap.scale==scale)
+h.resize.scripts.OnMouseUp(h.resize,'LeftButton'); assert(L:SaveChanges(true))
 MinimapCluster:SetScale(1); Drain(); assert(MinimapCluster:GetScale()==scale)
 L:Start(); h.resize.scripts.OnMouseDown(h.resize,'LeftButton'); x=0; h.resize.scripts.OnUpdate(h.resize,.1); Click(L.overlay.close)
 assert(MinimapCluster:GetScale()==scale)
@@ -968,7 +1070,7 @@ TEST.combat=false; M:NavigationEvent('PLAYER_REGEN_ENABLED'); assert(not M.relea
 d:restore()
 
 -- TEST: Waypoint settings validate migrate save in profiles and share stable Move Frames position and resize
-local FS,M,d=NavigationFixture(); assert(#M.options==19); FS:ConfigureModule('Map'); assert(M.settings.navColor and M.settings.navStyle and M.settings.trail)
+local FS,M,d=NavigationFixture(); assert(#M.options==22); FS:ConfigureModule('Map'); assert(M.settings.navColor and M.settings.navStyle and M.settings.trail and M.settings.worldControls)
 FS.db.map.navColor='invalid'; FS.db.map.arrival=10000; FS.db.map.navHideCombat='bad'; M:SettingsChanged()
 assert(FS.db.map.navColor=='Cyan' and FS.db.map.arrival==20 and FS.db.map.navHideCombat==false)
 M:NavigationEvent('QUEST_ACCEPTED',11); local f=M.navigator

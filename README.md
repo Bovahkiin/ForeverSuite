@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 0.9.12 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.0 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 
@@ -45,6 +45,10 @@ profile. Made by **DeluxiZ**.
 - **Profiles and settings tools:** profile import/export, automatic backups,
   character assignments, settings search, favorites, and undo for reversible
   settings changes.
+- **1.0 planning tools:** Layout Studio, selective profile import, crafting plans,
+  character stock records, shared waypoint routes and profession area guides.
+  The Dungeon & Raid Journal links observed drops to the Gear Wishlist, preparation
+  checklists and private boss notes.
 - **Faster Control Center:** search modules by name, feature or setting, filter
   enabled/disabled modules, and open a unique result with Enter. Clear or Escape
   resets the filters and returns to the module page you were browsing.

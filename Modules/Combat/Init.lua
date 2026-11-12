@@ -1,45 +1,61 @@
 local _,FS=...
 local T=FS.Tools
-local C=T:Module("Combat","combat","Combat","Group damage, healing, deaths, interrupts and dispels. Forever uses the game's damage-meter data; readable reports update after combat.",{report=true,metric="DamageDone",session="Current",showRates=true,selfOnly=false,maxEntries=100},{"COMBAT_LOG_EVENT_UNFILTERED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED","DAMAGE_METER_COMBAT_SESSION_UPDATED","DAMAGE_METER_CURRENT_SESSION_UPDATED","DAMAGE_METER_RESET"})
+local function nativeReportsAvailable()
+    return C_DamageMeter and C_DamageMeter.GetCombatSessionFromType and Enum and Enum.DamageMeterType and Enum.DamageMeterSessionType
+end
+local events={"PLAYER_REGEN_DISABLED","DAMAGE_METER_COMBAT_SESSION_UPDATED","DAMAGE_METER_CURRENT_SESSION_UPDATED","DAMAGE_METER_RESET"}
+if not nativeReportsAvailable() then events[#events+1]="COMBAT_LOG_EVENT_UNFILTERED" end
+local C=T:Module("Combat","combat","Combat","Group damage, healing, deaths, interrupts and dispels. Forever uses the game's damage-meter data; readable reports update after combat.",{report=true,metric="DamageDone",session="Current",showRates=true,selfOnly=false,maxEntries=100},events)
 C.options={{key="report",label="Record combat"},{key="metric",label="Report metric",values={"DamageDone","HealingDone","Deaths","Interrupts","Dispels"}},{key="session",label="Report session",values={"Current","Overall"}},{key="showRates",label="Show amount per second"},{key="selfOnly",label="Only show my character"},{key="maxEntries",label="Maximum report rows",values={10,25,50,100}}}; C.people={}
-function C:Reset() self.people={}; self.started=nil; self.finished=nil; self.deaths={}; self.totalDamage=0; self.totalHealing=0 end
+local legacyMetrics={SWING_DAMAGE="damage",SPELL_DAMAGE="damage",RANGE_DAMAGE="damage",SPELL_PERIODIC_DAMAGE="damage",
+    SPELL_HEAL="healing",SPELL_PERIODIC_HEAL="healing",SPELL_INTERRUPT="interrupts",SPELL_DISPEL="dispels",
+    SPELL_STOLEN="dispels",UNIT_DIED="deaths"}
+local reportMetrics={DamageDone="damage",HealingDone="healing",Deaths="deaths",Interrupts="interrupts",Dispels="dispels"}
+local legacySourceLimit=256
+function C:Reset() self.people={}; self.peopleCount=0; self.started=nil; self.finished=nil end
 function C:Friendly(guid,flags)
-    if not guid then return false end
+    if T:Text(guid)=="" then return false end
     if guid==T:Call(UnitGUID,"player") then return true end
     return bit and bit.band and T:Number(flags) and bit.band(flags,7)~=0
 end
-function C:Record(...)
+function C:Record(_,event,_,source,name,flags,_,dest,destName,destFlags,_,swingAmount,_,_,spellAmount,overheal)
     if not self:Data().report then return end
-    local args={...}; local event=args[2]; if T:Text(event)=="" then return end
-    local source,name,flags,dest,destName,destFlags=args[4],args[5],args[6],args[8],args[9],args[10]
-    if not FS.HUD:Safe(source) or not FS.HUD:Safe(dest) then return end
-    if event=="UNIT_DIED" and self:Friendly(dest,destFlags) then
-        self.people[dest]=self.people[dest] or {name=T:Text(destName),damage=0,healing=0,deaths=0,interrupts=0,dispels=0}
-        self.people[dest].deaths=self.people[dest].deaths+1; return
+    local metric=legacyMetrics[T:Text(event)]
+    if not metric then return end
+    if metric=="deaths" then source,name,flags=dest,destName,destFlags end
+    if not self:Friendly(source,flags) then return end
+    local amount=1
+    if metric=="damage" then
+        amount=event=="SWING_DAMAGE" and swingAmount or spellAmount
+        if not T:Number(amount) then return end
+        amount=math.max(0,amount)
+    elseif metric=="healing" then
+        if not T:Number(spellAmount) or not T:Number(overheal) then return end
+        amount=math.max(0,spellAmount-overheal)
     end
-    if not source or not self:Friendly(source,flags) then return end
-    local player=self.people[source] or {name=T:Text(name),damage=0,healing=0,deaths=0,interrupts=0,dispels=0}; self.people[source]=player
-    local amount
-    if event=="SWING_DAMAGE" then amount=args[12]
-    elseif event=="SPELL_DAMAGE" or event=="RANGE_DAMAGE" or event=="SPELL_PERIODIC_DAMAGE" then amount=args[15]
-    elseif event=="SPELL_HEAL" or event=="SPELL_PERIODIC_HEAL" then
-        if T:Number(args[15]) and T:Number(args[16]) then player.healing=player.healing+math.max(0,args[15]-args[16]) end
-    elseif event=="SPELL_INTERRUPT" then player.interrupts=player.interrupts+1
-    elseif event=="SPELL_DISPEL" or event=="SPELL_STOLEN" then player.dispels=player.dispels+1 end
-    if T:Number(amount) then player.damage=player.damage+math.max(0,amount) end
+    local player=self.people[source]
+    if not player then
+        local count=self.peopleCount or 0
+        if count>=legacySourceLimit and source~=T:Call(UnitGUID,"player") then return end
+        player={name=T:Text(name),damage=0,healing=0,deaths=0,interrupts=0,dispels=0}
+        self.people[source]=player; self.peopleCount=count+1
+    end
+    player[metric]=player[metric]+amount
     if not self.started then self.started=GetTime() end
 end
 function C:Event(event)
+    if nativeReportsAvailable() then return end
     if event=="COMBAT_LOG_EVENT_UNFILTERED" and CombatLogGetCurrentEventInfo then self:Record(T:Call(CombatLogGetCurrentEventInfo))
     elseif event=="PLAYER_REGEN_DISABLED" then self.started=self.started or GetTime(); self.finished=nil
     elseif event=="PLAYER_REGEN_ENABLED" then self.finished=GetTime() end
 end
 function C:Build()
-    if C_DamageMeter and C_DamageMeter.GetCombatSessionFromType and Enum and Enum.DamageMeterType and Enum.DamageMeterSessionType then self:BuildNative(); return end
+    if nativeReportsAvailable() then self:BuildNative(); return end
     self.rows={}; local duration=math.max(1,(self.finished or GetTime())-(self.started or GetTime()))
-    for guid,p in pairs(self.people) do if not self:Data().selfOnly or guid==T:Call(UnitGUID,"player") then
-        local keys={DamageDone="damage",HealingDone="healing",Deaths="deaths",Interrupts="interrupts",Dispels="dispels"}
-        local amount=p[keys[self:Data().metric] or "damage"] or 0
+    local data=self:Data()
+    local player=data.selfOnly and T:Call(UnitGUID,"player")
+    for guid,p in pairs(self.people) do if not data.selfOnly or guid==player then
+        local amount=p[reportMetrics[data.metric] or "damage"] or 0
         self.rows[#self.rows+1]={id=guid,text=p.name.." | Damage "..FS.HUD:Number(p.damage)..(self:Data().showRates and (" ("..math.floor(p.damage/duration).."/s)") or "").." | Heal "..FS.HUD:Number(p.healing).." | Deaths "..p.deaths.." | Interrupts "..p.interrupts.." | Dispels "..p.dispels,damage=amount} end end
     table.sort(self.rows,function(a,b) return a.damage>b.damage end)
     while #self.rows>self:Data().maxEntries do table.remove(self.rows) end
@@ -53,10 +69,18 @@ function C:BuildNative()
     local metric=Enum.DamageMeterType[self:Data().metric]; local session=Enum.DamageMeterSessionType[self:Data().session]
     if metric==nil or session==nil then self.status="This metric is unavailable in this client."; return end
     local report=T:Call(C_DamageMeter.GetCombatSessionFromType,session,metric)
-    for _,row in ipairs(report and report.combatSources or {}) do
-        local name=T:Text(row.name); local amount=T:Number(row.totalAmount) and row.totalAmount or nil
-        if name~="" and amount and (not self:Data().selfOnly or row.sourceGUID==T:Call(UnitGUID,"player")) then
-            self.rows[#self.rows+1]={id=row.sourceGUID,creature=row.sourceCreatureID,amount=amount,text=name.." | "..FS.HUD:Number(amount)..(self:Data().showRates and T:Number(row.amountPerSecond) and " | "..FS.HUD:Number(row.amountPerSecond).."/s" or "")}
+    local sources=type(report)=="table" and report.combatSources
+    local data=self:Data()
+    local player=data.selfOnly and T:Call(UnitGUID,"player")
+    if type(sources)=="table" and FS.HUD:Safe(sources) then
+        for _,row in ipairs(sources) do
+            if type(row)=="table" and FS.HUD:Safe(row) then
+                local name=T:Text(row.name); local amount=T:Number(row.totalAmount) and row.totalAmount or nil
+                local guid=T:Text(row.sourceGUID)
+                if name~="" and amount and (not data.selfOnly or guid~="" and guid==player) then
+                    self.rows[#self.rows+1]={id=guid~="" and guid or nil,creature=T:Number(row.sourceCreatureID) and row.sourceCreatureID or nil,amount=amount,text=name.." | "..FS.HUD:Number(amount)..(data.showRates and T:Number(row.amountPerSecond) and " | "..FS.HUD:Number(row.amountPerSecond).."/s" or "")}
+                end
+            end
         end
     end
     table.sort(self.rows,function(a,b) return a.amount>b.amount end)

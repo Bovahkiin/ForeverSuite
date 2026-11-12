@@ -106,6 +106,7 @@ function N:CreateDesigner()
     f.stage=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(f.stage); f.stage:SetSize(696,260); f.stage:SetPoint("TOPLEFT",244,-84); f.stage:SetBackdropColor(.025,.045,.06,.96); f.stage:SetClipsChildren(true)
     H:Label(f.stage,"Example target - preview fits this panel",12,-10,660)
     f.preview=self:CreateCanvas(f.stage); f.preview:SetPoint("CENTER",f.stage,"CENTER",0,0); f.preview.cast:SetScript("OnUpdate",nil)
+    self:CreateAuras(f.preview)
     f.partButtons={}; f.handles={}; self.selectedPart="name"
     for i,entry in ipairs(self.parts) do
         local key,label=entry[1],entry[2]

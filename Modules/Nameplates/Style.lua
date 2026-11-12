@@ -77,11 +77,25 @@ end
 function N:PartPoint(region,owner,key,relative,db)
     local p=db.positions[key]; region:ClearAllPoints(); region:SetPoint("TOPLEFT",owner,relative or "TOPLEFT",p.x,p.y)
 end
+local canvasKeys={"width","height","scale","fontSize","valueFontSize","outline","showName","showLevel","showHealth","showThreat","nameAlign","healthAlign","castHeight","castTime","auraCount","auraSize","auraSpacing","auraCountdown"}
+local canvasParts={"name","healthText","level","threat","cast","auras"}
 function N:StyleCanvas(f,db)
-    local parts={}
-    for _,key in ipairs({"width","height","scale","fontSize","valueFontSize","outline","showName","showLevel","showHealth","showThreat","nameAlign","healthAlign","castHeight","castTime","auraCount","auraSize","auraSpacing","auraCountdown"}) do parts[#parts+1]=tostring(db[key]) end
-    for _,key in ipairs({"name","healthText","level","threat","cast","auras"}) do parts[#parts+1]=db.positions[key].x; parts[#parts+1]=db.positions[key].y end
-    local signature=table.concat(parts,":"); if f.fsStyleSignature==signature then return end; f.fsStyleSignature=signature
+    local previous=f.fsStyleValues or {}
+    local changed=false
+    for i,key in ipairs(canvasKeys) do
+        local value=db[key]
+        if previous[i]~=value then previous[i]=value; changed=true end
+    end
+    for i,key in ipairs(canvasParts) do
+        local position=db.positions[key]
+        local index=#canvasKeys+2*i-1
+        if previous[index]~=position.x or previous[index+1]~=position.y then
+            previous[index],previous[index+1]=position.x,position.y
+            changed=true
+        end
+    end
+    if not changed then return end
+    f.fsStyleValues=previous
     f:SetSize(db.width,db.height); f:SetScale(db.scale)
     f.health:ClearAllPoints(); f.health:SetPoint("TOPLEFT",2,-2); f.health:SetSize(db.width-4,db.height-4)
     f.name:SetSize(db.width,db.fontSize+4); self:PartPoint(f.name,f,"name",nil,db); FS:ApplyFont(f.name,db.fontSize,db.outline and "OUTLINE" or ""); f.name:SetJustifyH(db.nameAlign); f.name:SetShown(db.showName)
@@ -94,7 +108,11 @@ function N:StyleCanvas(f,db)
     f.cast.time:ClearAllPoints(); f.cast.time:SetPoint("RIGHT",-4,0); f.cast.time:SetHeight(db.castHeight); f.cast.time:SetShown(db.castTime)
     f.cast.icon:SetSize(db.castHeight,db.castHeight); f.cast.icon:ClearAllPoints(); f.cast.icon:SetPoint("RIGHT",f.cast,"LEFT",-3,0)
     self:PartPoint(f.auraAnchor,f,"auras",nil,db); f.auraAnchor:SetSize(db.auraCount*(db.auraSize+db.auraSpacing)-db.auraSpacing,db.auraSize)
-    for i,cell in ipairs(f.auras or {}) do
+    self:StyleAuras(f,db)
+end
+function N:StyleAuras(f,db)
+    if not f.auras then return end
+    for i,cell in ipairs(f.auras) do
         cell:ClearAllPoints(); cell:SetPoint("TOPLEFT",f.auraAnchor,"TOPLEFT",(i-1)*(db.auraSize+db.auraSpacing),0); cell:SetSize(db.auraSize,db.auraSize)
         if cell.cooldown.SetHideCountdownNumbers then cell.cooldown:SetHideCountdownNumbers(not db.auraCountdown) end
     end

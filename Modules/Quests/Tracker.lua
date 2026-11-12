@@ -68,10 +68,14 @@ function Q:CreateTracker()
     end)
     FS.Layout:Register("QuestTracker",f,"Quest Objectives"); return f
 end
-function Q:UpdateTracker()
-    local f=self:CreateTracker(); f:SetShown(FS:IsModuleEnabled(self.name) and self:Data().tracker)
-    if not f:IsShown() then return end
-    self:Build(); local rows=self:TrackerRows(); local pages=math.max(1,math.ceil(#rows/3))
+function Q:UpdateTracker(useRows)
+    if not FS:IsModuleEnabled(self.name) or not self:Data().tracker then
+        if self.tracker then self.tracker:Hide() end
+        return
+    end
+    local f=self:CreateTracker(); f:Show()
+    if not useRows then self:Build() end
+    local rows=self:TrackerRows(); local pages=math.max(1,math.ceil(#rows/3))
     self.trackerPage=math.max(1,math.min(self.trackerPage or 1,pages))
     local _,size=f.title:GetFont(); size=size or 14
     local width=math.max(300,size*22); f:SetWidth(width)

@@ -139,11 +139,38 @@ function V:OpenMerchant()
         if generation ~= self.generation or not self.merchantOpen or not MerchantFrame:IsShown()
             or InCombatLockdown() or CursorHasItem() then return end
         self:Refresh()
+        local db = self:Settings()
+        if db.enabled then self:NotifyLowStock() end
+        if db.enabled and db.mode == "auto" then
+            self:StartVisitAutomation()
+            return
+        end
         local bags = FS.modules.Bags
         if bags and FS:IsModuleEnabled("Bags") and FS.db.bags.openAtMerchant then bags:ShowWindow()
-        elseif self:Settings().enabled and self:Settings().showPanel then self:ShowWindow(true) end
-        if self:Settings().enabled then self:StartVisitAutomation() end
+        elseif db.enabled and db.showPanel then self:ShowWindow(true) end
+        if db.enabled then self:StartVisitAutomation() end
     end)
+end
+
+function V:NotifyLowStock()
+    local extensions=FS.Extensions
+    if not extensions then return end
+    local options=extensions:AlertOptions('Low stock')
+    if options.history==false and not options.popup and options.sound=='Silent' then return end
+    local targets={}
+    for id,rule in pairs(self:Settings().rules) do
+        if rule.target>0 then targets[id]=rule.target end
+    end
+    if not next(targets) then return end
+    local _,totals,unknown=self:Snapshot()
+    if unknown~=0 then return end
+    local missing=0
+    for id,target in pairs(targets) do
+        if (totals[id] or 0)<target then missing=missing+1 end
+    end
+    if missing>0 then
+        extensions:Alert('Low stock',false,missing..' stock goals below target at merchant arrival.')
+    end
 end
 
 function V:CloseMerchant()

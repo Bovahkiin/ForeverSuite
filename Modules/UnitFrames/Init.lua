@@ -109,7 +109,9 @@ function U:Initialize()
         elseif event == "PLAYER_REGEN_ENABLED" then if self.pending then self:SettingsChanged() end
         elseif event == "PLAYER_ENTERING_WORLD" or (event == "ADDON_LOADED" and unit=="Blizzard_UnitFrame") then self:SettingsChanged()
         elseif self.active then
-            if unit == "player" or unit == "target" then self:RefreshUnit(unit) else self:RefreshUnit("player"); self:RefreshUnit("target") end
+            if event=="PLAYER_TARGET_CHANGED" then self:RefreshUnit("target")
+            elseif event=="PLAYER_LEVEL_UP" then self:RefreshUnit("player")
+            elseif event:match("^UNIT_") and H:Safe(unit) and (unit=="player" or unit=="target") then self:RefreshUnit(unit) end
         end
     end)
     self:SettingsChanged()

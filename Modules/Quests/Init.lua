@@ -5,18 +5,19 @@ Q.options={{key="tracker",label="Show quest tracker"},{key="minimap",label="Ques
 function Q:Build()
     self.rows={}
     self.byID={}
+    self.pinLocations=nil
     local count=T:Call(C_QuestLog and C_QuestLog.GetNumQuestLogEntries) or T:Call(GetNumQuestLogEntries) or 0
-    for i=1,count do
+    for i=1,T:Number(count) and count or 0 do
         local info=T:Call(C_QuestLog and C_QuestLog.GetInfo,i)
         if not info and GetQuestLogTitle then
             local title,level,_,header,_,complete,_,id=T:Call(GetQuestLogTitle,i)
             info=title and {title=title,level=level,isHeader=header,isComplete=complete==1,questID=id}
         end
-        if info and FS.HUD:Safe(info.isHeader) and FS.HUD:Safe(info.isHidden) and not info.isHeader and not info.isHidden and T:Text(info.title)~="" then
+        if type(info)=="table" and FS.HUD:Safe(info.isHeader) and FS.HUD:Safe(info.isHidden) and not info.isHeader and not info.isHidden and T:Text(info.title)~="" then
             local id=T:Number(info.questID) and info.questID or nil
             local objectives=id and T:Call(C_QuestLog and C_QuestLog.GetQuestObjectives,id)
             local parts, details={},{}
-            if objectives then for _,o in ipairs(objectives) do if T:Text(o.text)~="" then
+            if type(objectives)=="table" then for _,o in ipairs(objectives) do if type(o)=="table" and FS.HUD:Safe(o) and T:Text(o.text)~="" then
                 parts[#parts+1]=o.text
                 details[#details+1]={text=o.text,done=FS.HUD:Safe(o.finished) and o.finished==true,
                     have=T:Number(o.numFulfilled) and o.numFulfilled or nil,need=T:Number(o.numRequired) and o.numRequired or nil,kind=T:Text(o.type)}
@@ -49,9 +50,13 @@ function Q:Event(event)
         -- A reward choice is always left to the player.
         if choices==0 then T:Call(GetQuestReward,0) end
     end
-    self:UpdateTracker(); self:UpdateQuestPins(); self:NativeTracker()
+    self:Apply(); self:NativeTracker()
 end
-function Q:Apply() self:UpdateTracker(); self:UpdateQuestPins() end
+function Q:Apply()
+    local data=self:Data()
+    if data.tracker or data.minimap or data.worldMap then self:Build() end
+    self:UpdateTracker(true); self:UpdateQuestPins()
+end
 function Q:NativeTracker()
     if InCombatLockdown() then return end
     self.nativeTrackers=self.nativeTrackers or {}

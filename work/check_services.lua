@@ -339,16 +339,22 @@ I.window:Hide()
 -- TEST: Move Frames Save persists current profile and establishes a new cancel checkpoint
 ResetTest(); local FS=ForeverSuite; local L=FS.Layout; L:Stop(); local frame=CreateFrame('Frame',nil,UIParent)
 frame:SetSize(120,40); frame:SetPoint('CENTER',UIParent,'CENTER',0,0); L:Register('SavePreview',frame,'Save preview')
-L:Start(); FS.db.layout.frames.SavePreview={x=72,y=320,scale=1.1}; L:Apply('SavePreview'); L.overlay.save:Click()
+L:Start(); L:Placements().SavePreview={x=72,y=320,scale=1.1}; L:Apply('SavePreview')
+assert(not FS.db.layout.frames.SavePreview and frame:GetScale()==1.1)
+L.overlay.save:Click()
 assert(L.active and L.overlay:IsShown() and FS.db.profiles.saved[FS.db.profiles.current].layout.frames.SavePreview.x==72)
-FS.db.layout.frames.SavePreview={x=100,y=400,scale=1.3}; L:Apply('SavePreview'); L.overlay.close:Click()
+L:Placements().SavePreview={x=100,y=400,scale=1.3}; L:Apply('SavePreview')
+local snap=FS.db.layout.snap; L.overlay.snap:Click(); L.overlay.reset:Click()
+assert(L.active and not L:Placements().SavePreview and FS.db.layout.frames.SavePreview.x==72)
+L.overlay.close:Click()
+assert(FS.db.layout.snap==snap)
 assert(not L.active and FS.db.layout.frames.SavePreview.x==72 and frame:GetScale()==1.1)
 FS:InitializeDatabase(); assert(FS.db.layout.frames.SavePreview.y==320 and FS.db.layout.frames.SavePreview.scale==1.1)
 L.targets.SavePreview=nil; L.handles.SavePreview=nil; FS.db.layout.frames.SavePreview=nil; frame:Hide()
 
 -- TEST: Save and close persists layout while combat and vendor guards leave the editing state unchanged
 ResetTest(); local FS=ForeverSuite; local L=FS.Layout; L:Stop(); L:Start()
-FS.db.layout.frames.Clock={x=18,y=280,scale=1.2}; TEST.combat=true
+L:Placements().Clock={x=18,y=280,scale=1.2}; TEST.combat=true
 assert(not L:SaveChanges(false) and L.active); TEST.combat=false; FS.modules.Vendor.busy=true
 assert(not L:SaveChanges(true) and L.active); FS.modules.Vendor.busy=false
 L.overlay.done:Click(); assert(not L.active and FS.window:IsShown() and FS.db.profiles.saved[FS.db.profiles.current].layout.frames.Clock.x==18)
@@ -370,7 +376,7 @@ for name,value in pairs(before) do assert(FS:IsModuleEnabled(name)==value,name) 
 
 -- TEST: Save toolbar and bulk module control remain inside their panels with large fonts and small viewports
 ResetTest(); local FS=ForeverSuite; local L=FS.Layout; FS:ShowConfig(); FS.db.typography.global.size=24; FS.Typography:Apply(); L:Start()
-for _,b in ipairs({L.overlay.save,L.overlay.done,L.overlay.snap,L.overlay.reset,L.overlay.close}) do
+for _,b in ipairs({L.overlay.save,L.overlay.done,L.overlay.snap,L.overlay.reset,L.overlay.close,L.overlay.sameHeight,L.overlay.leftEdges}) do
     assert(-b.point[3]+b:GetHeight()+10<=L.overlay.toolbar:GetHeight())
     assert(b.fsLabel:GetHeight()+10<=b:GetHeight())
 end

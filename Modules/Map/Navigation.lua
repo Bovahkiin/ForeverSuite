@@ -9,6 +9,10 @@ M.description="Quest waypoints update automatically. Click the arrow for the map
 for _,option in ipairs({{key="navigation",label="Enable waypoint navigation"},{key="autoQuest",label="Waypoint on quest accept"},{key="followFocused",label="Follow clicked quest"},{key="autoNext",label="Next quest after turn-in"},{key="navDistance",label="Show distance"},{key="navTitle",label="Show destination title"},{key="navHideCombat",label="Hide arrow during combat"},{key="nativeWaypoint",label="Also set game map waypoint"},{key="navColor",label="Arrow color",values={"Cyan","Gold","Blue","Green","Purple","White"}},{key="navSize",label="Waypoint size",values={.8,1,1.2,1.4}},{key="navFont",label="Waypoint text size",values={12,14,16,18}},{key="arrival",label="Arrival radius (yards)",values={10,20,35,50}},{key="navStyle",label="Arrow style",values={"Arrow","Chevron"}}}) do M.options[#M.options+1]=option end
 M.settingsHint="Automatic quest navigation needs a location from the client. Manual saved pins take priority."
 for _,option in ipairs({{key="trail",label="Minimap ant trail"},{key="trailColor",label="Trail color",values={"Cyan","Gold","Blue","Green","Purple","White"}},{key="trailSize",label="Trail dot size",values={2,3,4,5}},{key="trailSpacing",label="Trail dot spacing",values={6,10,14,18}},{key="trailOpacity",label="Trail opacity",values={.4,.6,.8,1}}}) do M.options[#M.options+1]=option end
+for _,option in ipairs({{key="worldControls",label="Show world map controls"},
+    {key="worldPins",label="Show saved pins on the world map"},{key="worldRoute",label="Show queued stops on the world map"}}) do
+    M.options[#M.options+1]=option
+end
 local function valid(p)
     return type(p)=="table" and T:Number(p.map) and p.map>0 and T:Number(p.x) and T:Number(p.y) and p.x>=0 and p.x<=1 and p.y>=0 and p.y<=1
 end
@@ -143,34 +147,45 @@ function M:CreateNavigator()
     FS.Layout:Register("Waypoint",f,"Quest Waypoint"); f:Hide(); return f
 end
 function M:UpdateTrail(elapsed)
-    self.trailDots=self.trailDots or {}
-    for _,dot in ipairs(self.trailDots) do dot:Hide() end
+    local count=self:RenderTrail(elapsed)
+    for i=count+1,self.visibleTrailDots or 0 do self.trailDots[i]:Hide() end
+    self.visibleTrailDots=count
+end
+function M:RenderTrail(elapsed)
     local db=self:Data(); local v=self.navVector
-    if not db.trail or not FS:IsModuleEnabled(self.name) or not db.navigation or not v or not Minimap or not Minimap:IsShown() then return end
+    if not db.trail or not FS:IsModuleEnabled(self.name) or not db.navigation or not v or not Minimap or not Minimap:IsShown() then return 0 end
     local radius=T:Call(C_Minimap and C_Minimap.GetViewRadius)
-    if not T:Number(radius) or radius<=0 then return end
+    if not T:Number(radius) or radius<=0 then return 0 end
     local east,north=v.east,v.north
     if T:Call(GetCVar,"rotateMinimap")=="1" then
-        local facing=T:Call(GetPlayerFacing); if not T:Number(facing) then return end
+        local facing=T:Call(GetPlayerFacing); if not T:Number(facing) then return 0 end
         east,north=east*math.cos(facing)+north*math.sin(facing),north*math.cos(facing)-east*math.sin(facing)
     end
     local x,y=east/radius,north/radius; local length=math.sqrt(x*x+y*y)
-    if length==0 then return end
+    if length==0 then return 0 end
     local limit=math.min(length,.85); x,y=x/length*limit*Minimap:GetWidth()/2,y/length*limit*Minimap:GetHeight()/2
-    local pixels=math.sqrt(x*x+y*y); if pixels<=12 then return end
+    local pixels=math.sqrt(x*x+y*y); if pixels<=12 then return 0 end
     self.trailPhase=((self.trailPhase or 0)+math.max(0,elapsed or 0)*16)%db.trailSpacing
+    self.trailDots=self.trailDots or {}
     local color=colors[db.trailColor]; local index=0
     for distance=12+self.trailPhase,pixels,db.trailSpacing do
-        index=index+1; if index>40 then break end
+        if index==40 then break end
+        index=index+1
         local dot=self.trailDots[index]
         if not dot then
             dot=CreateFrame("Frame",nil,Minimap); dot:SetFrameLevel(Minimap:GetFrameLevel()+4); dot:EnableMouse(false)
             dot.texture=dot:CreateTexture(nil,"OVERLAY"); dot.texture:SetAllPoints(); self.trailDots[index]=dot
         end
         if dot:GetParent()~=Minimap then dot:SetParent(Minimap) end
-        dot:SetSize(db.trailSize,db.trailSize); dot.texture:SetColorTexture(color[1],color[2],color[3],db.trailOpacity)
-        dot:ClearAllPoints(); dot:SetPoint("CENTER",Minimap,"CENTER",x*distance/pixels,y*distance/pixels); dot:Show()
+        if dot.trailSize~=db.trailSize then dot:SetSize(db.trailSize,db.trailSize); dot.trailSize=db.trailSize end
+        if dot.trailColor~=color or dot.trailOpacity~=db.trailOpacity then
+            dot.texture:SetColorTexture(color[1],color[2],color[3],db.trailOpacity)
+            dot.trailColor,dot.trailOpacity=color,db.trailOpacity
+        end
+        dot:SetPoint("CENTER",Minimap,"CENTER",x*distance/pixels,y*distance/pixels)
+        if not dot:IsShown() then dot:Show() end
     end
+    return index
 end
 function M:AnimateNavigation(elapsed)
     local f=self.navigator; if not f then return end
@@ -197,11 +212,14 @@ function M:AnimateNavigation(elapsed)
         for i,line in ipairs(f.lines) do line:Hide(); f.shadows[i]:Hide() end
         return
     elseif f.themeArrow then f.themeArrow:Hide() end
+    local fullArrow=self:Data().navStyle=="Arrow"
     for i,point in ipairs(arrowSegments) do
         local ax,ay=x*point[1]-y*point[2],y*point[1]+x*point[2]
         local bx,by=x*point[3]-y*point[4],y*point[3]+x*point[4]
-        local show=self:Data().navStyle=="Arrow" or (i>=2 and i<=5)
-        for _,line in ipairs({f.shadows[i],f.lines[i]}) do line:SetStartPoint("CENTER",f.arrow,ax,ay); line:SetEndPoint("CENTER",f.arrow,bx,by); line:SetShown(show) end
+        local show=fullArrow or (i>=2 and i<=5)
+        local shadow,line=f.shadows[i],f.lines[i]
+        shadow:SetStartPoint("CENTER",f.arrow,ax,ay); shadow:SetEndPoint("CENTER",f.arrow,bx,by); shadow:SetShown(show)
+        line:SetStartPoint("CENTER",f.arrow,ax,ay); line:SetEndPoint("CENTER",f.arrow,bx,by); line:SetShown(show)
     end
 end
 function M:RenderNavigation()
@@ -230,10 +248,15 @@ function M:RenderNavigation()
     end
     self:AnimateNavigation()
     self:UpdateTrail()
-    local mapInfo=p and T:Call(C_Map and C_Map.GetMapInfo,p.map)
-    f.distance:SetText(db.navDistance and distance and (distance>=1000 and string.format("%.1fk yards",distance/1000) or math.floor(distance).." yards") or "")
-    f.status:SetText(not p and "Quest location unavailable" or arrived and "Arrived at objective area" or not distance and (mapInfo and T:Text(mapInfo.name)~="" and "Travel to "..mapInfo.name or "Direction unavailable here") or not T:Number(facing) and "Facing unavailable" or p.complete and "Return to turn in" or "Follow the arrow")
-    if not p or arrived or not distance or not T:Number(facing) then f.distance:SetText(arrived and "Arrived" or f.status:GetText()) end
+    local mapInfo=p and not distance and T:Call(C_Map and C_Map.GetMapInfo,p.map)
+    local status=not p and "Quest location unavailable" or arrived and "Arrived at objective area"
+        or not distance and (mapInfo and T:Text(mapInfo.name)~="" and "Travel to "..mapInfo.name or "Direction unavailable here")
+        or not T:Number(facing) and "Facing unavailable" or p.complete and "Return to turn in" or "Follow the arrow"
+    if f.status:GetText()~=status then f.status:SetText(status) end
+    local caption
+    if not p or arrived or not distance or not T:Number(facing) then caption=arrived and "Arrived" or status
+    else caption=db.navDistance and (distance>=1000 and string.format("%.1fk yards",distance/1000) or math.floor(distance).." yards") or "" end
+    if f.distance:GetText()~=caption then f.distance:SetText(caption) end
     local _,textSize=f.title:GetFont(); textSize=T:Number(textSize) and textSize or db.navFont
     local layoutSignature=textSize..':'..tostring(db.navTitle)
     if f.navLayoutSignature~=layoutSignature then

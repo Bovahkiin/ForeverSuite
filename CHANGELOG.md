@@ -1,3 +1,12 @@
+# 1.0.0 - 2026-11-12
+
+- Preview, align and save frames in Layout Studio. Compare profiles, import selected settings and restore a backup from Profile Center.
+- Find favorite settings and diagnostics faster. Use context presets to switch between your own layouts and alert preferences.
+- Plan crafting quantities and intermediate recipes, check recorded stock across characters, and search the Auction House for missing supplies. Gray junk can sell quietly at a merchant with the existing item protections.
+- Import and share routes, compare gathering runs, and browse eight profession area guides with sources. For navigation, load a saved route with waypoint coordinates.
+- Browse client-reported dungeons and raids, open preparation checklists and private boss notes, and see wishlist status on observed boss drops. Loot coverage depends on what the client reports.
+- Reduce background refreshes and temporary allocations, and bound the Auction House price history to the newest 2,000 observations per realm and faction.
+
 # 0.9.12 - 2026-11-11
 
 - Close the Control Center and other suite windows before showing module settings.

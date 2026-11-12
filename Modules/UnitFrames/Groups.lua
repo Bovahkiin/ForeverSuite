@@ -47,7 +47,7 @@ function U:ApplyPetDefault()
     local position=FS.db.unitFrames.pet
     -- A saved mover placement (including its scale) always wins. Keep legacy
     -- hand-positioned pets too; only the original default follows the player.
-    if not pet or not player or FS.db.layout.frames["Unit:pet"] or position.x~=-430 or position.y~=150 then return end
+    if not pet or not player or FS.Layout:Placements()["Unit:pet"] or position.x~=-430 or position.y~=150 then return end
     local scale=player:GetScale()*.75
     pet:SetScale(scale)
     local point,relative,anchor,x,y=pet:GetPoint()
@@ -139,12 +139,18 @@ function U:Initialize()
     FS:RegisterClientEvent(self.events,"UNIT_HAPPINESS"); FS:RegisterClientEvent(self.events,"PET_UI_UPDATE")
     local original=self.events:GetScript("OnEvent")
     self.events:SetScript("OnEvent",function(frame,event,unit)
-        if event=="UNIT_HAPPINESS" or event=="PET_UI_UPDATE" then self:RefreshPetHappiness()
-        elseif event=="UNIT_PET" and unit=="player" then self:RefreshUnit("pet"); self:RefreshPetHappiness()
-        elseif event=="GROUP_ROSTER_UPDATE" then self:SettingsChanged()
-        elseif unit and self.frames[unit] then self:RefreshUnit(unit)
-        elseif event=="PLAYER_FOCUS_CHANGED" then self:RefreshUnit("focus")
-        else original(frame,event,unit) end
+        if self.active then
+            if event=="UNIT_HAPPINESS" or event=="PET_UI_UPDATE" then self:RefreshPetHappiness(); return end
+            if event=="UNIT_PET" and H:Safe(unit) and unit=="player" then
+                self:RefreshUnit("pet")
+                if not UnitExists("pet") then self:RefreshPetHappiness() end
+                return
+            end
+            if event=="GROUP_ROSTER_UPDATE" then self:SettingsChanged(); return end
+            if event=="PLAYER_FOCUS_CHANGED" then self:RefreshUnit("focus"); return end
+            if event:match("^UNIT_") and H:Safe(unit) and unit and self.frames[unit] then self:RefreshUnit(unit); return end
+        end
+        original(frame,event,unit)
     end)
 end
 local oldSettings=U.CreateSettings

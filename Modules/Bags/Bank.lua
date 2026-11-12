@@ -78,7 +78,12 @@ function K:CreateWindow()
         b:SetScript("OnEnter",function(c) if c.row and c.row.link then GameTooltip:SetOwner(c,"ANCHOR_RIGHT"); GameTooltip:SetHyperlink(c.row.link); GameTooltip:Show() end end)
         b:SetScript("OnLeave",function() GameTooltip:Hide() end); f.grid[i]=b
     end
-    f:HookScript("OnHide",function() self:Native(false); if self.open then self.open=false; T:Call(CloseBankFrame) end end)
+    f:HookScript("OnHide",function()
+        self.rows={}
+        for _,button in ipairs(f.grid) do button.row=nil end
+        self:Native(false)
+        if self.open then self.open=false; T:Call(CloseBankFrame) end
+    end)
     return f
 end
 function K:Render()

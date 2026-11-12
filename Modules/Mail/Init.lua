@@ -20,11 +20,16 @@ function M:Inbox()
     for i=1,math.min(100,count) do local row=self:Header(i); if row then rows[#rows+1]=row end end
     return rows
 end
-function M:Signature()
+function M:Signature(rows)
     local parts={}
-    for _,r in ipairs(self:Inbox()) do
+    for _,r in ipairs(rows or self:Inbox()) do
         parts[#parts+1]=r.identity..':'..r.money..':'..r.count
-        for slot=1,16 do parts[#parts+1]=T:Text(T:Call(GetInboxItemLink,r.index,slot)) end
+        local found=0
+        for slot=1,16 do
+            if found>=r.count then break end
+            local link=T:Text(T:Call(GetInboxItemLink,r.index,slot))
+            if link~='' then parts[#parts+1]=slot..':'..link; found=found+1 end
+        end
     end
     return table.concat(parts,'|')
 end
@@ -66,7 +71,7 @@ function M:OnSelect()
     end
 end
 function M:Stop(message)
-    self.collecting=nil; self.waiting=nil; self.scheduled=nil; self.generation=(self.generation or 0)+1
+    self.collecting=nil; self.waiting=nil; self.scheduled=nil; self.pendingSince=nil; self.generation=(self.generation or 0)+1
     if message then self.notice=message; self.noticeUntil=GetTime()+8 end
 end
 function M:Schedule()
@@ -80,21 +85,30 @@ end
 function M:Step()
     if not self.collecting then return end
     if not self.atMailbox or InCombatLockdown() or not FS:IsModuleEnabled(self.name) then self:Stop('Mail collection stopped.'); return end
+    local now=GetTime()
+    if self.waiting and now-self.waiting.at>10 then self:Stop('Mail did not update. Try again after the mailbox responds.'); return end
+    if T:Call(C_Mail and C_Mail.IsCommandPending) then
+        self.pendingSince=self.pendingSince or now
+        if now-self.pendingSince>10 then self:Stop('The mailbox is still busy. Try again after it responds.')
+        else self:Schedule() end
+        return
+    end
+    self.pendingSince=nil
+    local rows=self:Inbox()
+    local signature
     if self.waiting then
-        if GetTime()-self.waiting.at>10 then self:Stop('Mail did not update. Try again after the mailbox responds.'); return end
-        local pending=T:Call(C_Mail and C_Mail.IsCommandPending)
-        if pending or self:Signature()==self.waiting.signature then self:Schedule(); return end
+        signature=self:Signature(rows)
+        if signature==self.waiting.signature then self:Schedule(); return end
         self.waiting=nil
     end
-    if T:Call(C_Mail and C_Mail.IsCommandPending) then self:Schedule(); return end
-    local rows=self:Inbox()
+    local candidates=rows
     if self.collecting.identity then
         local matches={}; for _,r in ipairs(rows) do if r.identity==self.collecting.identity then matches[#matches+1]=r end end
         if #matches~=1 then self:Stop('Selected mail changed or is ambiguous. Select it again.'); return end
-        rows=matches
+        candidates=matches
     end
-    for i=#rows,1,-1 do
-        local r=rows[i]
+    for i=#candidates,1,-1 do
+        local r=candidates[i]
         if not r.gm and r.cod==0 and self:Matches(r,self.collecting.query) then
             local action,slot
             if self:Data().collectMoney and r.money>0 then action=TakeInboxMoney
@@ -105,9 +119,9 @@ function M:Step()
                 for j=16,1,-1 do if T:Call(GetInboxItemLink,r.index,j) then action=TakeInboxItem; slot=j; break end end
             end
             if type(action)=='function' then
-                self.waiting={at=GetTime(),signature=self:Signature()}
-                local ok=pcall(action,r.index,slot)
-                if not ok then self:Stop('The game could not collect this attachment.'); return end
+                self.waiting={at=now,signature=signature or self:Signature(rows)}
+                local ok,accepted=pcall(action,r.index,slot)
+                if not ok or accepted==false then self:Stop('The game could not collect this attachment.'); return end
                 self:Schedule(); return
             end
         end

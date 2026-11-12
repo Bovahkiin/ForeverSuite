@@ -2,46 +2,59 @@ local _, FS = ...
 local A = { name = "ActionBars", key = "actionBars", originals = {}, buttons = {}, movers = {} }; FS:RegisterModule(A.name, A)
 local H = FS.HUD
 local names = { "MainActionBar", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft", "StanceBar", "PetActionBar", "PossessActionBar" }
+local function syncDecoration(f,state)
+    if not state.wanted then
+        if f:IsShown() then f:Hide() end
+        return
+    end
+    local owner=state.visibility
+    local visible
+    if owner.IsVisible then visible=owner:IsVisible() else visible=owner:IsShown() end
+    if H:Safe(visible) then
+        local shown=not not visible
+        if f:IsShown()~=shown then f:SetShown(shown) end
+    end
+    local alpha=owner.GetEffectiveAlpha and owner:GetEffectiveAlpha() or owner:GetAlpha()
+    if H:Safe(alpha) and f:GetAlpha()~=alpha then f:SetAlpha(alpha) end
+    local level=math.max(0,state.anchor:GetFrameLevel()-1)
+    if state.visibility~=state.anchor then level=math.max(level,state.visibility:GetFrameLevel()) end
+    if f:GetFrameLevel()~=level then f:SetFrameLevel(level) end
+    local strata=state.anchor.GetFrameStrata and state.anchor:GetFrameStrata() or "MEDIUM"
+    if not f.GetFrameStrata or f:GetFrameStrata()~=strata then f:SetFrameStrata(strata) end
+end
 function A:CreateDecoration(anchor, visibility)
     -- Siblings under UIParent never enter a native bar's layout/child lists.
     local f=CreateFrame("Frame",nil,UIParent,"BackdropTemplate")
     f.fsSuiteStyle=true; f.ignoreInLayout=true; f.fsActionDecoration=true
-    f:SetBackdrop(nil); f:EnableMouse(false)
+    f:SetBackdrop(nil); f:EnableMouse(false); f:Hide()
     f:SetAllPoints(anchor)
     self.decorations=self.decorations or {}
-    self.decorations[f]={anchor=anchor,visibility=visibility or anchor,wanted=true}
+    self.decorations[f]={anchor=anchor,visibility=visibility or anchor,wanted=false}
     if not self.decorationDriver then
         self.decorationDriver=CreateFrame("Frame",nil,UIParent)
         local elapsed=0
         self.decorationDriver:SetScript("OnUpdate",function(_,dt)
             elapsed=elapsed+dt; if elapsed<.05 then return end; elapsed=0; self:SyncDecorations()
         end)
+        self.decorationDriver:Hide()
     end
     return f
 end
 function A:SetDecorationShown(f,shown)
-    if f and self.decorations and self.decorations[f] then
-        self.decorations[f].wanted=shown==true
-        self:SyncDecorations()
+    local state=f and self.decorations and self.decorations[f]
+    if state then
+        local wanted=shown==true
+        if state.wanted~=wanted then
+            state.wanted=wanted
+            self.wantedDecorations=(self.wantedDecorations or 0)+(wanted and 1 or -1)
+            local enabled=self.wantedDecorations>0
+            if self.decorationDriver:IsShown()~=enabled then self.decorationDriver:SetShown(enabled) end
+        end
+        syncDecoration(f,state)
     elseif f then f:SetShown(shown) end
 end
 function A:SyncDecorations()
-    for f,state in pairs(self.decorations or {}) do
-        local owner=state.visibility
-        local visible
-        if owner.IsVisible then visible=owner:IsVisible() else visible=owner:IsShown() end
-        if H:Safe(visible) then
-            local shown=state.wanted and visible
-            if f:IsShown()~=shown then f:SetShown(shown) end
-        end
-        local alpha=owner.GetEffectiveAlpha and owner:GetEffectiveAlpha() or owner:GetAlpha()
-        if H:Safe(alpha) and f:GetAlpha()~=alpha then f:SetAlpha(alpha) end
-        local level=math.max(0,state.anchor:GetFrameLevel()-1)
-        if state.visibility~=state.anchor then level=math.max(level,state.visibility:GetFrameLevel()) end
-        if f:GetFrameLevel()~=level then f:SetFrameLevel(level) end
-        local strata=state.anchor.GetFrameStrata and state.anchor:GetFrameStrata() or "MEDIUM"
-        if not f.GetFrameStrata or f:GetFrameStrata()~=strata then f:SetFrameStrata(strata) end
-    end
+    for f,state in pairs(self.decorations or {}) do syncDecoration(f,state) end
 end
 function A:NormalizeSettings()
     H:Normalize(FS.db.actionBars)

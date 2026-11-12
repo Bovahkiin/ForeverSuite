@@ -209,7 +209,7 @@ FS.db.cooldowns.spells={[11]='Interrupt',[12]='Defensive'}; FS.db.cooldowns.sort
 FS.db.cooldowns.groupFilter='Interrupt'; FS.db.cooldowns.showCharges=false; C:Build(); assert(#C.rows==1 and C.rows[1].id==11 and not C.rows[1].text:find('charges'))
 local aura=B.Aura; B.Aura=function(_,unit,index,filter) if index==1 then return {name=filter=='HELPFUL' and 'Helpful' or 'Harmful',spellId=1,expirationTime=GetTime()+10} end end
 FS.db.buffs.showBuffs=false; FS.db.buffs.showEnchants=false; FS.db.buffs.showDuration=false; B:Build(); assert(#B.rows==1 and B.rows[1].text=='[Debuff] Harmful')
-FS.db.buffs.reminders={[99]=true}; B:Tick(); assert(B.reminder:IsShown()); FS.db.buffs.hideReminderCombat=true; TEST.combat=true; B:Tick(); assert(not B.reminder:IsShown()); TEST.combat=false
+FS.db.buffs.reminders={[99]=true}; B:UpdateReminder(); assert(B.reminder:IsShown()); FS.db.buffs.hideReminderCombat=true; TEST.combat=true; B:Event('PLAYER_REGEN_DISABLED'); assert(not B.reminder:IsShown()); TEST.combat=false
 local meter=C_DamageMeter; C_DamageMeter=nil; D.people={one={name='One',damage=100,healing=1,deaths=0,interrupts=0,dispels=0},two={name='Two',damage=1,healing=100,deaths=0,interrupts=0,dispels=0}}
 FS.db.combat.metric='HealingDone'; FS.db.combat.maxEntries=10; FS.db.combat.showRates=false; D:Build(); assert(D.rows[1].id=='two' and not D.rows[1].text:find('/s',1,true))
 FS.db.combat.selfOnly=true; D:Build(); assert(#D.rows==0)
@@ -221,7 +221,9 @@ local itemInfo,itemCount=C_Item.GetItemInfo,C_Item.GetItemCount
 C_Item.GetItemInfo=function(id) return 'Item '..id,'item:'..id end; C_Item.GetItemCount=function(_,bank) return bank and 10 or 0 end
 FS.db.auctionHouse.shopping={[11]=2}; A:Prices()[12]={price=1,kind='per item',time=10}; FS.db.auctionHouse.shoppingOnly=true; FS.db.auctionHouse.hideSatisfied=true; A:Build(); assert(#A.rows==0)
 FS.db.auctionHouse.countBank=false; A:Build(); assert(#A.rows==1 and A.rows[1].id==11)
+assert(A.rows[1].text:find('Have 0/2 | Need 2',1,true) and A.rows[1].text:find('No observed price',1,true))
 FS.db.auctionHouse.shoppingOnly=false; FS.db.auctionHouse.showDates=false; FS.db.auctionHouse.sort='Lowest price'; A:Build(); assert(A.rows[1].id==12 and not A.rows[1].text:find('10',1,true))
+assert(A.rows[1].text:find('Observed ',1,true))
 local api=C_TradeSkillUI; C_TradeSkillUI={GetAllRecipeIDs=function() return {11,12} end,GetRecipeInfo=function(id) return {name=id==11 and 'Zulu' or 'Alpha',learned=true} end,GetCraftableCount=function(id) return id==11 and 2 or 5 end}
 FS.db.professions.sort='Craftable'; FS.db.professions.showCounts=false; P:Build(); assert(P.rows[1].id==12 and P.rows[1].text=='Alpha')
 P.materials={{text='Enough',required=1,owned=2},{text='Missing',required=3,owned=1}}; FS.db.professions.missingOnly=true; P:Build(); assert(#P.rows==1 and P.rows[1].text=='Missing'); P.materials=nil
