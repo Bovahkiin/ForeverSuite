@@ -45,7 +45,7 @@ function P:Load(name)
     FS.Layout.applying=true
     for id in pairs(oldLayout) do
         local target=FS.Layout.targets[id]
-        if target and not FS.db.layout.frames[id] then FS.HUD:RestorePoints(target.frame,target.points); target.frame:SetScale(target.scale) end
+        if target and not FS.Layout:IsExternallyManaged(id) and not FS.db.layout.frames[id] then FS.HUD:RestorePoints(target.frame,target.points); target.frame:SetScale(target.scale) end
     end
     FS.Layout.applying=false
     if FS.Themes then FS.Themes:Refresh() end

@@ -286,8 +286,15 @@ end
 local oldInitialize=M.Initialize
 function M:Initialize()
     oldInitialize(self)
-    for _,event in ipairs({"QUEST_ACCEPTED","QUEST_TURNED_IN","QUEST_REMOVED","QUEST_LOG_UPDATE","QUEST_POI_UPDATE","QUEST_WATCH_UPDATE","PLAYER_REGEN_DISABLED"}) do FS:RegisterClientEvent(self.events,event) end
+    for _,event in ipairs({"QUEST_ACCEPTED","QUEST_TURNED_IN","QUEST_REMOVED","QUEST_LOG_UPDATE","QUEST_POI_UPDATE","QUEST_WATCH_UPDATE","PLAYER_REGEN_DISABLED","ADDON_LOADED"}) do FS:RegisterClientEvent(self.events,event) end
 end
-function M:Event(event,...) self:NavigationEvent(event,...) end
+function M:Event(event,...)
+    if event=="ADDON_LOADED" then
+        if ...=="OpenMap" then self:UpdatePins() end
+    elseif event=="PLAYER_REGEN_ENABLED" then
+        self:NavigationEvent(event,...)
+        self:UpdatePins()
+    else self:NavigationEvent(event,...) end
+end
 local oldQuestSettings=Q.SettingsChanged
 function Q:SettingsChanged() oldQuestSettings(self); M:UpdateNavigation() end

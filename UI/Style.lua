@@ -419,7 +419,11 @@ local function updateStructure(state,kind)
     state.changed=false
     if kind=="native" then
         if FS.NativeWindows then
-            for _,definition in ipairs(FS.NativeWindows.definitions) do visitFrame(state,_G[definition[1]],3) end
+            for _,definition in ipairs(FS.NativeWindows.definitions) do
+                if not FS.Layout:IsExternallyManaged(definition[1]) then
+                    visitFrame(state,_G[definition[1]],3)
+                end
+            end
         end
     elseif kind=="chat" then
         for i=1,NUM_CHAT_WINDOWS or 10 do

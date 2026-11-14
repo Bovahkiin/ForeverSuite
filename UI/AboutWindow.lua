@@ -1,6 +1,6 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.0",lines={"Preview and align frames in Layout Studio, and compare or restore profiles.","Plan crafts, review character stock, and import or share waypoint routes.","Track boss drops, preparation and private Run Notes from the Dungeon & Raid Journal.","Reduced background updates and memory allocations across the interface."}},
+    {version="1.0.1",lines={"Adds support for the separately installed OpenMap addon for WoW Forever.","Saved pins and route stops appear across supported zones. Toggle both layers from the OpenMap menu.","OpenMap manages world map zoom, movement and window size while it is active."}},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end

@@ -3,12 +3,19 @@ local L={targets={},handles={}}; FS.Layout=L
 function L:Placements()
     return self.draft or FS.db.layout.frames
 end
+function L:IsExternallyManaged(id)
+    if id~="WorldMapFrame" then return false end
+    local map=FS.modules.Map
+    return map and map.GetOpenMapAPI and map:GetOpenMapAPI()~=nil or false
+end
 function L:QueueApply(id)
+    if self:IsExternallyManaged(id) then return end
     self.queued=self.queued or {}
     if self.queued[id] then return end; self.queued[id]=true
     C_Timer.After(0,function() self.queued[id]=nil; self:Apply(id) end)
 end
 function L:Register(id,frame,title)
+    if self:IsExternallyManaged(id) then return end
     if FS.modules.ActionBars and FS.modules.ActionBars:IsNativeBar(id) then return end
     if not frame or (self.targets[id] and self.targets[id].frame==frame) then return end
     self.targets[id]={frame=frame,title=title or id,points=FS.HUD:SavePoints(frame),scale=frame:GetScale()}
@@ -19,6 +26,7 @@ function L:Register(id,frame,title)
 end
 function L:Apply(id)
     if self.applying or InCombatLockdown() or not FS.db then return end
+    if self:IsExternallyManaged(id) then return end
     if FS.modules.ActionBars and FS.modules.ActionBars:IsNativeBar(id) then return end
     local target=self.targets[id]; local saved=self:Placements()[id]
     if not target or not saved then return end
@@ -47,6 +55,7 @@ function L:Apply(id)
     if id=="Unit:player" then FS.modules.UnitFrames:ApplyPetDefault() end
 end
 function L:ConstrainSaved(id)
+    if self:IsExternallyManaged(id) then return end
     local target=self.targets[id]; local saved=self:Placements()[id]
     if not target or not saved then return end
     local f=target.frame; local parent=f:GetParent() or UIParent
@@ -197,7 +206,7 @@ function L:UpdateToolbar()
     f.toolbar:SetScale(math.min(1,(UIParent:GetWidth()-24)/760,(UIParent:GetHeight()-40)/f.toolbar:GetHeight()))
 end
 function L:Select(id,asReference)
-    if not self.active or not self.targets[id] then return end
+    if not self.active or not self.targets[id] or self:IsExternallyManaged(id) then return end
     if asReference then
         self.reference=self.reference~=id and id or nil
     else
@@ -214,6 +223,7 @@ function L:Select(id,asReference)
     self:UpdateToolbar()
 end
 function L:RestoreTarget(id)
+    if self:IsExternallyManaged(id) then return end
     local target=self.targets[id]
     if not target then return end
     self:RememberPreview(id)
@@ -226,6 +236,7 @@ end
 function L:AlignSelected(action)
     if not self.active or not self.selected or not FS.modules.Profiles:Allowed() then return false end
     local id=self.selected
+    if self:IsExternallyManaged(id) then return false end
     local target=self.targets[id]
     local f=target.frame
     if action=="restore" then
@@ -280,6 +291,23 @@ local function stopHandleUpdates(handle)
     handle:SetScript("OnUpdate",nil)
     handle.resize:SetScript("OnUpdate",nil)
 end
+function L:HideExternalHandle(id)
+    local h=self.handles[id]
+    if not h or not h:IsShown() then return end
+    h.dragging=false
+    h.resizeStart=nil
+    stopHandleUpdates(h)
+    h:StopMovingOrSizing()
+    h:Hide()
+    if self.selected==id then self.selected=nil end
+    if self.reference==id then self.reference=nil end
+    if self.active then
+        local selected=self.selected and self.targets[self.selected].title or "Left-click a frame"
+        local reference=self.reference and self.targets[self.reference].title or "Right-click another frame"
+        self.overlay.selection:SetText("Selected: "..selected.."   |   Reference: "..reference)
+        self:UpdateToolbar()
+    end
+end
 function L:SaveChanges(close)
     if not self.active then return false end
     if InCombatLockdown() or FS.modules.Vendor.busy then FS:Print("Leave combat and finish vendor actions before saving the layout."); return false end
@@ -298,7 +326,7 @@ function L:SaveChanges(close)
     return true
 end
 function L:Save(id,handle,scale,dragging)
-    if InCombatLockdown() then return end
+    if InCombatLockdown() or self:IsExternallyManaged(id) then return end
     local f=self.targets[id].frame
     local x,y=handle:GetCenter(); local ux=UIParent:GetCenter(); local ratio=handle:GetEffectiveScale()/UIParent:GetEffectiveScale()
     if not x or not y or not ux then return end
@@ -321,7 +349,7 @@ end
 function L:Resize(id,handle)
     local start=handle.resizeStart
     if InCombatLockdown() then self:Stop(); return end
-    if not start or not self.active then return end
+    if not start or not self.active or self:IsExternallyManaged(id) then return end
     local x,y=GetCursorPosition(); local uiScale=UIParent:GetEffectiveScale()
     local delta=((x-start.x)-(y-start.y))/uiScale
     local scale=math.max(.6,math.min(1.4,start.scale+delta/200))
@@ -344,56 +372,58 @@ function L:Start()
     if FS.window then FS.window:Hide() end
     self.active=true; self.overlay.toolbarHint:SetText("LAYOUT STUDIO  |  Drag to move or resize. Save to keep the preview."); self.overlay:Show(); self:UpdateToolbar()
     for id,target in pairs(self.targets) do
-        local h=self.handles[id]
-        if not h then
-            h=CreateFrame("Frame",nil,self.overlay,"BackdropTemplate"); FS.HUD:Skin(h); self.handles[id]=h
-            h:SetSize(160,36); h:SetMovable(true); h:EnableMouse(true); h:EnableMouseWheel(true); h:RegisterForDrag("LeftButton"); h:SetClampedToScreen(true)
-            h.caption=FS.HUD:Label(h,target.title,8,-10,124)
-            h.resize=CreateFrame("Button",nil,h,"BackdropTemplate"); FS.HUD:Skin(h.resize)
-            h.resize:SetSize(24,24); h.resize:SetPoint("BOTTOMRIGHT",h,"BOTTOMRIGHT",-2,2)
-            h.resize:SetFrameLevel(h:GetFrameLevel()+2); h.resize:EnableMouse(true); h.resize:RegisterForDrag("LeftButton")
-            local arrow=FS.Widgets:Label(h.resize); arrow:SetPoint("CENTER"); arrow:SetText("+/-")
-            local function resizeUpdate() self:Resize(id,h) end
-            local function begin()
-                if not self.active or InCombatLockdown() or h.resizeStart then return end
-                self:Save(id,h,nil,true)
-                local placement=self.draft[id]; if not placement then return end
-                local x,y=GetCursorPosition(); h.resizeStart={x=x,y=y,scale=target.frame:GetScale(),centerX=placement.x,centerY=placement.y}
-                h.resize:SetScript("OnUpdate",resizeUpdate)
-            end
-            local function finish()
-                self:Resize(id,h); h.resizeStart=nil
-                h.resize:SetScript("OnUpdate",nil)
-            end
-            h.resize:SetScript("OnMouseDown",function(_,button) if button=="LeftButton" then begin() end end)
-            h.resize:SetScript("OnDragStart",begin)
-            h.resize:SetScript("OnMouseUp",finish); h.resize:SetScript("OnDragStop",finish)
-            h.resize:SetScript("OnEnter",function(b) GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Drag to resize"); GameTooltip:AddLine("Outward: larger. Inward: smaller."); GameTooltip:Show() end)
-            h.resize:SetScript("OnLeave",function() GameTooltip:Hide() end)
-            local function dragUpdate(frame)
-                if frame.dragging and self.active and not InCombatLockdown() then self:Save(id,frame,nil,true) end
-            end
-            h:SetScript("OnDragStart",function(frame)
-                self:Select(id)
-                if not InCombatLockdown() then
-                    frame.dragging=true; frame:StartMoving()
-                    frame:SetScript("OnUpdate",dragUpdate)
+        if not self:IsExternallyManaged(id) then
+            local h=self.handles[id]
+            if not h then
+                h=CreateFrame("Frame",nil,self.overlay,"BackdropTemplate"); FS.HUD:Skin(h); self.handles[id]=h
+                h:SetSize(160,36); h:SetMovable(true); h:EnableMouse(true); h:EnableMouseWheel(true); h:RegisterForDrag("LeftButton"); h:SetClampedToScreen(true)
+                h.caption=FS.HUD:Label(h,target.title,8,-10,124)
+                h.resize=CreateFrame("Button",nil,h,"BackdropTemplate"); FS.HUD:Skin(h.resize)
+                h.resize:SetSize(24,24); h.resize:SetPoint("BOTTOMRIGHT",h,"BOTTOMRIGHT",-2,2)
+                h.resize:SetFrameLevel(h:GetFrameLevel()+2); h.resize:EnableMouse(true); h.resize:RegisterForDrag("LeftButton")
+                local arrow=FS.Widgets:Label(h.resize); arrow:SetPoint("CENTER"); arrow:SetText("+/-")
+                local function resizeUpdate() self:Resize(id,h) end
+                local function begin()
+                    if not self.active or InCombatLockdown() or h.resizeStart then return end
+                    self:Save(id,h,nil,true)
+                    local placement=self.draft[id]; if not placement then return end
+                    local x,y=GetCursorPosition(); h.resizeStart={x=x,y=y,scale=target.frame:GetScale(),centerX=placement.x,centerY=placement.y}
+                    h.resize:SetScript("OnUpdate",resizeUpdate)
                 end
-            end)
-            h:SetScript("OnMouseDown",function(_,button) self:Select(id,button=="RightButton") end)
-            h:SetScript("OnDragStop",function(frame)
-                if not frame.dragging then return end
-                frame.dragging=false; frame:SetScript("OnUpdate",nil); frame:StopMovingOrSizing(); self:Save(id,frame)
-            end)
-            h:SetScript("OnMouseWheel",function(frame,delta)
-                local scale=math.max(0.6,math.min(1.4,target.frame:GetScale()+delta*0.05)); self:Save(id,frame,scale)
-            end)
+                local function finish()
+                    self:Resize(id,h); h.resizeStart=nil
+                    h.resize:SetScript("OnUpdate",nil)
+                end
+                h.resize:SetScript("OnMouseDown",function(_,button) if button=="LeftButton" then begin() end end)
+                h.resize:SetScript("OnDragStart",begin)
+                h.resize:SetScript("OnMouseUp",finish); h.resize:SetScript("OnDragStop",finish)
+                h.resize:SetScript("OnEnter",function(b) GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Drag to resize"); GameTooltip:AddLine("Outward: larger. Inward: smaller."); GameTooltip:Show() end)
+                h.resize:SetScript("OnLeave",function() GameTooltip:Hide() end)
+                local function dragUpdate(frame)
+                    if frame.dragging and self.active and not InCombatLockdown() then self:Save(id,frame,nil,true) end
+                end
+                h:SetScript("OnDragStart",function(frame)
+                    self:Select(id)
+                    if not InCombatLockdown() then
+                        frame.dragging=true; frame:StartMoving()
+                        frame:SetScript("OnUpdate",dragUpdate)
+                    end
+                end)
+                h:SetScript("OnMouseDown",function(_,button) self:Select(id,button=="RightButton") end)
+                h:SetScript("OnDragStop",function(frame)
+                    if not frame.dragging then return end
+                    frame.dragging=false; frame:SetScript("OnUpdate",nil); frame:StopMovingOrSizing(); self:Save(id,frame)
+                end)
+                h:SetScript("OnMouseWheel",function(frame,delta)
+                    local scale=math.max(0.6,math.min(1.4,target.frame:GetScale()+delta*0.05)); self:Save(id,frame,scale)
+                end)
+            end
+            h:ClearAllPoints(); h:SetPoint("CENTER",target.frame,"CENTER")
+            -- Hidden windows and the target frame still have movable handles.
+            h.caption:SetText(target.title.."  "..math.floor(target.frame:GetScale()*100+.5).."%")
+            h:SetBackdropBorderColor(.12,.72,.86,1)
+            h:Show()
         end
-        h:ClearAllPoints(); h:SetPoint("CENTER",target.frame,"CENTER")
-        -- Hidden windows and the target frame still have movable handles.
-        h.caption:SetText(target.title.."  "..math.floor(target.frame:GetScale()*100+.5).."%")
-        h:SetBackdropBorderColor(.12,.72,.86,1)
-        h:Show()
     end
 end
 function L:Stop()
@@ -411,7 +441,7 @@ function L:RestorePreview()
     self.applying=true
     for id,state in pairs(self.beforeVisual) do
         local target=self.targets[id]
-        if target and target.frame==state.frame then
+        if target and target.frame==state.frame and not self:IsExternallyManaged(id) then
             FS.HUD:RestorePoints(state.frame,state.points)
             state.frame:SetScale(state.scale)
         end
@@ -423,21 +453,29 @@ function L:RestorePreview()
 end
 function L:Reset()
     if InCombatLockdown() or not self.active then return end
+    local previous=self.draft
     self.draft={}
+    if self:IsExternallyManaged("WorldMapFrame") then self.draft.WorldMapFrame=previous.WorldMapFrame end
     self.applying=true
     for id,target in pairs(self.targets) do
-        self:RememberPreview(id)
-        FS.HUD:RestorePoints(target.frame,target.points); target.frame:SetScale(target.scale)
+        if not self:IsExternallyManaged(id) then
+            self:RememberPreview(id)
+            FS.HUD:RestorePoints(target.frame,target.points); target.frame:SetScale(target.scale)
+        end
     end
     self.applying=false
     FS.modules.UnitFrames:SettingsChanged(); FS.modules.ActionBars:SettingsChanged()
     FS.modules.Nameplates:SettingsChanged()
     if CharacterFrame and FS.modules.Character then FS.modules.Character:SettingsChanged() end
     for id,handle in pairs(self.handles) do
-        local target=self.targets[id]
-        handle.dragging=false; handle.resizeStart=nil; stopHandleUpdates(handle); handle:StopMovingOrSizing()
-        handle:ClearAllPoints(); handle:SetPoint("CENTER",target.frame,"CENTER")
-        handle.caption:SetText(target.title.."  "..math.floor(target.frame:GetScale()*100+.5).."%")
+        if self:IsExternallyManaged(id) then
+            self:HideExternalHandle(id)
+        else
+            local target=self.targets[id]
+            handle.dragging=false; handle.resizeStart=nil; stopHandleUpdates(handle); handle:StopMovingOrSizing()
+            handle:ClearAllPoints(); handle:SetPoint("CENTER",target.frame,"CENTER")
+            handle.caption:SetText(target.title.."  "..math.floor(target.frame:GetScale()*100+.5).."%")
+        end
     end
 end
 function L:Normalize()

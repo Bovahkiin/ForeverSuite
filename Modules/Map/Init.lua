@@ -3,6 +3,58 @@ local T=FS.Tools
 local M=T:Module("Map","map","Map","Coordinates, saved location pins, explored regions and dungeon or raid lockouts. Save a pin at your current location.",{coordinates=true,pins={},worldControls=true,worldPins=true,worldRoute=true},{"ZONE_CHANGED_NEW_AREA","MAP_EXPLORATION_UPDATED","UPDATE_INSTANCE_INFO","PLAYER_ENTERING_WORLD"})
 M.options={{key="coordinates",label="Show coordinates"}}
 M.pinFrames={}; M.routeFrames={}
+function M:GetOpenMapAPI()
+    local api=OpenMapAPI
+    if type(api)=="table" and api.major==1 and type(api.IsStitched)=="function" then return api end
+end
+function M:GetStitchedMap()
+    local api=self:GetOpenMapAPI()
+    if api and T:Call(api.IsStitched)==true then return api end
+end
+function M:ConnectOpenMap()
+    local api=self:GetOpenMapAPI()
+    if not api or self.openMapCallbacks==api then return end
+    if self.openMapCallbacks and type(self.openMapCallbacks.UnregisterAllCallbacks)=="function" then
+        T:Call(self.openMapCallbacks.UnregisterAllCallbacks,self)
+    end
+    self.openMapCallbacks=api
+    T:Call(api.RegisterCallback,self,"OpenMap_ViewChanged",function() self:UpdatePins() end)
+    T:Call(api.RegisterCallback,self,"OpenMap_StitchedChanged",function()
+        if InCombatLockdown() then return end
+        self:UpdatePins()
+        local quests=FS.modules.Quests
+        if quests then quests:UpdateWorldPins() end
+    end)
+    local function menuToggle(key,label)
+        T:Call(api.RegisterMenuToggle,"ForeverSuite",{
+            id=key,label=label,section="ForeverSuite",
+            get=function() return FS:IsModuleEnabled(self.name) and self:Data()[key] end,
+            set=function(on)
+                if InCombatLockdown() or not FS:IsModuleEnabled(self.name) then return end
+                FS:SettingAction(function()
+                    self:Data()[key]=on==true
+                    self:UpdatePins()
+                end)
+            end,
+        })
+    end
+    if type(api.RegisterMenuToggle)=="function" then
+        menuToggle("worldPins","ForeverSuite saved pins")
+        menuToggle("worldRoute","ForeverSuite route stops")
+    end
+end
+local function worldMarkerPosition(pin,map,api)
+    if not T:Number(map) then return end
+    if api then
+        local u,v=T:Call(api.WorldFromMap,pin.map,pin.x,pin.y)
+        if T:Number(u) and T:Number(v) then
+            local x,y=T:Call(api.MapFromWorld,map,u,v)
+            if T:Number(x) and T:Number(y) then return x,y end
+        end
+    elseif pin.map==map then
+        return pin.x,pin.y
+    end
+end
 function M:Normalize()
     local valid={}
     for _,p in ipairs(self:Data().pins) do
@@ -60,6 +112,14 @@ function M:UpdateWorldControls(world)
         f:SetFrameLevel(world:GetFrameLevel()+12)
         f.zone=H:Button(f,"My zone",4,-3,100,function()
             if InCombatLockdown() then return end
+            local api=self:GetStitchedMap()
+            if api then
+                local map,x,y=self:Position()
+                if map then
+                    local u,v=T:Call(api.WorldFromMap,map,x,y)
+                    if T:Number(u) and T:Number(v) and T:Call(api.ShowWorld,u,v)==true then return end
+                end
+            end
             local id=T:Call(MapUtil and MapUtil.GetDisplayableMapForPlayer) or self:Position()
             if id then T:Call(world.SetMapID,world,id); self:UpdatePins() end
         end)
@@ -84,9 +144,9 @@ function M:ToggleWorldLayer(key)
     db[key]=not db[key]
     self:UpdatePins()
 end
-local function positionMarker(frame,canvas,p,width,height,point)
+local function positionMarker(frame,canvas,x,y,point,level)
     if frame:GetParent()~=canvas then frame:SetParent(canvas) end
-    local x,y=p.x*width,-p.y*height
+    if frame:GetFrameLevel()~=level then frame:SetFrameLevel(level) end
     local oldPoint,relative,_,oldX,oldY=frame:GetPoint()
     if oldPoint~=point or relative~=canvas or oldX~=x or oldY~=y then
         frame:ClearAllPoints(); frame:SetPoint(point,canvas,"TOPLEFT",x,y)
@@ -95,16 +155,24 @@ local function positionMarker(frame,canvas,p,width,height,point)
 end
 function M:UpdatePins()
     if InCombatLockdown() then return end
-    local world=WorldMapFrame; local canvas=world and world.ScrollContainer and world.ScrollContainer.Child
-    if not canvas or not world:IsShown() or (world.IsForbidden and world:IsForbidden()) or (canvas.IsForbidden and canvas:IsForbidden()) then return end
+    self:ConnectOpenMap()
+    local world=WorldMapFrame
+    if not world or not world:IsShown() or (world.IsForbidden and world:IsForbidden()) then return end
+    local canvas=T:Call(world.GetCanvas,world) or (world.ScrollContainer and world.ScrollContainer.Child)
+    if not canvas or (canvas.IsForbidden and canvas:IsForbidden()) then return end
     self:UpdateWorldControls(world)
     local id=T:Call(world.GetMapID,world)
     local width,height=canvas:GetWidth(),canvas:GetHeight()
     local enabled=FS:IsModuleEnabled(self.name) and T:Number(width) and T:Number(height)
+    local api=self:GetStitchedMap()
+    local artLevel=api and T:Call(api.ArtTopLevel)
+    local level=canvas:GetFrameLevel()+1
+    if T:Number(artLevel) then level=math.max(level,artLevel+1) end
     local db=self:Data()
     local count,stopCount=0,0
     for i,p in ipairs(enabled and db.worldPins and db.pins or {}) do
-        if p.map==id then
+        local x,y=worldMarkerPosition(p,id,api)
+        if x then
             count=count+1; local f=self.pinFrames[count]
             if not f then
                 f=FS.HUD:Button(canvas,"+",0,0,20,function() end)
@@ -120,13 +188,14 @@ function M:UpdatePins()
                 f:SetScript("OnEnter",function(b) local pin=self:Data().pins[b.pin]; if pin then GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine(pin.name); GameTooltip:AddLine("Shift-click to add a route stop."); GameTooltip:Show() end end)
                 f:SetScript("OnLeave",function() GameTooltip:Hide() end); f:SetSize(20,20); self.pinFrames[count]=f
             end
-            f.pin=i; positionMarker(f,canvas,p,width,height,"CENTER")
+            f.pin=i; positionMarker(f,canvas,x*width,-y*height,"CENTER",level)
         end
     end
     for i=count+1,#self.pinFrames do self.pinFrames[i]:Hide() end
     local queue=FS.Extensions and FS.Extensions:Data().waypointQueue
     for i,p in ipairs(enabled and db.worldRoute and queue or {}) do
-        if p.map==id then
+        local x,y=worldMarkerPosition(p,id,api)
+        if x then
             stopCount=stopCount+1
             local marker=self.routeFrames[stopCount]
             if not marker then
@@ -136,7 +205,7 @@ function M:UpdatePins()
             end
             local label=tostring(i)
             if marker.number:GetText()~=label then marker.number:SetText(label) end
-            positionMarker(marker,canvas,p,width,height,"BOTTOMLEFT")
+            positionMarker(marker,canvas,x*width,-y*height,"BOTTOMLEFT",level)
         end
     end
     for i=stopCount+1,#self.routeFrames do self.routeFrames[i]:Hide() end

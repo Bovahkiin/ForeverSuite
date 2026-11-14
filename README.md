@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 1.0.0 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.1 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 
@@ -65,6 +65,16 @@ the choice per character. Choose later leaves existing behavior unchanged.
   **Apply and reload UI** changes supported addon enablement for this character,
   preserves dependencies/settings, and reloads. Unknown addons need an adapter.
 - Choices stay separate from UI profiles and reversible settings undo.
+
+## Seamless world map
+
+Install and enable [OpenMap](https://github.com/openmap-world/openmap) for WoW
+Forever to zoom and pan across supported zones with the normal world-map key.
+Choose OpenMap's seamless view from its map menu. With that view active,
+ForeverSuite shows your saved pins and numbered route stops across supported
+zones and **My zone** brings the view back to your character. OpenMap manages
+the map window's position and size. The regular world map is available through
+OpenMap or by playing with ForeverSuite alone.
 
 ## Previews
 

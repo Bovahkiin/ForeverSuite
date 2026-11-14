@@ -460,9 +460,53 @@ function N:Collections(frame,enabled)
         end
     end
 end
+function N:ReleaseWorldMap(frame,state)
+    local quest=frame.QuestLog or QuestMapFrame
+    local function belongs(region)
+        while region do
+            if region==frame or region==quest then return true end
+            region=region.GetParent and region:GetParent()
+        end
+    end
+    state.enabled=false
+    state.header:Hide()
+    for owner,plate in pairs(S.plates) do
+        if belongs(owner) then plate:Hide() end
+    end
+    for region in pairs(self.art) do
+        if belongs(region) or region==WorldMapFramePortrait then
+            self:Art(region,false)
+            if region.fsProfessionThumb then region.fsProfessionThumb:Hide() end
+        end
+    end
+    for region in pairs(self.fonts) do
+        if belongs(region) then self:Font(region,false) end
+    end
+    for region in pairs(self.geometry) do
+        if belongs(region) then self:Geometry(region,false) end
+    end
+    for control,appearance in pairs(self.controls) do
+        if belongs(control) then
+            appearance.enabled=false
+            appearance.hover:Hide()
+            appearance.flash:Hide()
+            if appearance.glyph then appearance.glyph:Hide() end
+        end
+    end
+    for bar,appearance in pairs(self.bars) do
+        if belongs(bar) and appearance.texture and not forbidden(bar) then
+            bar:SetStatusBarTexture(appearance.texture)
+        end
+    end
+end
 function N:Window(frame,definition)
     if forbidden(frame) then return end
     local state=self.windows[frame]
+    if FS.Layout:IsExternallyManaged(definition[1]) then
+        FS.Layout:HideExternalHandle(definition[1])
+        if state and state.enabled then self:ReleaseWorldMap(frame,state) end
+        return
+    end
     local enabled=FS:IsModuleEnabled(definition[2]) and (not FS.db.extras or FS.db.extras.nativeWindows~=false)
     if definition[5] then local module=FS.modules[definition[2]]; enabled=enabled and module:Data()[definition[5]] end
     if state and not frame:IsShown() and state.enabled==enabled then return end
@@ -513,9 +557,27 @@ function N:Refresh()
         local f=_G[definition[1]]
         if f then
             local parent=f.GetParent and f:GetParent(); local nested=false
-            while parent do if self.windows[parent] then nested=true; break end; parent=parent.GetParent and parent:GetParent() end
+            while parent do
+                if self.windows[parent] or (parent==WorldMapFrame and FS.Layout:IsExternallyManaged("WorldMapFrame")) then
+                    nested=true
+                    break
+                end
+                parent=parent.GetParent and parent:GetParent()
+            end
             if not nested then self:Window(f,definition) end
         end
     end
     self.refreshing=false
 end
+local events=CreateFrame("Frame")
+FS:RegisterClientEvent(events,"ADDON_LOADED")
+FS:RegisterClientEvent(events,"PLAYER_REGEN_ENABLED")
+events:SetScript("OnEvent",function(_,event,addon)
+    if event=="ADDON_LOADED" and addon=="OpenMap" then
+        N.openMapPending=InCombatLockdown()
+        N:Refresh()
+    elseif event=="PLAYER_REGEN_ENABLED" and N.openMapPending then
+        N.openMapPending=nil
+        N:Refresh()
+    end
+end)

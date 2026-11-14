@@ -1,3 +1,9 @@
+# 1.0.1 - 2026-11-14
+
+- Adds optional integration with [OpenMap for WoW Forever](https://github.com/openmap-world/openmap). Install and enable OpenMap separately to use its seamless zoom and pan with the normal world map key.
+- ForeverSuite saved pins and numbered route stops appear across supported zones. Toggle both layers in the OpenMap menu and use **My zone** to recenter on your character.
+- OpenMap manages the map window's position and size while it is enabled. The regular world map is available when playing with ForeverSuite alone.
+
 # 1.0.0 - 2026-11-12
 
 - Preview, align and save frames in Layout Studio. Compare profiles, import selected settings and restore a backup from Profile Center.

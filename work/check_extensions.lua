@@ -1044,6 +1044,63 @@ local saved=FS.db.layout.frames.ResizeTest; assert(saved.x==570 and saved.y==56)
 local before={f:GetPoint()}; TEST.combat=true; saved.x=100; L:Apply('ResizeTest'); local after={f:GetPoint()}; assert(after[4]==before[4])
 TEST.combat=false; L.targets.ResizeTest=nil; UIParent:SetSize(w,h)
 
+-- TEST: OpenMap projects neighboring-zone pins and yields map geometry and chrome
+local FS,E=ExtensionFixture()
+local M,L,N=FS.modules.Map,FS.Layout,FS.NativeWindows
+local oldMap,oldAPI,oldPosition=WorldMapFrame,OpenMapAPI,M.Position
+local world=CreateFrame('Frame',nil,UIParent); world:SetSize(460,420); world:SetPoint('TOPLEFT',UIParent,'TOPLEFT',10,-10); world:Show()
+local canvas=CreateFrame('Frame',nil,world); canvas:SetSize(320,240)
+world.ScrollContainer={Child=canvas}
+world.GetMapID=function() return 12 end
+local changedMap,center={},{}
+world.SetMapID=function(_,id) changedMap[#changedMap+1]=id end
+WorldMapFrame=world
+local definition
+for _,entry in ipairs(N.definitions) do if entry[1]=='WorldMapFrame' then definition=entry; break end end
+N:Window(world,definition)
+assert(N.windows[world].header:IsShown())
+local oldTarget=L.targets.WorldMapFrame
+L.targets.WorldMapFrame={frame=world,points={},scale=1}
+FS.db.layout.frames.WorldMapFrame={x=200,y=200,scale=1.2}
+M:Data().pins={{map=12,x=.25,y=.5,name='Here'},{map=13,x=.2,y=.3,name='Neighbor'},{map=14,x=.1,y=.1,name='Unsupported'}}
+E:Data().waypointQueue={{map=13,x=.3,y=.4,name='First stop'}}
+M.Position=function() return 13,.2,.3 end
+M:UpdatePins()
+assert(M.pinFrames[1]:IsShown() and not (M.pinFrames[2] and M.pinFrames[2]:IsShown()))
+local callbacks,toggles,stitched,shift={},{},true,0
+OpenMapAPI={
+    major=1,IsStitched=function() return stitched end,
+    WorldFromMap=function(id,x,y) if id==12 then return x,y elseif id==13 then return x+1,y end end,
+    MapFromWorld=function(id,u,v) assert(id==12); return u+shift,v end,
+    ArtTopLevel=function() return 2100 end,
+    ShowWorld=function(u,v) center={u,v}; return true end,
+    RegisterCallback=function(owner,event,method) assert(owner==M); assert(not callbacks[event]); callbacks[event]=method end,
+    RegisterMenuToggle=function(owner,spec) assert(owner=='ForeverSuite'); toggles[spec.id]=spec end,
+}
+M:UpdatePins()
+assert(L:IsExternallyManaged('WorldMapFrame'))
+N:Window(world,definition)
+assert(not N.windows[world].header:IsShown())
+local x=select(4,world:GetPoint())
+L:Apply('WorldMapFrame')
+assert(select(4,world:GetPoint())==x and world:GetScale()==1)
+assert(M.pinFrames[2]:IsShown() and M.pinFrames[2]:GetFrameLevel()>2100 and not (M.pinFrames[3] and M.pinFrames[3]:IsShown()))
+assert(math.abs(select(4,M.pinFrames[2]:GetPoint())-384)<.001 and M.routeFrames[1].number:GetText()=='1')
+shift=.1; callbacks.OpenMap_ViewChanged()
+assert(math.abs(select(4,M.pinFrames[2]:GetPoint())-416)<.001)
+M.worldControls.zone:Click()
+assert(math.abs(center[1]-1.2)<.001 and #changedMap==0)
+assert(toggles.worldPins.get() and toggles.worldRoute.get())
+toggles.worldPins.set(false)
+assert(not M.pinFrames[1]:IsShown() and M.routeFrames[1]:IsShown())
+toggles.worldPins.set(true)
+stitched=false; callbacks.OpenMap_StitchedChanged()
+assert(M.pinFrames[1]:IsShown() and not M.pinFrames[2]:IsShown() and not M.routeFrames[1]:IsShown())
+assert(M.pinFrames[1]:GetFrameLevel()==canvas:GetFrameLevel()+1)
+WorldMapFrame,OpenMapAPI,M.Position=oldMap,oldAPI,oldPosition
+L.targets.WorldMapFrame=oldTarget
+M.openMapCallbacks=nil; world:Hide()
+
 -- TEST: World map controls filter addon markers and link the map to route planning
 local FS,E,W=ExtensionFixture(); local M=FS.modules.Map
 local oldMap,oldShift,oldUtil=WorldMapFrame,IsShiftKeyDown,MapUtil

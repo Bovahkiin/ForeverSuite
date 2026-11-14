@@ -129,7 +129,7 @@ local function hidePins(pool)
 end
 function Q:UpdateWorldPins()
     local world=WorldMapFrame; local canvas=world and world.ScrollContainer and world.ScrollContainer.Child
-    if self:Data().worldMap and canvas and world:IsShown() then
+    if self:Data().worldMap and canvas and world:IsShown() and not FS.modules.Map:GetStitchedMap() then
         local map=T:Call(world.GetMapID,world)
         if T:Number(map) then
             local points=self:CachedPinLocations("world",map)
