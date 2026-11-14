@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 1.0.1 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.2 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 
@@ -24,7 +24,7 @@ profile. Made by **DeluxiZ**.
 
 ## Features
 
-- **Guided setup:** a welcome screen, patch notes, ten visual themes with previews,
+- **Guided setup:** a welcome screen, patch notes, eleven visual themes with previews,
   three layouts, accessibility presets and a short tour.
 - **Consistent customization:** module colors, font family, size and outline
   settings, plus movable and resizable supported frames with a centered grid.
@@ -49,6 +49,12 @@ profile. Made by **DeluxiZ**.
   character stock records, shared waypoint routes and profession area guides.
   The Dungeon & Raid Journal links observed drops to the Gear Wishlist, preparation
   checklists and private boss notes.
+- **Gear Planner:** open **Gear Advisor → Gear planner** to compare known items
+  per slot for your current level or levels 20, 30, 40, 50 and 60. Search by
+  slot, item or source and track an item in Gear Wishlist. Recommendations use
+  your Gear Advisor weights and combine the built-in WoW Forever equipment
+  catalog with your equipped gear, observed drops and wishlist.
+  [Catalog sources and coverage](ForeverSuite_GearData/DATA_SOURCES.md)
 - **Faster Control Center:** search modules by name, feature or setting, filter
   enabled/disabled modules, and open a unique result with Enter. Clear or Escape
   resets the filters and returns to the module page you were browsing.
@@ -86,14 +92,21 @@ An in-game screenshot supplied by the author. Module choices, appearance and
 frame placement are configurable; this is one example layout.
 
 <details>
-<summary>See the artwork for all ten themes</summary>
+<summary>See the original ten themes</summary>
 
-![Panel, button and waypoint artwork for all ten themes](.previews/02-theme-artwork.png)
+![Panel, button and waypoint artwork for the original ten themes](.previews/02-theme-artwork.png)
 
 These samples show the actual theme textures used by the addon. This comparison
 is an artwork sheet, not a gameplay screenshot or a promised window layout.
 
 </details>
+
+### Azeroth Heritage
+
+Dark slate panels, aged brass trim, burgundy buttons and a gold-and-blue
+waypoint arrow inspired by the classic WoW Forever interface.
+
+![Azeroth Heritage panel, button and waypoint arrow artwork](.previews/03-azeroth-heritage.png)
 
 ## Installation
 
@@ -102,16 +115,20 @@ for GitHub Desktop and the **Nieuwe release maken** release button.
 
 1. Download the attached **ForeverSuite ZIP** from this repository's **Releases**
    page.
-2. Extract the `ForeverSuite` folder into your WoW Forever installation:
+2. Extract `ForeverSuite` and `ForeverSuite_GearData` side by side into your WoW
+   Forever AddOns folder.
 
    ```text
    World of Warcraft/_forever_/Interface/AddOns/ForeverSuite/
+   World of Warcraft/_forever_/Interface/AddOns/ForeverSuite_GearData/
    ```
 
 3. Check that `ForeverSuite.toc` is directly inside that folder. Avoid an extra
    nested `ForeverSuite/ForeverSuite` folder.
-4. Enable ForeverSuite in the game's AddOns list, then log in. If you updated it
-   while the game was open, type `/reload` after copying finishes.
+4. Enable ForeverSuite and ForeverSuite Gear Data in the game's AddOns list,
+   then log in. The catalog loads when you open Gear Planner. You can use the
+   planner with your local sources if the data addon is disabled. If the game
+   was open during a manual update, type `/reload` after copying finishes.
 
 Download the release ZIP attached by the author rather than GitHub's automatically
 generated source archive.

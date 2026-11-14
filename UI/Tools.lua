@@ -237,7 +237,10 @@ function T:Module(name,key,title,description,defaults,events)
         local elapsed=0
         self.ticker=function(_,dt)
             elapsed=elapsed+dt; if elapsed<1 then return end; elapsed=0
-            if FS:IsModuleEnabled(self.name) then if self.Tick then self:Tick() end; if self.window and self.window:IsShown() then self:Refresh() end end
+            if FS:IsModuleEnabled(self.name) then
+                if self.Tick then self:Tick() end
+                if self.window and self.window:IsShown() and (not self.RefreshOnTick or self:RefreshOnTick()) then self:Refresh() end
+            end
         end
         self:SettingsChanged()
     end

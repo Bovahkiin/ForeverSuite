@@ -8,6 +8,11 @@ W.views[#W.views+1]='Gear Wishlist'
 W.views[#W.views+1]='Run Notes'
 W.views[#W.views+1]='Next steps'
 W.views[#W.views+1]='Profession recommendations'
+W.views[#W.views+1]='Gear Planner'
+local plannerLevels={0,20,30,40,50,60}
+function W:RefreshOnTick()
+    return self:Data().view~='Gear Planner'
+end
 local guideRoot='https://www.wow-professions.com/forever/'
 local professionRecommendations={
     {profession='Mining',skill='1-65',zone='Zephras Isle',guide='mining-leveling-guide',
@@ -34,6 +39,10 @@ local function setView(self,view,notesInstance)
     end
     data.view=view
     self.notesInstance=view=='Run Notes' and notesInstance or nil
+    if view~='Gear Planner' and self.plannerPending then
+        self.plannerPending=nil
+        FS.modules.GearAdvisor.plannerItemCache=nil
+    end
     self.selected=nil; self.page=1
 end
 function W:NextView()
@@ -49,6 +58,10 @@ end
 local create=W.CreateWindow
 function W:CreateWindow()
     local f=create(self); if f.section then return f end
+    f.search:SetScript('OnTextChanged',function()
+        self.page=1
+        if self:Data().view=='Gear Planner' and f:IsShown() then self:Refresh() else self:Render() end
+    end)
     f.section=H:Button(f,'',16,-54,628,function()
         local menu=f.categoryMenu
         if menu:IsShown() then menu:Hide(); return end
@@ -88,6 +101,12 @@ function W:CreateWindow()
     end
     f.categoryMenu:Hide(); f:HookScript('OnHide',function() f.categoryMenu:Hide() end)
     f:HookScript('OnHide',function() if W.training then W:StopTraining('Preview closed.') end end)
+    f:HookScript('OnHide',function()
+        if W.plannerPending then
+            W.plannerPending=nil
+            FS.modules.GearAdvisor.plannerItemCache=nil
+        end
+    end)
     f.previousSection=H:Button(f,'<',16,-54,34,function()
         for i,v in ipairs(W.views) do
             if v==W:Data().view then setView(W,W.views[(i-2)%#W.views+1]); break end
@@ -404,7 +423,7 @@ function W:ConfirmTraining()
 end
 function W:WishlistForm(instance,boss,item)
     return E:Form('Add loot goal',{
-        {label='Dungeon or raid',value=instance or '',limit=80},
+        {label='Dungeon, raid, quest or vendor',value=instance or '',limit=80},
         {label='Boss or loot source (optional)',value=boss or '',limit=80},
         {label='Item ID',value=item or '',limit=9},
     },function(name,source,id) return E:AddWishlistItem(name,source,id) end,'Add to Wishlist')
@@ -550,6 +569,29 @@ function W:Build()
             self.status=scope..(#rows>0 and ' | Private boss notes' or ' | No notes yet. Use Add note to write a boss reminder.')
         else
             self.status='Private notes can appear when the game reports the matching boss encounter. Configure the Run note popup in Alerts.'
+        end
+    elseif view=='Gear Planner' then
+        owner='GearAdvisor'
+        local milestone=self.plannerLevel or 1
+        local advisor=FS.modules.GearAdvisor
+        local current=T:Call(UnitLevel,'player')
+        local level=milestone==1 and current or plannerLevels[milestone]
+        labels={'Item details','Level: '..(milestone==1 and 'Now' or tostring(level)),'Track item','Gear Advisor'}
+        self.plannerPending=nil
+        if FS:IsModuleEnabled('GearAdvisor') and T:Number(level) and level>0 then
+            local build,scanning
+            rows,self.plannerPending,build,scanning=advisor:PlannerRows(level,T:Text(self.window and self.window.search:GetText()))
+            local _,scale=advisor:Weights()
+            local source=build and ('Forever catalog '..build) or 'Local sources'
+            local status=scanning and 'Loading catalog items'
+                or (next(self.plannerPending) and 'Waiting for game item data')
+                or (#rows==0 and 'No matching scored items') or 'Check equip requirements'
+            self.status=('Level %d | %s | %s. %s.'):format(level,scale,source,status)
+            if scanning and self.window and self.window:IsShown() then
+                advisor:QueuePlannerRefresh(self)
+            end
+        else
+            self.status='Enable Gear Advisor and open the planner on a character with a readable level.'
         end
     elseif view=='Gear Wishlist' then
         owner='Gear'; labels={'Add item','Toggle acquired','Remove goal','Dungeon Journal'}
@@ -897,6 +939,32 @@ function W:Perform(action,text)
             self.journalInstance=scope
             self:Choose('Dungeon & Raid Journal')
         end
+    elseif view=='Gear Planner' then
+        local advisor=FS.modules.GearAdvisor
+        if action==1 and r then
+            local lines={('Slot: %s | Required level: %d | Stat score: %.1f'):format(r.slotName,r.required,r.score)}
+            if r.equipped then lines[#lines+1]='Currently equipped.' end
+            local comparison=advisor:Compare(r.link)
+            if comparison then
+                lines[#lines+1]=('Compared with equipped gear: %+.1f points'):format(comparison.delta)
+            end
+            lines[#lines+1]=''
+            lines[#lines+1]=#r.sources>0 and 'Known sources' or 'Source unknown'
+            for _,source in ipairs(r.sources) do lines[#lines+1]=source.label end
+            lines[#lines+1]='\nCheck class requirements, set bonuses and special effects before equipping.'
+            E:TextDialog(r.name,table.concat(lines,'\n'),true)
+        elseif action==2 then
+            self.plannerLevel=(self.plannerLevel or 1)%#plannerLevels+1
+            self.selected=nil; self.page=1
+        elseif action==3 and r then
+            for _,source in ipairs(r.sources) do
+                local goal,key=E:WishlistGoalForDrop(source.instance,source.boss,r.id)
+                if goal then self:FocusWishlistGoal(key); return end
+            end
+            local source=r.sources[1]
+            if source then self:WishlistForm(source.instance,source.boss,r.id)
+            else self.status='This equipped item has no recorded source.' end
+        elseif action==4 then advisor:ShowWindow() end
     elseif view=='Gear Wishlist' then
         if action==1 then self:WishlistForm()
         elseif action==2 and r then r.goal.acquired=not r.goal.acquired

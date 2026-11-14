@@ -1,0 +1,7 @@
+## Interface: 16001
+## Title: ForeverSuite Gear Data
+## Notes: On-demand equipment source catalog for WoW Forever.
+## Dependencies: ForeverSuite
+## LoadOnDemand: 1
+
+Catalog.lua

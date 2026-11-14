@@ -1,3 +1,10 @@
+# 1.0.2 - 2026-11-14
+
+- Adds **Azeroth Heritage**, a theme with dark slate panels, brass trim, burgundy buttons and a gold-and-blue waypoint arrow. Preview it in Guided Setup or under **Control Center → Theme**. [Theme artwork](https://github.com/Bovahkiin/ForeverSuite/blob/v1.0.2/.previews/03-azeroth-heritage.png)
+- Adds **Gear Planner** under **Gear Advisor**. Compare gear by slot using your stat weights, search by item or source, and track a find in Gear Wishlist.
+- Includes a WoW Forever catalog of 2,395 items for levels 1–60, covering quest rewards, vendors and recorded dungeon boss drops. The catalog loads when you open Gear Planner.
+- For a manual installation, extract both `ForeverSuite` and `ForeverSuite_GearData` into your WoW Forever AddOns folder.
+
 # 1.0.1 - 2026-11-14
 
 - Adds optional integration with [OpenMap for WoW Forever](https://github.com/openmap-world/openmap). Install and enable OpenMap separately to use its seamless zoom and pan with the normal world map key.

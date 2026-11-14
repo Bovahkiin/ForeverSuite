@@ -458,6 +458,32 @@ for file in files:
 lua.execute("ForeverSuite.events:GetScript('OnEvent')(ForeverSuite.events,'ADDON_LOADED','ForeverSuite'); Drain()")
 print(f'PASS: Lua 5.1 syntax and startup in TOC order ({len(files)} files)')
 
+catalog_folder = root/'ForeverSuite_GearData'
+catalog_toc = (catalog_folder/'ForeverSuite_GearData.toc').read_text(encoding='utf-8')
+assert '## LoadOnDemand: 1' in catalog_toc and '## Dependencies: ForeverSuite' in catalog_toc
+assert all('Catalog.lua' not in file for file in files)
+catalog_file = catalog_folder/'Catalog.lua'
+load_catalog = compile_lua(catalog_file.read_text(encoding='utf-8'), '@'+str(catalog_file))
+lua.globals().LoadGearCatalogFixture = load_catalog
+lua.execute(r'''
+assert(ForeverSuite.GearCatalog==nil)
+LoadGearCatalogFixture()
+local catalog=ForeverSuite.GearCatalog
+local count,kinds=0,{}
+for item,entry in pairs(catalog.items) do
+    assert(item>0 and entry[1]>=0 and entry[1]<=60 and #entry[3]>0)
+    for _,index in ipairs(entry[3]) do
+        local source=assert(catalog.sources[index])
+        assert(source[2]~='' and source[4]>=0 and source[5]>0)
+        kinds[source[1]]=true
+    end
+    count=count+1
+end
+assert(count>=2000 and kinds.Quest and kinds.Vendor and kinds.Boss)
+ForeverSuite.GearCatalog=nil
+''')
+print('PASS: optional gear catalog compiles and all equipment source links resolve')
+
 checks = {
     'safe rules, protection priority and reserves across stacks': r'''
 ResetTest()
@@ -1533,8 +1559,9 @@ with Image.open('Assets/ActionBars/Tile-Dock.tga') as dock:
 print('PASS: six bar artwork textures have transparent corners, bevels, cyan accents and uncompressed RGBA format')
 
 theme_assets=list(Path('Assets/Themes').glob('*.tga'))
-assert len(theme_assets)==40
-for i in range(1,11):
+theme_count=len(lua.globals().ForeverSuite.Themes.names)
+assert len(theme_assets)==theme_count*4
+for i in range(1,theme_count+1):
     for kind in ('Panel','Button','Arrow','Preview'):
         asset=Path('Assets/Themes')/f'{i:02d}-{kind}.tga'
         assert asset.read_bytes()[2]==2, 'Theme textures must be uncompressed TGA'
@@ -1544,4 +1571,4 @@ for i in range(1,11):
             assert im.getchannel('A').getextrema()==(0,255)
             if kind=='Preview': assert im.getpixel((512,900))[3]==0
             else: assert im.getpixel((0,0))[3]==0
-print('PASS: all ten Blender themes include valid panel, button, arrow and preview textures')
+print(f'PASS: all {theme_count} themes include valid panel, button, arrow and preview textures')

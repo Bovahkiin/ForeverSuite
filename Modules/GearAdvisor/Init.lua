@@ -62,11 +62,12 @@ function G:Weights()
     end
     return self.presets[name] or self.presets.Strength,name..' (starter estimate)'
 end
-function G:Score(link)
+function G:Score(link,weights)
     if type(link)~='string' or not C_Item then return end
     local stats=T:Call(C_Item.GetItemStats or GetItemStats,link)
     if type(stats)~='table' then return end
-    local weights=self:Weights(); local total=0
+    weights=weights or self:Weights()
+    local total=0
     for _,s in ipairs(self.stats) do
         local value=stats[s[2]]; local weight=weights[s[1]] or 0
         if value~=nil then
@@ -77,10 +78,153 @@ function G:Score(link)
     return total
 end
 function G:Item(link)
-    if type(link)~='string' or not C_Item then return end
+    if (type(link)~='string' and not T:Number(link)) or not C_Item then return end
     local name,full,quality,level,required,kind,subtype,stack,location,icon,price,classID,subclassID,bind,expansion,setID=T:Call(C_Item.GetItemInfo,link)
-    if not name or not self.slots[location] then return end
-    return {name=name,link=full or link,location=location,required=required,setID=setID,subclassID=subclassID,classID=classID}
+    if T:Text(name)=='' then return nil,true end
+    if not FS.HUD:Safe(location) or not self.slots[location] then return end
+    local itemLink=T:Text(full)
+    if itemLink=='' then itemLink=type(link)=='number' and 'item:'..link or link end
+    return {name=name,link=itemLink,location=location,required=required,setID=setID,subclassID=subclassID,classID=classID}
+end
+local plannerSlots={[1]='Head',[2]='Neck',[3]='Shoulders',[5]='Chest',[6]='Waist',[7]='Legs',
+    [8]='Feet',[9]='Wrists',[10]='Hands',[11]='Ring',[13]='Trinket',[15]='Back',[16]='Main hand',
+    [17]='Off hand',[18]='Ranged'}
+function G:LoadGearCatalog()
+    if not FS.GearCatalog and not self.catalogAttempted and not InCombatLockdown() then
+        self.catalogAttempted=true
+        T:Call(C_AddOns and C_AddOns.LoadAddOn or LoadAddOn,'ForeverSuite_GearData')
+    end
+    return FS.GearCatalog
+end
+function G:QueuePlannerRefresh(w)
+    if self.plannerRefresh then return end
+    self.plannerRefresh=true
+    C_Timer.After(.2,function()
+        self.plannerRefresh=nil
+        if w.window:IsShown() and w:Data().view=='Gear Planner' then w:Refresh() end
+    end)
+end
+function G:PlannerRows(targetLevel,query)
+    local candidates,pending={},{}
+    local equipped={}
+    for slot=1,18 do
+        local id=T:Call(GetInventoryItemID,'player',slot)
+        if T:Number(id) then equipped[id]=true end
+    end
+    local function add(id,instance,boss,kind)
+        if not T:Number(id) or id<1 or id>100000000 or id%1~=0 or T:Text(instance)=='' then return end
+        boss=T:Text(boss)
+        local candidate=candidates[id]
+        if not candidate then
+            candidate={sources={},seen={}}
+            candidates[id]=candidate
+        end
+        local key=(instance..(boss~='' and (' / '..boss) or '')):lower()
+        if not candidate.seen[key] then
+            candidate.seen[key]=true
+            local label=(kind=='Boss' and 'Boss: ' or '')..instance..(boss~='' and (' / '..boss) or '')
+            candidate.sources[#candidate.sources+1]={instance=instance,boss=boss,label=label}
+        end
+    end
+    local extras=FS.Extensions:Data()
+    for _,drop in pairs(extras.encounterLoot) do
+        if type(drop)=='table' and type(drop.items)=='table' then
+            for id in pairs(drop.items) do add(id,drop.instance,drop.boss) end
+        end
+    end
+    for _,goal in pairs(extras.wishlist) do add(goal.item,goal.instance,goal.boss) end
+    for id in pairs(equipped) do
+        if not candidates[id] then candidates[id]={sources={}} end
+    end
+    local catalog=self:LoadGearCatalog()
+    local _,_,classID=T:Call(UnitClass,'player')
+    local classBit=T:Number(classID) and classID>=1 and classID<=32 and 2^(classID-1)
+    if catalog then
+        for id,item in pairs(catalog.items) do
+            if item[1]<=targetLevel and (not classBit or math.floor(item[2]/classBit)%2==1) then
+                for _,index in ipairs(item[3]) do
+                    local source=catalog.sources[index]
+                    if source[4]<=targetLevel then
+                        local kind,name,boss=source[1],source[2],source[3]
+                        local location=kind=='Boss' and name or (kind..': '..name)
+                        add(id,location,boss,kind)
+                        candidates[id].catalog=true
+                    end
+                end
+            end
+        end
+    end
+    local slots={}
+    local weights=self:Weights()
+    local remaining,more=72,false
+    local cache=self.plannerItemCache or {}
+    self.plannerItemCache=cache
+    query=(query or ''):lower()
+    for id,entry in pairs(candidates) do
+        local record
+        if entry.catalog then
+            record=cache[id]
+            if not record then
+                if remaining>0 then
+                    remaining=remaining-1
+                    local item,loading=self:Item(id)
+                    record={item=item,loading=loading}
+                    cache[id]=record
+                else
+                    more=true
+                end
+            end
+        else
+            local item,loading=self:Item(id)
+            record={item=item,loading=loading}
+        end
+        local item,loading=record and record.item,record and record.loading
+        if loading then
+            pending[id]=true
+        elseif item and T:Number(item.required) and item.required>=0 and item.required<=targetLevel then
+            if record.weights~=weights then
+                record.score=self:Score(item.link,weights)
+                record.weights=weights
+            end
+            local score=record.score
+            local slot=self.slots[item.location][1]
+            if T:Number(score) and (score>0 or equipped[id]) and plannerSlots[slot] then
+                local slotName=plannerSlots[slot]
+                local matches=query=='' or (slotName..' | '..item.name):lower():find(query,1,true)
+                if not matches then
+                    for _,source in ipairs(entry.sources) do
+                        if source.label:lower():find(query,1,true) then matches=true; break end
+                    end
+                end
+                if matches then
+                    slots[slot]=slots[slot] or {}
+                    slots[slot][#slots[slot]+1]={id=id,score=score,item=item,sources=entry.sources,slotName=slotName}
+                end
+            end
+        end
+    end
+    local rows={}
+    for slot=1,18 do
+        local items=slots[slot]
+        if items then
+            table.sort(items,function(a,b) if a.score~=b.score then return a.score>b.score end; return a.id<b.id end)
+            for rank=1,math.min(6,#items) do
+                local row=items[rank]
+                row.name,row.link,row.required=row.item.name,row.item.link,row.item.required
+                row.equipped=equipped[row.id]
+                row.text=row.slotName..' | '..(rank==1 and 'Top pick' or ('Alt '..(rank-1)))..' | '..row.name
+                    ..(row.equipped and ' (equipped)' or '')
+                table.sort(row.sources,function(a,b) return a.label<b.label end)
+                local terms={row.text}
+                for _,source in ipairs(row.sources) do terms[#terms+1]=source.label end
+                row.searchText=table.concat(terms,' ')
+                local source=row.sources[1]
+                row.detailLine=('Requires level %d | %.1f points | %s'):format(row.required,row.score,source and source.label or 'Source unknown')
+                rows[#rows+1]=row
+            end
+        end
+    end
+    return rows,pending,catalog and catalog.build,more
 end
 function G:Compare(link)
     if type(GetInventoryItemLink)~='function' then return end
@@ -195,7 +339,8 @@ function G:EditScale()
 end
 G.actions={{label='View',run=function(self) local nextView={Upgrades='Class guide',['Class guide']='Weights',Weights='Upgrades'}; self:Data().view=nextView[self:Data().view]; self.selected=nil; self.page=1; self:SettingsChanged() end},
     {label='Save weight',run=function(self,text) self:SetWeight(self.selected and self.selected.stat,text) end},
-    {label='Edit scale',run=function(self) self:EditScale() end}}
+    {label='Edit scale',run=function(self) self:EditScale() end},
+    {label='Gear planner',run=function() FS.modules.Workbench:Choose('Gear Planner') end}}
 function G:Tooltip(tooltip)
     if not FS:IsModuleEnabled(self.name) or not self:Data().tooltips or not tooltip or not tooltip.GetItem then return end
     local _,link=T:Call(tooltip.GetItem,tooltip)
@@ -219,7 +364,20 @@ function G:InstallTooltip()
     for _,tip in ipairs({GameTooltip,ItemRefTooltip}) do tip:HookScript('OnTooltipCleared',function(t) t.fsAdvisorLink=nil end) end
 end
 function G:Apply() self:InstallTooltip() end
-function G:Event(event) if event=='ADDON_LOADED' then self:InstallTooltip() end end
+function G:Event(event,id,success)
+    if event=='ADDON_LOADED' then self:InstallTooltip(); return end
+    local w=FS.modules.Workbench
+    if not w or not w.window or not w.window:IsShown() or w:Data().view~='Gear Planner' then return end
+    if event=='PLAYER_REGEN_ENABLED' or event=='PLAYER_LEVEL_UP' or event=='PLAYER_EQUIPMENT_CHANGED' then
+        self:QueuePlannerRefresh(w)
+    elseif event=='GET_ITEM_INFO_RECEIVED' and T:Number(id) and w.plannerPending and w.plannerPending[id] then
+        local cache=self.plannerItemCache
+        if cache and cache[id] then
+            if success==true then cache[id]=nil else cache[id]={} end
+        elseif success~=true then return end
+        self:QueuePlannerRefresh(w)
+    end
+end
 local render=G.Render
 function G:Render()
     render(self)

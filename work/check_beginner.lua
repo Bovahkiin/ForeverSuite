@@ -37,12 +37,12 @@ for _,step in ipairs({1,5,2,3}) do
  for _,id in ipairs({'Unit:player','Unit:target','Unit:pet','ChatFrame1','QuestTracker'}) do assert(I.window.layoutPreview.parts[id].frame:IsShown()) end
 end
 I.step=2; I:Refresh()
-for index=1,10 do
+for index=1,#FS.Themes.names do
  I.window.choices[index]:Click()
  assert(FS.Themes.frames[I.window.layoutPreview].parts[1].texture==FS.Themes:Asset(index,'Panel'))
  assert(FS.db.appearance.theme=='Legacy')
 end
-I.step=3; I:Refresh(); I.window.choices[4]:Click(); assert(I.window.layoutPreview.parts['Unit:player'].frame.label.font[2]==13)
+I.step=3; I:Refresh(); I.window.choices[4]:Click(); assert(I.window.layoutPreview.parts['Unit:player'].frame.label.font[2]==13 and not I.window.themeSample:IsShown())
 I:Dismiss()
 
 -- TEST: Module cards open independent basic screens with real options and automatic saving

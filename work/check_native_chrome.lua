@@ -548,12 +548,15 @@ FS.db.nameplates.enabled=false; messages={}; FS:PrintClientStatus()
 assert(not table.concat(messages,'\n'):find('Platynator and ForeverSuite Nameplates',1,true))
 FS.Print=print; C_AddOns=old; FS.db.nameplates.enabled=enabled
 
--- TEST: Ten theme choices change design previews without writing live profile choices
+-- TEST: All eleven theme choices update panel button and waypoint previews without writing live profile choices
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.window.next:Click(); I.window.next:Click()
-assert(#FS.Themes.names==10 and #I.window.choices==10 and I.step==2)
+assert(#FS.Themes.names==11 and #I.window.choices==#FS.Themes.names and I.step==2)
+assert(I.window.themeSample:IsShown())
 for i,name in ipairs(FS.Themes.names) do
     I.window.choices[i]:Click()
     assert(I.draft.theme==name and I.window.design.image.texture==FS.Themes:Asset(i,'Preview'))
+    assert(FS.Themes.frames[I.window.themeSample.button].parts[1].texture==FS.Themes:Asset(i,'Button'))
+    assert(I.window.themeSample.arrow.texture==FS.Themes:Asset(i,'Arrow'))
     assert(FS.db.appearance.theme=='Legacy' and not FS.db.setup.completed)
 end
 I:Dismiss(); assert(FS.db.appearance.theme=='Legacy')
@@ -563,8 +566,9 @@ ResetTest(); local FS=ForeverSuite; local I=FS.Installer
 local setup=FS.db.setup.completed; local modules=FS:IsModuleEnabled('Quests'); local point={MainActionBar:GetPoint()}; local scale=MainActionBar:GetScale()
 I:ShowThemes(); I.window.choices[6]:Click(); I.window.later:Click()
 assert(FS.db.appearance.theme=='Legacy' and FS.db.setup.completed==setup and FS:IsModuleEnabled('Quests')==modules)
-I:ShowThemes(); I.window.choices[6]:Click(); I.window.next:Click()
-assert(FS.db.appearance.theme=='Royal Aether' and not I.window:IsShown())
+I:ShowThemes(); I.window.choices[11]:Click(); I.window.next:Click()
+assert(FS.db.appearance.theme=='Azeroth Heritage' and not I.window:IsShown())
+assert(FS.db.profiles.saved[FS.db.profiles.current].appearance.theme=='Azeroth Heritage')
 assert(FS.db.setup.completed==setup and FS:IsModuleEnabled('Quests')==modules and MainActionBar:GetScale()==scale)
 local now={MainActionBar:GetPoint()}; for i,v in ipairs(point) do assert(now[i]==v) end
 

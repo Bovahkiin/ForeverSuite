@@ -614,6 +614,105 @@ W:Build(); W.selected=W.rows[1]; W:Perform(3,''); assert(E.form:IsShown())
 E.form.save:Click(); assert(not E:RunNote('Test dungeon','Test boss'))
 GetInstanceInfo=previous; E.noticeTimes={}; Drain()
 
+-- TEST: Gear Planner ranks known gear by slot and level and sends the selected source to Wishlist
+local FS,E,W=ExtensionFixture()
+local G=FS.modules.GearAdvisor
+local oldInfo,oldStats,oldLevel,oldEquipped=C_Item.GetItemInfo,C_Item.GetItemStats,UnitLevel,GetInventoryItemID
+UnitLevel=function() return 15 end
+GetInventoryItemID=function(_,slot) if slot==1 then return 42 end end
+local items={
+    [42]={'Worn helm',10,'INVTYPE_HEAD',5},
+    [43]={'Stronger helm',12,'INVTYPE_HEAD',10},
+    [44]={'Future helm',20,'INVTYPE_HEAD',25},
+    [45]={'Shoulder pads',10,'INVTYPE_SHOULDER',8},
+}
+C_Item.GetItemInfo=function(value)
+    local id=tonumber(value) or tonumber(value:match('item:(%d+)'))
+    local item=items[id]
+    if item then return item[1],'item:'..id,2,20,item[2],nil,nil,nil,item[3] end
+end
+C_Item.GetItemStats=function(link)
+    local item=items[tonumber(link:match('item:(%d+)'))]
+    return item and {ITEM_MOD_STRENGTH_SHORT=item[4]}
+end
+G:Data().preset='Strength'
+local data=E:Data()
+data.encounterLoot.alpha={instance='Test dungeon',boss='First boss',items={[42]=true,[43]=true,[44]=true,[45]=true,[46]=true}}
+data.encounterLoot.beta={instance='Other dungeon',boss='Other boss',items={[43]=true}}
+G:ShowWindow(); G.window.actionButtons[4]:Click()
+assert(W:Data().view=='Gear Planner' and #W.rows==3 and W.plannerPending[46])
+assert(W.rows[1].id==43 and #W.rows[1].sources==2 and W.rows[1].text:find('Top pick',1,true))
+assert(W.rows[2].id==42 and W.rows[2].equipped and W.rows[3].slotName=='Shoulders')
+W.window.cells[1]:Click(); W.window.actionButtons[1]:Click()
+assert(E.dialog:IsShown() and E.dialog.edit:GetText():find('Test dungeon / First boss',1,true))
+assert(E.dialog.edit:GetText():find('Other dungeon / Other boss',1,true))
+E.dialog.cancel:Click(); W.window.actionButtons[2]:Click()
+assert(#W.rows==4 and W.rows[1].id==44 and W.window.actionButtons[2]:GetText()=='Level: 20')
+W.window.cells[1]:Click(); W.window.actionButtons[3]:Click()
+assert(E.form:IsShown() and E.form.edits[1]:GetText()=='Test dungeon' and E.form.edits[3]:GetText()=='44')
+E.form.save:Click(); assert(E:WishlistGoalForDrop('Test dungeon','First boss',44))
+W.window.actionButtons[3]:Click()
+assert(W:Data().view=='Gear Wishlist' and W.selected.goal.item==44)
+W.plannerLevel=nil
+W:Choose('Gear Planner')
+assert(W.plannerPending[46] and not W:RefreshOnTick())
+G:Event('GET_ITEM_INFO_RECEIVED',46,false)
+assert(not G.plannerRefresh)
+items[46]={'New necklace',10,'INVTYPE_NECK',12}
+G:Event('GET_ITEM_INFO_RECEIVED',46,true)
+assert(G.plannerRefresh)
+Drain()
+assert(not W.plannerPending[46] and W.rows[3].id==46)
+C_Item.GetItemInfo,C_Item.GetItemStats,UnitLevel,GetInventoryItemID=oldInfo,oldStats,oldLevel,oldEquipped
+
+-- TEST: Gear Planner loads its catalog on demand and filters by class, level and source
+local FS,E,W=ExtensionFixture()
+local G=FS.modules.GearAdvisor
+local oldAddOns,oldClass,oldLevel,oldInfo,oldStats=C_AddOns,UnitClass,UnitLevel,C_Item.GetItemInfo,C_Item.GetItemStats
+G.catalogAttempted=nil
+G:Data().preset='Agility'
+W.plannerLevel=nil
+local loads,unlocked=0,false
+local read={}
+C_AddOns={LoadAddOn=function(name)
+    assert(name=='ForeverSuite_GearData')
+    loads=loads+1
+    FS.GearCatalog={build='1.60.1.70938',
+        sources={{'Boss','Test dungeon','First boss',0,1},{'Quest','Test reward','',20,2},{'Vendor','Test merchant','',0,3}},
+        items={[91]={0,-1,{1}},[92]={1,1,{3}},[93]={0,-1,{2}},[94]={0,4,{3}},[95]={16,-1,{1}}}}
+    return true
+end}
+UnitClass=function() return 'Hunter','HUNTER',3 end
+UnitLevel=function() return 15 end
+C_Item.GetItemInfo=function(id)
+    read[id]=true
+    if id==91 and not unlocked then return end
+    return 'Catalog item '..id,'item:'..id,2,15,10,nil,nil,nil,'INVTYPE_HEAD'
+end
+C_Item.GetItemStats=function() return {ITEM_MOD_AGILITY_SHORT=5} end
+G:ShowWindow()
+assert(loads==0 and FS.GearCatalog==nil)
+W:Choose('Gear Planner')
+assert(loads==1 and W.plannerPending[91] and #W.rows==1 and W.rows[1].id==94)
+assert(not read[92] and not read[93] and not read[95])
+assert(W.rows[1].sources[1].label=='Vendor: Test merchant')
+unlocked=true
+G:Event('GET_ITEM_INFO_RECEIVED',91,true)
+Drain()
+assert(#W.rows==2 and W.rows[1].sources[1].label=='Boss: Test dungeon / First boss')
+W.window.actionButtons[2]:Click()
+assert(#W.rows==4 and W.rows[2].sources[1].label=='Quest: Test reward')
+W.window.search:SetText('test reward'); W.window.search.scripts.OnTextChanged(W.window.search)
+assert(#W.rows==1 and W.rows[1].id==93)
+W.window.cells[1]:Click(); W.window.actionButtons[3]:Click()
+assert(E.form.edits[1]:GetText()=='Quest: Test reward')
+E.form.save:Click()
+assert(E:WishlistGoalForDrop('Quest: Test reward','',93))
+W:Choose('Gear Wishlist')
+assert(not G.plannerItemCache and loads==1)
+FS.GearCatalog,G.catalogAttempted=nil,nil
+C_AddOns,UnitClass,UnitLevel,C_Item.GetItemInfo,C_Item.GetItemStats=oldAddOns,oldClass,oldLevel,oldInfo,oldStats
+
 -- TEST: Gear Wishlist deduplicates source goals and preserves manually acquired status
 local FS,E,W=ExtensionFixture()
 assert(E:AddWishlistItem('Test raid','First boss',42))
@@ -973,7 +1072,7 @@ local FS,E,W=ExtensionFixture(); W:ShowWindow(); local f=W.window; f.section:Cli
 f.categoryMenu.buttons[12]:Click(); assert(W:Data().view=='Item checklists' and not f.categoryMenu:IsShown())
 f.section:Click(); f.categoryMenu.next:Click(); f.categoryMenu.next:Click()
 assert(f.categoryMenu.page==3 and f.categoryMenu.buttons[#W.views]:IsShown() and not f.categoryMenu.buttons[1]:IsShown())
-f.categoryMenu.buttons[#W.views]:Click(); assert(W:Data().view=='Profession recommendations')
+f.categoryMenu.buttons[#W.views]:Click(); assert(W:Data().view=='Gear Planner')
 
 -- TEST: Menu avoids a visible damage meter once, preserves separate placements and defers in combat
 ResetTest(); local FS=ForeverSuite; local L=FS.Layout; local A=FS.modules.ActionBars

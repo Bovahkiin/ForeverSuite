@@ -62,7 +62,7 @@ function I:Create()
     H:Skin(f); f:SetBackdropColor(.018,.027,.038,1); f:SetSize(760,680); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG"); f:SetClampedToScreen(true); f:EnableMouse(true)
     local logo=f:CreateTexture(nil,"ARTWORK"); logo:SetTexture(FS.logo); logo:SetSize(310,78); logo:SetPoint("TOP",0,-12)
     f.title=H:Label(f,"",24,-100,712); f.description=H:Label(f,"",24,-140,712)
-    f.choices={}; for index=1,10 do
+    f.choices={}; for index=1,math.max(#FS.Themes.names,#modules,#FS.LayoutPresets.names) do
         local button=H:Button(f,"",0,0,344,function()
             if self.step==2 then self.draft.theme=FS.Themes.names[index]
             elseif self.step==3 then
@@ -83,6 +83,12 @@ function I:Create()
     f.layoutHelp=H:Label(f,"",24,-260,712); f.layoutHelp:SetHeight(60)
     f.design=CreateFrame("Frame",nil,f); f.design:SetSize(712,445); f.design:EnableMouse(false)
     f.design.image=f.design:CreateTexture(nil,"ARTWORK"); f.design.image:SetAllPoints(); f.design.image:SetTexCoord(0,1,0,.625)
+    f.themeSample=CreateFrame("Frame",nil,f); f.themeSample:SetSize(712,44); f.themeSample:EnableMouse(false)
+    f.themeSample.button=H:Button(f.themeSample,"Button preview",0,-5,185)
+    f.themeSample.button:EnableMouse(false)
+    f.themeSample.arrow=f.themeSample:CreateTexture(nil,"ARTWORK"); f.themeSample.arrow:SetSize(38,38)
+    f.themeSample.arrow:SetPoint("LEFT",205,0)
+    H:Label(f.themeSample,"Waypoint arrow",250,-13,200)
     f.preview.player=H:Label(f.preview,"Player  |  100%",18,-20,210)
     f.preview.target=H:Label(f.preview,"Target  |  100%",470,-20,210)
     f.preview.quest=H:Label(f.preview,"Quest objectives\nFollow your waypoint",470,-62,215)
@@ -128,21 +134,23 @@ end
 function I:Refresh()
     local f=self.window; local d=self.draft; if not f or not d then return end
     local titlesByStep={"Welcome to ForeverSuite","Choose your appearance","Choose readable text","Choose your modules","Choose your layout"}
-    local descriptions={"ForeverSuite  |  v"..FS.version.."\nCreated by DeluxiZ\nA few quick choices to make your UI feel like yours.","Ten Blender styles. Select one to see its panel, button and arrow design. Gameplay positions stay unchanged.","Bar size buttons affect this preview only. Readable text stages size 18 and outlines; Compact screen stages size 12 and 85% unit frames. Apply & finish saves the preset.","Choose what ForeverSuite manages. Other modules keep their current settings."}
-    descriptions[1]="ForeverSuite  |  v"..FS.version.."\nCreated by DeluxiZ\nUse the recommended start or choose your own layout, appearance and text. You can change every choice later."
-    descriptions[2]="Choose a theme. The same layout preview below shows its colors and frame artwork. Your choices are saved when you finish."
-    descriptions[3]="Choose a text preset. The preview shows your staged text size. Apply & finish saves the layout, theme and text to your profile. Bar size buttons change the preview only."
-    descriptions[5]="Choose Balanced, Compact or Classic. Player, target, pet, chat and quest positions are shown below. Each layout is fitted to your screen."
+    local descriptions={
+        "ForeverSuite  |  v"..FS.version.."\nCreated by DeluxiZ\nUse the recommended start or choose your own layout, appearance and text. You can change every choice later.",
+        "Choose a theme to preview its frames, buttons and waypoint arrow.",
+        "Choose a text preset. The preview shows your staged text size. Apply & finish saves the layout, theme and text to your profile. Bar size buttons change the preview only.",
+        "Choose what ForeverSuite manages.",
+        "Choose Balanced, Compact or Classic. Player, target, pet, chat and quest positions are shown below. Each layout is fitted to your screen."
+    }
     f.title:SetText(titlesByStep[self.step]); f.description:SetText(descriptions[self.step])
     local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
     local y=100+H:TextHeight(f.title,712,2)+14; at(f.description,24,y); y=y+H:TextHeight(f.description,712,4)+20
-    local count=self.step==2 and 10 or self.step==3 and 6 or self.step==4 and 6 or self.step==5 and 4 or 0
+    local count=self.step==2 and #FS.Themes.names or self.step==3 and 6 or self.step==4 and #modules or self.step==5 and #FS.LayoutPresets.names or 0
     local rowHeight=36
     for index,button in ipairs(f.choices) do
         button:SetShown(index<=count)
         if index<=count then
             local caption,selected
-            if self.step==2 then caption=string.format("%02d  %s",index,FS.Themes.names[index]); selected=d.theme==FS.Themes.names[index]
+            if self.step==2 then caption=FS.Themes.names[index]; selected=d.theme==FS.Themes.names[index]
             elseif self.step==3 then caption=({"Compact bars preview (80%)","Standard bars preview (100%)","Large bars preview (120%)","Readable text (18)","Compact text (12)","Standard text (14)"})[index]; selected=index<=3 and not d.preset and d.scale==({.8,1,1.2})[index] or index==4 and d.preset=='Readable text' or index==5 and d.preset=='Compact screen' or index==6 and d.preset=='Standard text'
             elseif self.step==4 then local name=modules[index]; caption=titles[name]..": "..(d.modules[name] and "On" or "Off"); selected=d.modules[name]
             else
@@ -206,6 +214,15 @@ function I:Refresh()
     for _,tile in ipairs(preview.tiles) do tile:SetFrameLevel(preview:GetFrameLevel()+2) end
     FS.modules.ActionBars:StyleTray(preview.tray,d.style,show("ActionBars"))
     y=y+(self.step==4 and preview:GetHeight() or f.layoutPreview:GetHeight())+16
+    f.themeSample:SetShown(self.step==2)
+    if self.step==2 then
+        at(f.themeSample,24,y)
+        FS.Themes:Register(f.themeSample.button,"Button",theme)
+        FS.Themes:Font(f.themeSample.button.fsLabel,theme)
+        f.themeSample.arrow:SetTexture(FS.Themes:Asset(theme,"Arrow"))
+        f.themeSample:SetHeight(math.max(44,H:FitButton(f.themeSample.button,2)+10))
+        y=y+f.themeSample:GetHeight()+8
+    end
     f.recommended:SetShown(self.step==1); f.customize:SetShown(self.step==1)
     if self.step==1 then
         at(f.recommended,24,y); at(f.customize,392,y)

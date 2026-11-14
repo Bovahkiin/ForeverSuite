@@ -314,7 +314,7 @@ function E:ObserveEncounterLoot(encounterID,itemID,recipient)
     local workbench=self.workbench
     if workbench and workbench.window and workbench.window:IsShown() then
         local view=workbench:Data().view
-        if ((new or acquired) and view=='Dungeon & Raid Journal')
+        if ((new or acquired) and view=='Dungeon & Raid Journal') or (new and view=='Gear Planner')
             or (acquired and (view=='Gear Wishlist' or view=='Next steps')) then
             workbench:Refresh()
         end

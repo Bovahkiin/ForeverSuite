@@ -49,7 +49,7 @@
 
 1. Disable all modules in Control Center, then open Guided setup. Welcome
    and step 3 must still show example player/target bars, text and action icons.
-2. On step 2, choose each of the ten styles. Check the design image, then
+2. On the appearance step, choose each theme. Check the panel, button and waypoint previews, then
    step 3 bar-size and text presets. Live modules must remain disabled.
 3. Step 4: with all choices off, check the explanatory message. Enable one
    draft module: its example appears, other examples stay hidden and the live
@@ -265,9 +265,9 @@ Previous test instructions:
 # ForeverSuite in-game tests (current: v0.7.39)
 
 On a fresh SavedVariables setup, verify that Welcome appears once, Patch Log
-returns to the same draft, and Appearance offers all ten numbered designs.
+returns to the same draft, and Appearance offers all installed designs.
 Select each and check its matching preview, then finish or cancel. Existing
-players use /fs setup or Control Center > Appearance: 10 styles. Do not delete
+players use /fs setup or Control Center > Theme. Do not delete
 SavedVariables merely to test first-run behavior; keep a backup/test account.
 
 In the appearance-only picker, Cancel must preserve the existing style, enabled

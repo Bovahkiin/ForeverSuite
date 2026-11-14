@@ -1,6 +1,6 @@
 local _,FS=...
 local T={frames=setmetatable({},{__mode="k"}),fonts=setmetatable({},{__mode="k"})}; FS.Themes=T
-T.names={"Celestial Forge","Titanium Signal","Obsidian Arcana","Verdant Relic","Glacial Prism","Royal Aether","Runestone","Astral Glass","Ember Bastion","Cartographer"}
+T.names={"Celestial Forge","Titanium Signal","Obsidian Arcana","Verdant Relic","Glacial Prism","Royal Aether","Runestone","Astral Glass","Ember Bastion","Cartographer","Azeroth Heritage"}
 FS.defaults.appearance={theme="Legacy"}
 local path="Interface\\AddOns\\ForeverSuite\\Assets\\Themes\\"
 function T:Index(name)
@@ -8,7 +8,7 @@ function T:Index(name)
 end
 function T:Current() return FS.db and FS.db.appearance and self:Index(FS.db.appearance.theme) end
 function T:Accent()
-    local colors={{.12,.8,.94},{.25,.8,1},{.72,.42,1},{.4,.9,.5},{.48,.9,1},{.8,.58,1},{.95,.7,.32},{.4,.82,1},{1,.48,.18},{.35,.24,.12}}
+    local colors={{.12,.8,.94},{.25,.8,1},{.72,.42,1},{.4,.9,.5},{.48,.9,1},{.8,.58,1},{.95,.7,.32},{.4,.82,1},{1,.48,.18},{.35,.24,.12},{.89,.69,.38}}
     return unpack(colors[self:Current() or 1])
 end
 function T:Asset(index,kind) return path..string.format("%02d",index).."-"..kind..".tga" end
@@ -39,7 +39,7 @@ function T:Register(frame,kind,previewIndex)
     if index and not state.parts then
         state.parts={}
         -- Fixed corner geometry and stretched middle strips keep the rendered
-        -- Blender bevels intact at every window aspect ratio. No native anchors.
+        -- texture bevels intact at every window aspect ratio. No native anchors.
         for row=0,2 do for col=0,2 do
             local p=frame:CreateTexture(nil,"BACKGROUND",nil,1); p.ignoreInLayout=true; p.fsSuiteStyle=true
             local uv={0,.18,.82,1}; p:SetTexCoord(uv[col+1],uv[col+2],uv[row+1],uv[row+2]); state.parts[#state.parts+1]=p
@@ -72,16 +72,17 @@ function T:ReleaseFont(region)
     local state=self.fonts[region]
     if state then region:SetTextColor(unpack(state)); self.fonts[region]=nil end
 end
-function T:Font(region)
+function T:Font(region,previewIndex)
     if not region or not region.SetTextColor then return end
+    local darkText=(previewIndex or self:Current())==10
     local state=self.fonts[region]
     if not state then
-        if self:Current()~=10 then return end
+        if not darkText then return end
         state=region.GetTextColor and {region:GetTextColor()} or {.9,.94,1,1}
         for i=1,3 do if not FS.HUD:Safe(state[i]) or type(state[i])~="number" then return end end
         self.fonts[region]=state
     end
-    if self:Current()==10 then region:SetTextColor(state[1]*.18,state[2]*.18,state[3]*.18,state[4] or 1)
+    if darkText then region:SetTextColor(state[1]*.18,state[2]*.18,state[3]*.18,state[4] or 1)
     else region:SetTextColor(unpack(state)); self.fonts[region]=nil end
 end
 function T:Refresh()

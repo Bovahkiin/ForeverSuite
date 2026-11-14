@@ -10,6 +10,13 @@ import sys
 import zipfile
 
 
+COMPANION_FILES = {
+    'ForeverSuite_GearData/ForeverSuite_GearData.toc',
+    'ForeverSuite_GearData/Catalog.lua',
+    'ForeverSuite_GearData/DATA_SOURCES.md',
+}
+
+
 def metadata(root):
     toc = (root / 'ForeverSuite.toc').read_text(encoding='utf-8-sig')
     matches = re.findall(r'^## Version:\s*(\S+)\s*$', toc, re.M)
@@ -44,9 +51,12 @@ def build(root):
     with zipfile.ZipFile(archive) as z:
         if z.testzip() is not None:
             raise ValueError('The built ZIP failed its CRC check.')
-        if 'ForeverSuite/ForeverSuite.toc' not in z.namelist():
-            raise ValueError('The ZIP must contain a single ForeverSuite addon folder.')
-        for name in z.namelist():
+        names = set(z.namelist())
+        if not (COMPANION_FILES | {'ForeverSuite/ForeverSuite.toc'}) <= names:
+            raise ValueError('The ZIP must include ForeverSuite and its gear catalog.')
+        for name in names:
+            if name in COMPANION_FILES:
+                continue
             parts = PurePosixPath(name).parts
             if parts[0] != 'ForeverSuite' or '..' in parts or any(p in {'work', '.git', '.github', 'dist'} for p in parts):
                 raise ValueError('Unexpected release file: ' + name)
