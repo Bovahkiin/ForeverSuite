@@ -19,6 +19,7 @@ Thumbs.db
 !/work/package_release.py
 !/work/render_azeroth_heritage.py
 !/work/build_gear_catalog.py
+!/work/build_profession_catalog.py
 !/work/build_github_release.py
 !/work/check_release_pipeline.py
 !/work/requirements-ci.txt

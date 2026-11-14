@@ -1,0 +1,7 @@
+## Interface: 16001
+## Title: ForeverSuite Profession Data
+## Notes: On-demand recipe and trainer reference for WoW Forever.
+## Dependencies: ForeverSuite
+## LoadOnDemand: 1
+
+Catalog.lua

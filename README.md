@@ -8,7 +8,7 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
-**Current release:** 1.0.2 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.3 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 
@@ -40,8 +40,19 @@ profile. Made by **DeluxiZ**.
 - **Chat, social and guild:** separate modules, chat appearance options, keyword
   highlights, optional chat copying, private guild notes, favorites, and optional
   recent-group history.
+- **Professions:** open a profession in WoW, then use **Professions → View** in
+  ForeverSuite. **Skill-ups** ranks learned recipes by their current color,
+  available materials and recorded material cost. **Market** estimates cost
+  and margin before auction fees using saved per-item prices. **Recipe book**
+  also lists unlearned recipes visible to the game. Select a recipe to plan
+  quantities and send missing materials to the shopping list.
+- **Level routes:** use **Professions → View → Level routes** to plan a custom
+  skill range up to 300 for 12 professions. Training steps show observed
+  trainers where available. Crafting routes estimate the minimum direct
+  ingredients and flag recipes with an unconfirmed source.
+  [Profession data and coverage](ForeverSuite_ProfessionData/DATA_SOURCES.md)
 - **More everyday tools:** loot and leveling session summaries, cooldown and buff
-  tools, professions, auction information, and equipment durability tracking.
+  tools, auction information, and equipment durability tracking.
 - **Profiles and settings tools:** profile import/export, automatic backups,
   character assignments, settings search, favorites, and undo for reversible
   settings changes.
@@ -115,20 +126,19 @@ for GitHub Desktop and the **Nieuwe release maken** release button.
 
 1. Download the attached **ForeverSuite ZIP** from this repository's **Releases**
    page.
-2. Extract `ForeverSuite` and `ForeverSuite_GearData` side by side into your WoW
-   Forever AddOns folder.
+2. Extract all three folders side by side into your WoW Forever AddOns folder.
 
    ```text
    World of Warcraft/_forever_/Interface/AddOns/ForeverSuite/
    World of Warcraft/_forever_/Interface/AddOns/ForeverSuite_GearData/
+   World of Warcraft/_forever_/Interface/AddOns/ForeverSuite_ProfessionData/
    ```
 
 3. Check that `ForeverSuite.toc` is directly inside that folder. Avoid an extra
    nested `ForeverSuite/ForeverSuite` folder.
-4. Enable ForeverSuite and ForeverSuite Gear Data in the game's AddOns list,
-   then log in. The catalog loads when you open Gear Planner. You can use the
-   planner with your local sources if the data addon is disabled. If the game
-   was open during a manual update, type `/reload` after copying finishes.
+4. Enable ForeverSuite and both data addons in the game's AddOns list, then
+   log in. The catalogs load when you open Gear Planner or Level routes.
+   If the game was open during a manual update, type `/reload` after copying.
 
 Download the release ZIP attached by the author rather than GitHub's automatically
 generated source archive.

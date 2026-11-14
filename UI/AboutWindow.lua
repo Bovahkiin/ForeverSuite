@@ -1,9 +1,9 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.2",lines={
-        "Azeroth Heritage brings dark slate panels, brass trim, burgundy buttons and a gold-and-blue waypoint arrow. Preview it under Theme or in Guided Setup.",
-        "Open Gear Planner from Gear Advisor to compare equipment by slot and add items to your Gear Wishlist.",
-        "The included catalog covers 2,395 WoW Forever items for levels 1–60 and loads when you open Gear Planner.",
+    {version="1.0.3",lines={
+        "Open Professions and use View to find Skill-ups, Market, Recipe book and Level routes.",
+        "Plan a skill range through 300 for 12 professions with 2,457 recipes and trainer data. Check any recipe marked Check source before buying materials.",
+        "Crafting routes can send minimum direct reagent estimates to the shopping list. Market estimates use recorded Auction House unit prices and exclude fees.",
     }},
 }
 function FS:CreateAboutWindow()

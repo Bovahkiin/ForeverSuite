@@ -14,6 +14,9 @@ COMPANION_FILES = {
     'ForeverSuite_GearData/ForeverSuite_GearData.toc',
     'ForeverSuite_GearData/Catalog.lua',
     'ForeverSuite_GearData/DATA_SOURCES.md',
+    'ForeverSuite_ProfessionData/ForeverSuite_ProfessionData.toc',
+    'ForeverSuite_ProfessionData/Catalog.lua',
+    'ForeverSuite_ProfessionData/DATA_SOURCES.md',
 }
 
 
@@ -53,7 +56,7 @@ def build(root):
             raise ValueError('The built ZIP failed its CRC check.')
         names = set(z.namelist())
         if not (COMPANION_FILES | {'ForeverSuite/ForeverSuite.toc'}) <= names:
-            raise ValueError('The ZIP must include ForeverSuite and its gear catalog.')
+            raise ValueError('The ZIP must include ForeverSuite and both on-demand catalogs.')
         for name in names:
             if name in COMPANION_FILES:
                 continue

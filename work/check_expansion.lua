@@ -263,6 +263,85 @@ P:OnSelect({id=11,modern=true},2)
 assert(not P.expanded and #P.rows==1 and P.rows[1].required==6)
 P:ClearPlan(); C_TradeSkillUI,C_Item.GetItemCount=oldAPI,oldCount
 
+-- TEST: Professions recommend skill-ups and estimate margins from observed unit prices
+ResetTest(); local FS=ForeverSuite; local P,A=FS.modules.Professions,FS.modules.AuctionHouse
+local oldApi,oldCount=C_TradeSkillUI,C_Item.GetItemCount
+local recipes={
+    [11]={name='Orange',learned=true,relativeDifficulty=0,canSkillUp=true},
+    [12]={name='Yellow',learned=true,relativeDifficulty=1,canSkillUp=true},
+    [13]={name='Locked',learned=true,relativeDifficulty=0,canSkillUp=false},
+    [14]={name='Hidden recipe',learned=false,relativeDifficulty=0},
+}
+C_TradeSkillUI={
+    GetAllRecipeIDs=function() return {11,12,13,14} end,
+    GetRecipeInfo=function(id) return recipes[id] end,
+    GetCraftableCount=function(id) return id==12 and 2 or 0 end,
+    GetRecipeSchematic=function(id)
+        return {outputItemID=100+id,quantityMin=2,quantityMax=4,
+            reagentSlotSchematics={{quantityRequired=3,reagents={{itemID=7}}}}}
+    end,
+    GetRecipeSourceText=function(id) if id==14 then return 'Trainer in Goldshire' end end,
+}
+C_Item.GetItemCount=function() return 1 end
+A:Prices()[7]={kind='per item',price=100,time=1}
+A:Prices()[111]={kind='per item',price=200,time=1}
+A:Prices()[112]={kind='lowest listing',price=600,time=1}
+P.recipeView=2; P:ShowWindow()
+assert(#P.rows==2 and P.rows[1].id==11 and P.rows[2].id==12)
+assert(P.rows[1].cost==300 and P.rows[1].text:find('Orange',1,true))
+P.window.actionButtons[4]:Click()
+assert(P.recipeView==3 and P.rows[1].id==11 and P.rows[1].margin==100)
+for _,row in ipairs(P.rows) do if row.id==12 then assert(row.cost==300 and row.margin==nil) end end
+P.window.actionButtons[4]:Click()
+assert(P.recipeView==4 and #P.rows==4)
+local bookRow
+for _,row in ipairs(P.rows) do if row.id==14 then bookRow=row end end
+assert(bookRow and bookRow.searchText:find('Goldshire',1,true))
+P.window.search:SetText('Goldshire'); P:OnSelect(bookRow)
+assert(P.window.search:GetText()=='' and #P.rows==1)
+P.window.actionButtons[1]:Click()
+assert(P.window.search:GetText()=='Goldshire')
+P.window:Hide()
+P.recipeView=nil; P.professionCatalogAttempted=nil; P:ClearPlan()
+C_TradeSkillUI,C_Item.GetItemCount=oldApi,oldCount
+
+-- TEST: Profession route data loads on demand and plans all twelve skills with distinct trainer and shopping steps
+ResetTest(); local FS=ForeverSuite; local P=FS.modules.Professions
+local oldAddOns,oldCount=C_AddOns,C_Item.GetItemCount
+local loads=0
+C_AddOns={LoadAddOn=function(name)
+    assert(name=='ForeverSuite_ProfessionData')
+    LoadProfessionCatalogFixture(); loads=loads+1
+end}
+C_Item.GetItemCount=function() return 0 end
+P.recipeView=1; P:ShowWindow(); assert(not FS.ProfessionCatalog and loads==0)
+P.recipeView=5; P:Refresh()
+assert(loads==1 and #P.rows==12 and P.window.actionButtons[2]:GetText()=='Plan range')
+local catalog=FS.ProfessionCatalog
+local recipeCount,trainerCount=0,0
+for id,profession in pairs(catalog.professions) do
+    for _,recipe in ipairs(profession.recipes) do
+        assert(#recipe[8]>0 and #recipe[8]%2==0 and recipe[3]<recipe[5])
+        for _,npc in ipairs(recipe[9]) do assert(catalog.trainers[npc]) end
+        recipeCount=recipeCount+1
+    end
+    local route=P:BuildProfessionRoute(id,1,300)
+    assert(#route.rows>=8 and not route.gaps,profession.name)
+    assert(profession.gathering or #route.materials>0)
+end
+for _ in pairs(catalog.trainers) do trainerCount=trainerCount+1 end
+assert(recipeCount>=2400 and trainerCount>=80)
+P:ShowLevelRoute(165,'40 120')
+assert(P.levelRoute.first==40 and P.levelRoute.last==120 and #P.levelRoute.materials>0)
+P.window.actionButtons[3]:Click()
+assert(next(FS.db.auctionHouse.shopping))
+P.window.search:SetText('Trainer')
+P.window.actionButtons[1]:Click()
+assert(not P.levelRoute and #P.rows==12 and loads==1 and P.window.search:GetText()=='')
+P.window:Hide()
+P.recipeView=nil; P.professionCatalogAttempted=nil; FS.ProfessionCatalog=nil
+C_AddOns,C_Item.GetItemCount=oldAddOns,oldCount
+
 -- TEST: Modern commodity scans respect opt-out and save actual unit prices
 ResetTest(); local FS=ForeverSuite; local A=FS.modules.AuctionHouse; A.open=true
 C_AuctionHouse={GetNumCommoditySearchResults=function() return 2 end,GetCommoditySearchResultInfo=function(_,i) return {unitPrice=i==1 and 100 or 75} end}

@@ -1,10 +1,101 @@
 local _,FS=...
 local T=FS.Tools
-local P=T:Module("Professions","professions","Professions","Browse recipes from your open profession. Select a recipe to see its materials. Crafting stays in the game's profession window.",{craftableOnly=false,showCounts=true,sort="Original",missingOnly=false,countAltStock=false,expandSubrecipes=false},{"TRADE_SKILL_SHOW","TRADE_SKILL_LIST_UPDATE","TRADE_SKILL_DATA_SOURCE_CHANGED","TRADE_SKILL_CLOSE","CRAFT_SHOW","CRAFT_UPDATE"})
+local P=T:Module("Professions","professions","Professions","Browse the open profession's recipes, find skill-ups and compare recorded Auction House prices. Select a recipe to see its materials.",{craftableOnly=false,showCounts=true,sort="Original",missingOnly=false,countAltStock=false,expandSubrecipes=false},{"TRADE_SKILL_SHOW","TRADE_SKILL_LIST_UPDATE","TRADE_SKILL_DATA_SOURCE_CHANGED","TRADE_SKILL_CLOSE","CRAFT_SHOW","CRAFT_UPDATE","BAG_UPDATE_DELAYED","SKILL_LINES_CHANGED"})
 P.options={{key="craftableOnly",label="Only show craftable recipes"},{key="showCounts",label="Show craftable quantity"},{key="sort",label="Recipe order",values={"Original","Name","Craftable"}},{key="missingOnly",label="Only show missing materials"},{key="countAltStock",label="Count last seen alt stock for shopping"},{key="expandSubrecipes",label="Expand learned intermediate recipes"}}
+local recipeViews={"Recipes","Skill-ups","Market","Recipe book","Level routes"}
+local difficultyLabels={[0]="Orange",[1]="Yellow",[2]="Green"}
+local legacyDifficulty={optimal=0,medium=1,easy=2}
+local function whole(value)
+    return T:Number(value) and value>0 and value%1==0
+end
+function P:UnitPrice(prices,id)
+    local observation=prices[id]
+    if observation and observation.kind=="per item" and T:Number(observation.price) and observation.price>0 then
+        return observation.price
+    end
+end
+local function money(amount)
+    return FS.modules.Vendor:Money(math.abs(amount))
+end
+function P:RecipeValue(row,prices)
+    local cost,output,copies=0,nil,nil
+    local function add(id,quantity)
+        if not whole(id) or not whole(quantity) then return false end
+        local price=self:UnitPrice(prices,id)
+        if not price then return false end
+        cost=cost+price*quantity
+        return cost<=100000000000
+    end
+    if row.modern then
+        local api=C_TradeSkillUI
+        local schema=T:Call(api and api.GetRecipeSchematic,row.id,false)
+        if type(schema)~="table" or type(schema.reagentSlotSchematics)~="table" then return end
+        if T:Number(schema.recipeType) and schema.recipeType~=1 and schema.recipeType~=3 then return end
+        for _,slot in ipairs(schema.reagentSlotSchematics) do
+            if slot.required~=false then
+                local reagent=type(slot.reagents)=="table" and #slot.reagents==1 and slot.reagents[1]
+                if not reagent or not add(reagent.itemID,slot.quantityRequired) then return end
+            end
+        end
+        output,copies=schema.outputItemID,schema.quantityMin
+    else
+        local getCount=row.craft and GetCraftNumReagents or GetTradeSkillNumReagents
+        local getInfo=row.craft and GetCraftReagentInfo or GetTradeSkillReagentInfo
+        local getLink=row.craft and GetCraftReagentItemLink or GetTradeSkillReagentItemLink
+        local count=T:Call(getCount,row.index)
+        if not T:Number(count) or count<0 then return end
+        for i=1,count do
+            local _,_,quantity=T:Call(getInfo,row.index,i)
+            local id=FS.modules.Vendor:ItemID(T:Call(getLink,row.index,i))
+            if not add(id,quantity) then return end
+        end
+        output=FS.modules.Vendor:ItemID(row.link)
+        if not row.craft then copies=T:Call(GetTradeSkillNumMade,row.index) end
+    end
+    local sale=whole(output) and whole(copies) and self:UnitPrice(prices,output)
+    local margin=sale and sale*copies<=100000000000 and sale*copies-cost or nil
+    return cost,margin
+end
 function P:Build()
     self.rows={}; local API=C_TradeSkillUI; local db=self:Data()
     local enumerate=API and (API.GetAllRecipeIDs or API.GetFilteredRecipeIDs)
+    local view=self.recipeView or 1
+    if view==5 then self:BuildLevelRoutes(); return end
+    local references=view==4 and not self.materials and self:RecipeReferences()
+    local prices=(view==2 or view==3) and not self.materials and FS.modules.AuctionHouse:Prices()
+    local function addRecipe(row)
+        if view==2 and row.difficulty==nil then return end
+        if view~=4 and db.craftableOnly and row.count<=0 then return end
+        local caption=row.name
+        if view==4 then
+            local base=row.learned==false and "Unlearned" or "Learned"
+            caption="["..base.."] "..caption
+            local source=row.modern and T:Text(T:Call(API.GetRecipeSourceText,row.id))
+            if (not source or source=="") and row.modern and references then
+                source=self:KnownRecipeSource(references[row.id])
+            end
+            if source and source~="" then row.detailLine=source; row.searchText=caption.." "..source end
+        elseif db.showCounts then
+            caption=caption.." | Craftable: "..row.count
+        end
+        if view==2 then caption=caption.." | "..difficultyLabels[row.difficulty] end
+        if prices then
+            row.cost,row.margin=self:RecipeValue(row,prices)
+            if row.cost~=nil then
+                row.detailLine="Cost "..money(row.cost).." per craft"
+                caption=caption.." | "..row.detailLine
+            elseif view==3 then
+                caption=caption.." | Price unavailable"
+            end
+            if view==3 and row.margin~=nil then
+                local margin=(row.margin<0 and "-" or "+")..money(row.margin)
+                caption=row.name.." | "..margin.." before fees"
+                row.detailLine=row.detailLine.." | "..margin.." before fees"
+            end
+        end
+        row.text=caption
+        self.rows[#self.rows+1]=row
+    end
     if self.materials then
         for _,row in ipairs(self.expanded and self.expanded.rows or self.materials) do
             local owned=T:Number(row.owned) and row.owned or 0
@@ -15,27 +106,44 @@ function P:Build()
     elseif enumerate and API.GetRecipeInfo then
         for _,id in ipairs(T:Call(enumerate) or {}) do
             local info=T:Call(API.GetRecipeInfo,id)
-            if type(info)=="table" and T:Text(info.name)~="" and FS.HUD:Safe(info.learned) and info.learned then
+            if type(info)=="table" and T:Text(info.name)~="" and FS.HUD:Safe(info.learned) and (info.learned or view==4) then
                 local count=T:Call(API.GetCraftableCount,id) or info.numAvailable
                 count=T:Number(count) and count or 0
-                if not db.craftableOnly or count>0 then
-                    self.rows[#self.rows+1]={id=id,name=info.name,count=count,text=info.name..(db.showCounts and (" | Craftable: "..count) or ""),modern=true}
-                end
+                local difficulty=info.relativeDifficulty
+                if not T:Number(difficulty) or not difficultyLabels[difficulty]
+                    or not FS.HUD:Safe(info.canSkillUp) or info.canSkillUp==false
+                    or not FS.HUD:Safe(info.disabled) or info.disabled==true then difficulty=nil end
+                addRecipe({id=id,name=info.name,count=count,learned=info.learned==true,
+                    difficulty=difficulty,modern=true})
             end
         end
     else
         for i=1,(T:Call(GetNumTradeSkills) or 0) do
             local name,kind,count=T:Call(GetTradeSkillInfo,i)
-            if name and kind~="header" and (not db.craftableOnly or (count or 0)>0) then self.rows[#self.rows+1]={index=i,name=name,count=count or 0,text=name..(db.showCounts and (" | Craftable: "..(count or 0)) or ""),link=T:Call(GetTradeSkillItemLink,i)} end
+            if name and kind~="header" then
+                addRecipe({id="trade:"..i,index=i,name=name,count=T:Number(count) and count or 0,
+                    difficulty=legacyDifficulty[kind],link=T:Call(GetTradeSkillItemLink,i)})
+            end
         end
         for i=1,(T:Call(GetNumCrafts) or 0) do
             local name,sub,kind,count=T:Call(GetCraftInfo,i)
-            if name and kind~="header" and (not db.craftableOnly or (count or 0)>0) then self.rows[#self.rows+1]={index=i,craft=true,name=name,count=count or 0,text=name..(db.showCounts and (" | Craftable: "..(count or 0)) or ""),link=T:Call(GetCraftItemLink,i)} end
+            if name and kind~="header" then
+                addRecipe({id="craft:"..i,index=i,craft=true,name=name,count=T:Number(count) and count or 0,
+                    difficulty=legacyDifficulty[kind],link=T:Call(GetCraftItemLink,i)})
+            end
         end
     end
-    if not self.materials and db.sort~="Original" then table.sort(self.rows,function(a,b)
+    if not self.materials and (view~=1 or db.sort~="Original") then table.sort(self.rows,function(a,b)
+        if view==2 then
+            if a.difficulty~=b.difficulty then return a.difficulty<b.difficulty end
+            if (a.count>0)~=(b.count>0) then return a.count>0 end
+            if a.cost~=b.cost then return (a.cost or math.huge)<(b.cost or math.huge) end
+        elseif view==3 then
+            if a.margin~=b.margin then return (a.margin or -math.huge)>(b.margin or -math.huge) end
+        end
         if db.sort=="Craftable" and a.count~=b.count then return a.count>b.count end
-        return a.name<b.name
+        if a.name~=b.name then return a.name<b.name end
+        return tostring(a.id)<tostring(b.id)
     end) end
     self.status=self.materials and ("Materials for "..(self.quantity or 1).." crafts. Enter a quantity, then click Materials. Shopping list adds missing fixed reagents.") or "Open a profession in the game to load its recipes. Select a recipe to see materials."
     if self.materials and db.expandSubrecipes then
@@ -45,10 +153,18 @@ function P:Build()
             self.status="Intermediate planning is unavailable for this recipe. Showing direct materials."
         end
     end
+    if self.materials and self.planRecipe and self.planRecipe.detailLine then
+        self.status=self.planRecipe.detailLine..". "..self.status
+    elseif not self.materials and view==2 then
+        local best=self.rows[1]
+        self.status=best and ("Try "..best.name.." first. Ordered by skill-up color, craftable stock, then known material cost.")
+            or "Open a profession with learned recipes that can still give skill-ups."
+    elseif not self.materials and view==3 then
+        self.status="Estimates per craft use saved unit prices, minimum output and exclude auction fees. Browse Buy results for missing prices."
+    elseif not self.materials and view==4 then
+        self.status="Search recipes exposed by the open profession. Select one for its materials and any source reported by the game."
+    end
     if not GetNumTradeSkills and not GetNumCrafts and not enumerate then self.status="Recipe enumeration is not exposed by this client's supported profession API." end
-end
-local function whole(value)
-    return T:Number(value) and value>0 and value%1==0
 end
 local function ownedItem(id,bank)
     return T:Call(C_Item and C_Item.GetItemCount,id,bank) or T:Call(GetItemCount,id,bank)
@@ -136,8 +252,16 @@ function P:ExpandPlan(root,materials)
     end
     return result
 end
-function P:OnSelect(row,quantity)
+function P:OnSelect(row,quantity,deferRefresh)
+    if self.recipeView==5 then
+        if row and row.profession then self:ShowLevelRoute(row.profession,"") end
+        return
+    end
     if not row or row.material then return end
+    if not self.materials and self.window then
+        self.recipeSearch=self.window.search:GetText()
+        self.window.search:SetText("")
+    end
     self.planRecipe=row
     self.quantity=quantity or 1
     local rows={}
@@ -177,15 +301,19 @@ function P:OnSelect(row,quantity)
     end
     self.materials=rows
     self.expanded=self:Data().expandSubrecipes and self:ExpandPlan(row,rows) or nil
-    self.page=1; self:Refresh()
+    self.page=1
+    if not deferRefresh then self:Refresh() end
 end
-function P:ClearPlan()
+function P:ClearPlan(returnToResults)
+    local search=self.recipeSearch
     self.materials=nil; self.expanded=nil; self.planRecipe=nil; self.quantity=nil; self.selected=nil; self.page=1
+    self.recipeSearch=nil
+    if self.window and returnToResults and search then self.window.search:SetText(search) end
 end
-function P:AddPlanToShopping()
-    if not self.materials or not self.planRecipe then self.status="Select a recipe first."; return end
+function P:AddPlanToShopping(materials)
+    if not materials and (not self.materials or not self.planRecipe) then self.status="Select a recipe first."; return end
     local db=FS.modules.AuctionHouse:Data()
-    if self.expanded then
+    if not materials and self.expanded then
         local count=0
         for id,goal in pairs(self.expanded.goals) do
             db.shopping[id]=math.max(db.shopping[id] or 0,goal)
@@ -196,7 +324,7 @@ function P:AddPlanToShopping()
         return
     end
     local totals, skipped={},false
-    for _,row in ipairs(self.materials) do
+    for _,row in ipairs(materials or self.materials) do
         if row.choice or row.optional or not row.id then skipped=true
         elseif row.required>0 then totals[row.id]=(totals[row.id] or 0)+row.required end
     end
@@ -223,11 +351,33 @@ function P:AddPlanToShopping()
         (skipped and " Some reagents need manual review." or "")
 end
 function P:Event(event)
-    if event=="TRADE_SKILL_CLOSE" or event=="TRADE_SKILL_SHOW" or event=="CRAFT_SHOW" then self:ClearPlan() end
+    if event=="TRADE_SKILL_CLOSE" or event=="TRADE_SKILL_SHOW" or event=="TRADE_SKILL_DATA_SOURCE_CHANGED" or event=="CRAFT_SHOW" then
+        self:ClearPlan()
+    elseif event=="BAG_UPDATE_DELAYED" and self.planRecipe and self.window and self.window:IsShown() then
+        self:OnSelect(self.planRecipe,self.quantity,true)
+    end
+end
+function P:RefreshOnTick() return false end
+local render=P.Render
+function P:Render()
+    if self.window then
+        local buttons=self.window.actionButtons
+        buttons[2]:SetText(self.recipeView==5 and "Plan range" or "Materials")
+        buttons[4]:SetText("View: "..recipeViews[self.recipeView or 1])
+    end
+    render(self)
 end
 P.actions={
-    {label="Back",run=function(self) self:ClearPlan() end},
+    {label="Back",run=function(self)
+        if self.recipeView==5 then
+            self.levelRoute=nil; self.selected=nil; self.page=1
+            self.window.search:SetText("")
+        else
+            self:ClearPlan(true)
+        end
+    end},
     {label="Materials",run=function(self,text)
+        if self.recipeView==5 then return self:ShowLevelRoute(self.levelRoute and self.levelRoute.profession,text) end
         local row=self.materials and self.planRecipe or self.selected
         if not row then self.status="Select a recipe first."; return end
         local quantity=text=="" and (self.quantity or 1) or tonumber(text)
@@ -236,5 +386,19 @@ P.actions={
         end
         self:OnSelect(row,quantity)
     end},
-    {label="Shopping list",run=function(self) self:AddPlanToShopping() end},
+    {label="Shopping list",run=function(self)
+        if self.recipeView==5 then
+            local route=self.levelRoute
+            if not route or #route.materials==0 then self.status="Choose a crafting route with material estimates first."; return end
+            self:AddPlanToShopping(route.materials)
+        else
+            self:AddPlanToShopping()
+        end
+    end},
+    {label="View",run=function(self)
+        self.recipeView=(self.recipeView or 1)%#recipeViews+1
+        self:ClearPlan()
+        self.levelRoute=nil
+        self.window.search:SetText("")
+    end},
 }

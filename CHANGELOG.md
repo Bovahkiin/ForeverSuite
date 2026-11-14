@@ -1,3 +1,10 @@
+# 1.0.3 - 2026-11-15
+
+- Adds **Skill-ups**, **Market**, and **Recipe book** to Professions. Compare learned recipes by their current skill-up color and use recorded Auction House unit prices for cost and margin estimates before fees.
+- Adds **Level routes** for all 12 professions. Choose a skill range up to 300, find rank unlocks, and send the minimum direct reagents for crafting steps to the shopping list.
+- The optional, on-demand Profession Data addon includes 2,457 recipes and observations from 90 trainers. Route steps with an estimated unlock requirement are marked **Check source**.
+- For manual installation, extract all three addon folders side by side in your WoW Forever AddOns folder.
+
 # 1.0.2 - 2026-11-14
 
 - Adds **Azeroth Heritage**, a theme with dark slate panels, brass trim, burgundy buttons and a gold-and-blue waypoint arrow. Preview it in Guided Setup or under **Control Center → Theme**. [Theme artwork](https://github.com/Bovahkiin/ForeverSuite/blob/v1.0.2/.previews/03-azeroth-heritage.png)

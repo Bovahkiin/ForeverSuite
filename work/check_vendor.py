@@ -484,6 +484,12 @@ ForeverSuite.GearCatalog=nil
 ''')
 print('PASS: optional gear catalog compiles and all equipment source links resolve')
 
+profession_folder = root/'ForeverSuite_ProfessionData'
+profession_toc = (profession_folder/'ForeverSuite_ProfessionData.toc').read_text(encoding='utf-8')
+assert '## LoadOnDemand: 1' in profession_toc and '## Dependencies: ForeverSuite' in profession_toc
+profession_file = profession_folder/'Catalog.lua'
+lua.globals().LoadProfessionCatalogFixture = compile_lua(profession_file.read_text(encoding='utf-8'), '@'+str(profession_file))
+
 checks = {
     'safe rules, protection priority and reserves across stacks': r'''
 ResetTest()
