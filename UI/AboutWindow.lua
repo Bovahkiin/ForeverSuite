@@ -1,6 +1,10 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.1",lines={"Adds support for the separately installed OpenMap addon for WoW Forever.","Saved pins and route stops appear across supported zones. Toggle both layers from the OpenMap menu.","OpenMap manages world map zoom, movement and window size while it is active."}},
+    {version="1.0.2",lines={
+        "Azeroth Heritage brings dark slate panels, brass trim, burgundy buttons and a gold-and-blue waypoint arrow. Preview it under Theme or in Guided Setup.",
+        "Open Gear Planner from Gear Advisor to compare equipment by slot and add items to your Gear Wishlist.",
+        "The included catalog covers 2,395 WoW Forever items for levels 1–60 and loads when you open Gear Planner.",
+    }},
 }
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end
