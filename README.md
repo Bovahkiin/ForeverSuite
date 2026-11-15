@@ -8,6 +8,8 @@ ForeverSuite brings your everyday interface tools together in one Control Center
 Choose a visual theme, configure the modules you use, and save your setup in a
 profile. Made by **DeluxiZ**.
 
+[Join the ForeverSuite Discord](https://discord.gg/wmBcax2bvJ) for support, bug reports, and suggestions.
+
 **Current release:** 1.0.3 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
