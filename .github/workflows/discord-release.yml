@@ -25,6 +25,7 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import re
           import urllib.request
           from pathlib import Path
 
@@ -39,6 +40,7 @@ jobs:
               Path(os.environ["GITHUB_EVENT_PATH"]).read_text()
           )
 
+          # Fetch latest release for manual workflow runs
           if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
               print("Fetching latest GitHub release...")
 
@@ -51,7 +53,7 @@ jobs:
                   headers={
                       "Accept": "application/vnd.github+json",
                       "Authorization": f"Bearer {token}",
-                      "User-Agent": "GitHub-Release-Notifier"
+                      "User-Agent": "ForeverSuite-Release-Bot"
                   }
               )
 
@@ -63,6 +65,7 @@ jobs:
           else:
               release = event["release"]
 
+          # Release information
           version = release["tag_name"]
           name = release.get("name") or version
           url = release["html_url"]
@@ -72,12 +75,45 @@ jobs:
               "No changelog available."
           ).strip()
 
+          # Automatically remove duplicate release titles
+          def normalize_heading(text):
+              text = text.strip()
+              text = text.lstrip("#").strip()
+              text = text.strip("*_").strip()
+              text = re.sub(r"\s+", " ", text)
+              return text.casefold()
+
+          project = repo.split("/")[-1]
+
+          expected_titles = {
+              normalize_heading(name),
+              normalize_heading(version),
+              normalize_heading(f"{project} {version}"),
+              normalize_heading(
+                  f"{project} {version.lstrip('vV')}"
+              )
+          }
+
+          lines = changelog.splitlines()
+
+          if lines:
+              first_line = normalize_heading(lines[0])
+
+              if first_line in expected_titles:
+                  changelog = "\n".join(lines[1:]).strip()
+                  print("Duplicate release title removed.")
+
+          if not changelog:
+              changelog = "No changelog available."
+
+          # Limit description to Discord embed limits
           if len(changelog) > 3500:
               changelog = (
                   changelog[:3500] +
                   f"\n\n[View full changelog]({url})"
               )
 
+          # Find release ZIP download
           assets = release.get("assets", [])
 
           asset = next(
@@ -96,11 +132,13 @@ jobs:
           else:
               download = f"[View release downloads]({url})"
 
+          # Optional everyone notification
           ping = (
               os.environ.get("PING_EVERYONE", "false")
               .lower() == "true"
           )
 
+          # Build Discord embed
           embed = {
               "title": f"🚀 {name}"[:256],
               "url": url,
@@ -126,6 +164,7 @@ jobs:
           if release.get("published_at"):
               embed["timestamp"] = release["published_at"]
 
+          # Discord webhook payload
           payload = {
               "username": "ForeverSuite Releases",
               "content": "@everyone" if ping else "",
@@ -142,15 +181,16 @@ jobs:
               data=data,
               headers={
                   "Content-Type": "application/json",
-                  "User-Agent": "GitHub-Release-Notifier"
+                  "User-Agent": "ForeverSuite-Release-Bot"
               },
               method="POST"
           )
 
+          # Send announcement
           with urllib.request.urlopen(
               discord_request, timeout=30
           ) as response:
               print("Discord status:", response.status)
 
-          print("Release announcement sent successfully!")
+          print("ForeverSuite release announcement sent!")
           PY
