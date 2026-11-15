@@ -127,7 +127,7 @@ jobs:
               embed["timestamp"] = release["published_at"]
 
           payload = {
-              "username": "Release Bot",
+              "username": "ForeverSuite Releases",
               "content": "@everyone" if ping else "",
               "allowed_mentions": {
                   "parse": ["everyone"] if ping else []
