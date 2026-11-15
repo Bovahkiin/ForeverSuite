@@ -1,0 +1,127 @@
+
+name: Discord Release Announcement
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  discord-release:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.release.prerelease }}
+
+    steps:
+      - name: Send release announcement
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          PING_EVERYONE: "true"
+
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from pathlib import Path
+
+          webhook = os.environ["DISCORD_WEBHOOK_URL"]
+          if not webhook:
+              raise SystemExit("Discord webhook secret ontbreekt!")
+
+          event = json.loads(
+              Path(os.environ["GITHUB_EVENT_PATH"]).read_text()
+          )
+          release = event["release"]
+
+          version = release["tag_name"]
+          name = release.get("name") or version
+          url = release["html_url"]
+          repo = event["repository"]["full_name"]
+
+          changelog = (
+              release.get("body") or
+              "Geen changelog beschikbaar."
+          ).strip()
+
+          if len(changelog) > 3800:
+              changelog = (
+                  changelog[:3750] +
+                  "\n\n[Lees de volledige changelog](" + url + ")"
+              )
+
+          assets = release.get("assets", [])
+          asset = next(
+              (
+                  a for a in assets
+                  if a["name"].lower().endswith(".zip")
+              ),
+              assets[0] if assets else None
+          )
+
+          if asset:
+              download = (
+                  f"[{asset['name'][:150]}]"
+                  f"({asset['browser_download_url']})"
+              )
+          else:
+              download = f"[Bekijk downloads]({url})"
+
+          ping = (
+              os.environ.get("PING_EVERYONE", "false")
+              .lower() == "true"
+          )
+
+          embed = {
+              "title": f"🚀 {name}"[:256],
+              "url": url,
+              "description": changelog,
+              "color": 5793266,
+              "fields": [
+                  {
+                      "name": "📦 Versie",
+                      "value": version[:1024],
+                      "inline": True
+                  },
+                  {
+                      "name": "📥 Download",
+                      "value": download[:1024],
+                      "inline": True
+                  }
+              ],
+              "footer": {
+                  "text": f"{repo} • GitHub Release"[:200]
+              }
+          }
+
+          if release.get("published_at"):
+              embed["timestamp"] = release["published_at"]
+
+          payload = {
+              "username": "Release Bot",
+              "content": "@everyone" if ping else "",
+              "allowed_mentions": {
+                  "parse": ["everyone"] if ping else []
+              },
+              "embeds": [embed]
+          }
+
+          data = json.dumps(payload).encode("utf-8")
+
+          request = urllib.request.Request(
+              webhook,
+              data=data,
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "GitHub-Release-Notifier"
+              },
+              method="POST"
+          )
+
+          with urllib.request.urlopen(
+              request, timeout=30
+          ) as response:
+              print("Discord status:", response.status)
+
+          print("Release announcement sent!")
+          PY
