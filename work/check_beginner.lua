@@ -80,10 +80,10 @@ end
 
 -- TEST: Plain language search finds text sizing pet feeding lost arrows moving bags and exact options
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local B=FS.Beginner
-for _,query in ipairs({'letters groter','pijl terug','pet voeren','tassen verplaatsen','show coordinates'}) do
+for _,query in ipairs({'text size','restore waypoint','feed pet','move bags','show coordinates'}) do
  local rows=B:Find(query); assert(#rows>0,query); assert(type(rows[1].run)=='function')
 end
-FS.window.moduleSearch:SetText('letters groter'); FS.window.moduleSearch.scripts.OnTextChanged(FS.window.moduleSearch); FS.window.moduleSearch.scripts.OnEnterPressed(FS.window.moduleSearch)
+FS.window.moduleSearch:SetText('text size'); FS.window.moduleSearch.scripts.OnTextChanged(FS.window.moduleSearch); FS.window.moduleSearch.scripts.OnEnterPressed(FS.window.moduleSearch)
 assert(B.searchWindow:IsShown() and not FS.window:IsShown()); B.searchWindow.rows[1]:Click(); assert(FS.Typography.window:IsShown())
 B:Search('show coordinates'); B.searchWindow.rows[1]:Click(); assert(FS.modules.Map.settings:IsShown())
 assert(FS.modules.Map.settings:GetParent()==UIParent and not FS.window:IsShown())
@@ -159,7 +159,7 @@ TEST.combat=true; assert(not B:ShowModule('Chat') and not B:Recover('visible') a
 FS.modules.Vendor.busy=true; assert(not B:ShowRecovery()); FS.modules.Vendor.busy=false
 local w,h=UIParent:GetWidth(),UIParent:GetHeight(); UIParent:SetSize(800,600)
 FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; FS.Typography:Apply()
-for _,show in ipairs({function() B:ShowModule('Map') end,function() B:Search('pet voeren') end,function() B:ShowRecovery() end}) do
+for _,show in ipairs({function() B:ShowModule('Map') end,function() B:Search('feed pet') end,function() B:ShowRecovery() end}) do
  show()
  local f=B.moduleWindow:IsShown() and B.moduleWindow or B.searchWindow:IsShown() and B.searchWindow or B.recoveryWindow
  assert(f:GetHeight()*f:GetScale()<=568 and f:GetWidth()*f:GetScale()<=768)

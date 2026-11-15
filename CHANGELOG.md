@@ -1,3 +1,8 @@
+# 1.0.4 - 2026-11-15
+
+- Use English search keywords throughout the Control Center, including `text size`, `restore waypoint`, `feed pet`, and `move bags`.
+- Translate the GitHub release workflow, maintainer guide, and in-game test instructions into English.
+
 # 1.0.3 - 2026-11-15
 
 - Adds **Skill-ups**, **Market**, and **Recipe book** to Professions. Compare learned recipes by their current skill-up color and use recorded Auction House unit prices for cost and margin estimates before fees.

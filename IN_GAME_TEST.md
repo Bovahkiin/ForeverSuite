@@ -11,8 +11,8 @@
 4. Select a frame handle, center it, place it below the player, then restore
    it. Save and reload. In Help with layout, recover offscreen positions and
    undo a supported addon change. Confirm game bar positions in Edit Mode.
-5. Search for `letters groter`, `pet voeren`, `pijl terug` and
-   `tassen verplaatsen`. Follow each result, then inspect the saved provider
+5. Search for `text size`, `feed pet`, `restore waypoint` and
+   `move bags`. Follow each result, then inspect the saved provider
    choices under Other addons with a supported guide or nameplate addon active.
 
 ## 0.9.7 Control Center viewport and themes

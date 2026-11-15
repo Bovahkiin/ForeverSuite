@@ -10,7 +10,7 @@ profile. Made by **DeluxiZ**.
 
 [Join the ForeverSuite Discord](https://discord.gg/wmBcax2bvJ) for support, bug reports, and suggestions.
 
-**Current release:** 1.0.3 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.4 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 
@@ -123,8 +123,8 @@ waypoint arrow inspired by the classic WoW Forever interface.
 
 ## Installation
 
-Maintaining this repository? See [GitHub update instructions](GITHUB_UPDATEN.md)
-for GitHub Desktop and the **Nieuwe release maken** release button.
+Maintaining this repository? See [GitHub update instructions](GITHUB_UPDATES.md)
+for GitHub Desktop and the **Build ForeverSuite Release** workflow.
 
 1. Download the attached **ForeverSuite ZIP** from this repository's **Releases**
    page.

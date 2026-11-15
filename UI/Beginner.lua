@@ -35,15 +35,15 @@ B.help = {
 }
 
 B.aliases = {
-    Bags = "bags inventory items tassen tas spullen inventory verplaatsen tassen verplaatsen",
-    Map = "arrow waypoint navigation pijl terug pijl kwijt route navigatie minimap coords coordinaten",
-    UnitFrames = "health target pet huisdier levensbalk speler doelwit pet voeren feed happiness happy",
-    Chat = "chat messages berichten chatvenster tekst leesbaar",
-    ActionBars = "buttons spells action bars actiebalk knoppen vaardigheden",
-    GearAdvisor = "upgrade equipment advice uitrusting advies beter wapen armor",
-    Mail = "mail post brieven attachments bijlagen geld ophalen",
-    MinimapButtons = "minimap addon buttons verzamelknop addons verzamelen",
-    Bindings = "keys keyboard shortcuts toetsen sneltoetsen",
+    Bags = "bags inventory items move bags reposition",
+    Map = "arrow waypoint navigation restore missing route minimap coords coordinates",
+    UnitFrames = "health bar player target pet feed happiness happy",
+    Chat = "chat messages chat window readable text",
+    ActionBars = "buttons spells action bars abilities",
+    GearAdvisor = "upgrade equipment advice better weapon armor",
+    Mail = "mail post letters attachments collect money",
+    MinimapButtons = "minimap addon buttons collect tray",
+    Bindings = "keys keyboard shortcuts hotkeys",
 }
 
 local explicit = {
@@ -216,12 +216,12 @@ function B:SearchText(name)
 end
 
 B.tasks = {
-    {text = "Make text larger / change fonts", words = "letters groter lettertype font fonts text size tekst groter grootte", run = function() FS.Typography.scope="All modules"; FS.Typography:Show() end},
-    {text = "Bring the quest arrow back", words = "pijl terug pijl kwijt arrow missing waypoint restore", run = function() B:RestoreWaypoint() end},
-    {text = "Move bags, chat or another frame", words = "tassen verplaatsen bags move chat verplaatsen positie", run = function() FS.Layout:Start() end},
-    {text = "Pet feeding and happiness", words = "pet voeren feed happy happiness huisdier", run = function() B:ShowPetHelp() end},
-    {text = "Repair my interface layout", words = "help herstel recovery interface verkeerd buiten beeld offscreen reset", run = function() B:ShowRecovery() end},
-    {text = "Choose waypoint or nameplate addons", words = "restedxp zygor plater platynator addons samenwerking waypoint nameplates", run = function() FS.Compatibility:Show() end},
+    {text = "Make text larger / change fonts", words = "font fonts text size bigger larger", run = function() FS.Typography.scope="All modules"; FS.Typography:Show() end},
+    {text = "Bring the quest arrow back", words = "arrow missing lost waypoint restore", run = function() B:RestoreWaypoint() end},
+    {text = "Move bags, chat or another frame", words = "bags move chat reposition position", run = function() FS.Layout:Start() end},
+    {text = "Pet feeding and happiness", words = "pet feed feeding happy happiness", run = function() B:ShowPetHelp() end},
+    {text = "Repair my interface layout", words = "help repair recovery interface layout misplaced offscreen reset", run = function() B:ShowRecovery() end},
+    {text = "Choose waypoint or nameplate addons", words = "restedxp zygor plater platynator addons compatibility provider waypoint nameplates", run = function() FS.Compatibility:Show() end},
 }
 
 function B:Matches(text, query)

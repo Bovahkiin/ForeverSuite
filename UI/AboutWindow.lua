@@ -1,9 +1,7 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.3",lines={
-        "Open Professions and use View to find Skill-ups, Market, Recipe book and Level routes.",
-        "Plan a skill range through 300 for 12 professions with 2,457 recipes and trainer data. Check any recipe marked Check source before buying materials.",
-        "Crafting routes can send minimum direct reagent estimates to the shopping list. Market estimates use recorded Auction House unit prices and exclude fees.",
+    {version="1.0.4",lines={
+        "Search the Control Center in English for tasks such as text size, restore waypoint, feed pet, or move bags.",
     }},
 }
 function FS:CreateAboutWindow()
