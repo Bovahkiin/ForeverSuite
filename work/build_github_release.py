@@ -10,14 +10,14 @@ import sys
 import zipfile
 
 
+
 COMPANION_FILES = {
     'ForeverSuite_GearData/ForeverSuite_GearData.toc',
     'ForeverSuite_GearData/Catalog.lua',
-    'ForeverSuite_GearData/DATA_SOURCES.md',
     'ForeverSuite_ProfessionData/ForeverSuite_ProfessionData.toc',
     'ForeverSuite_ProfessionData/Catalog.lua',
-    'ForeverSuite_ProfessionData/DATA_SOURCES.md',
 }
+
 
 
 def metadata(root):
