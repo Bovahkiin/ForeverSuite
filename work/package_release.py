@@ -12,7 +12,8 @@ sources = [line.strip() for line in toc.splitlines() if line.strip() and not lin
 files = ['ForeverSuite.toc', *sources]
 files += [str(path.relative_to(root)) for path in sorted((root / 'Assets').rglob('*.tga'))]
 files += [str(path.relative_to(root)) for path in sorted((root / 'Assets').rglob('*.ttf'))]
-files += ['README.md', 'CHANGELOG.md', 'FEATURE_AUDIT.md', 'IN_GAME_TEST.md', 'VALIDATION.txt', 'ROADMAP.md', 'DELIVERY_STATUS.md', 'NEW_TOOLS.md', 'COPYRIGHT.txt', 'LICENSE']
+files += ['README.md', 'CHANGELOG.md', 'COPYRIGHT.txt', 'LICENSE']
+
 destination = root / 'dist' / f'ForeverSuite-{version}-forever.zip'
 destination.parent.mkdir(exist_ok=True)
 with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as archive:
