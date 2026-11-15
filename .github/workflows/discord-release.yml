@@ -4,18 +4,21 @@ name: Discord Release Announcement
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   discord-release:
     runs-on: ubuntu-latest
-    if: ${{ !github.event.release.prerelease }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
 
     steps:
-      - name: Send release announcement
+      - name: Send Discord Release Announcement
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PING_EVERYONE: "true"
 
         run: |
@@ -26,31 +29,57 @@ jobs:
           from pathlib import Path
 
           webhook = os.environ["DISCORD_WEBHOOK_URL"]
+          token = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+
           if not webhook:
-              raise SystemExit("Discord webhook secret ontbreekt!")
+              raise SystemExit("Discord webhook secret is missing!")
 
           event = json.loads(
               Path(os.environ["GITHUB_EVENT_PATH"]).read_text()
           )
-          release = event["release"]
+
+          if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
+              print("Fetching latest GitHub release...")
+
+              api_url = (
+                  f"https://api.github.com/repos/{repo}/releases/latest"
+              )
+
+              api_request = urllib.request.Request(
+                  api_url,
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "User-Agent": "GitHub-Release-Notifier"
+                  }
+              )
+
+              with urllib.request.urlopen(
+                  api_request, timeout=30
+              ) as response:
+                  release = json.load(response)
+
+          else:
+              release = event["release"]
 
           version = release["tag_name"]
           name = release.get("name") or version
           url = release["html_url"]
-          repo = event["repository"]["full_name"]
 
           changelog = (
               release.get("body") or
-              "Geen changelog beschikbaar."
+              "No changelog available."
           ).strip()
 
-          if len(changelog) > 3800:
+          if len(changelog) > 3500:
               changelog = (
-                  changelog[:3750] +
-                  "\n\n[Lees de volledige changelog](" + url + ")"
+                  changelog[:3500] +
+                  f"\n\n[View full changelog]({url})"
               )
 
           assets = release.get("assets", [])
+
           asset = next(
               (
                   a for a in assets
@@ -65,7 +94,7 @@ jobs:
                   f"({asset['browser_download_url']})"
               )
           else:
-              download = f"[Bekijk downloads]({url})"
+              download = f"[View release downloads]({url})"
 
           ping = (
               os.environ.get("PING_EVERYONE", "false")
@@ -79,7 +108,7 @@ jobs:
               "color": 5793266,
               "fields": [
                   {
-                      "name": "📦 Versie",
+                      "name": "📦 Version",
                       "value": version[:1024],
                       "inline": True
                   },
@@ -90,7 +119,7 @@ jobs:
                   }
               ],
               "footer": {
-                  "text": f"{repo} • GitHub Release"[:200]
+                  "text": f"{repo} | GitHub Release"[:200]
               }
           }
 
@@ -108,7 +137,7 @@ jobs:
 
           data = json.dumps(payload).encode("utf-8")
 
-          request = urllib.request.Request(
+          discord_request = urllib.request.Request(
               webhook,
               data=data,
               headers={
@@ -119,9 +148,9 @@ jobs:
           )
 
           with urllib.request.urlopen(
-              request, timeout=30
+              discord_request, timeout=30
           ) as response:
               print("Discord status:", response.status)
 
-          print("Release announcement sent!")
+          print("Release announcement sent successfully!")
           PY
