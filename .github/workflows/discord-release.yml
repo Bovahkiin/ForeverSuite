@@ -5,6 +5,14 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+    secrets:
+      DISCORD_RELEASE_WEBHOOK:
+        required: true
 
 permissions:
   contents: read
@@ -12,13 +20,14 @@ permissions:
 jobs:
   discord-release:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
 
     steps:
       - name: Send Discord Release Announcement
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
           PING_EVERYONE: "true"
 
         run: |
@@ -28,6 +37,7 @@ jobs:
           import re
           import urllib.request
           from pathlib import Path
+          from urllib.parse import quote
 
           webhook = os.environ["DISCORD_WEBHOOK_URL"]
           token = os.environ["GITHUB_TOKEN"]
@@ -40,14 +50,11 @@ jobs:
               Path(os.environ["GITHUB_EVENT_PATH"]).read_text()
           )
 
-          # Fetch latest release for manual workflow runs
-          if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
-              print("Fetching latest GitHub release...")
-
-              api_url = (
-                  f"https://api.github.com/repos/{repo}/releases/latest"
-              )
-
+          # An explicit tag is provided when the build publishes directly.
+          release_tag = os.environ.get("RELEASE_TAG")
+          if release_tag or os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
+              endpoint = f"tags/{quote(release_tag, safe='')}" if release_tag else "latest"
+              api_url = f"https://api.github.com/repos/{repo}/releases/{endpoint}"
               api_request = urllib.request.Request(
                   api_url,
                   headers={
@@ -151,8 +158,13 @@ jobs:
                       "inline": True
                   },
                   {
-                      "name": "📥 Download",
+                      "name": "📥 GitHub download",
                       "value": download[:1024],
+                      "inline": True
+                  },
+                  {
+                      "name": "CurseForge",
+                      "value": "[Project & files](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz/files/all)",
                       "inline": True
                   }
               ],

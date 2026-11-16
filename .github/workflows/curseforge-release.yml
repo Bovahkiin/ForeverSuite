@@ -1,0 +1,99 @@
+name: Publish ForeverSuite to CurseForge
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable GitHub release tag to upload (for example v1.0.5)
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+    secrets:
+      CURSEFORGE_API_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curseforge-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'release' || !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Upload the published Forever ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+          CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        run: |
+          if [[ -z "$CURSEFORGE_API_TOKEN" ]]; then
+            echo "::notice::CurseForge upload skipped. Add the CURSEFORGE_API_TOKEN repository secret to enable it."
+            echo 'CurseForge upload skipped because the repository secret is missing.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Expected a stable release tag such as v1.0.5."
+            exit 1
+          fi
+          version="${TAG#v}"
+          zip="ForeverSuite-$version-forever.zip"
+          work_dir="$(mktemp -d)"
+
+          gh release view "$TAG" --json tagName,isDraft,isPrerelease,body > "$work_dir/release.json"
+          if ! jq -e --arg tag "$TAG" '.tagName == $tag and .isDraft == false and .isPrerelease == false' "$work_dir/release.json" > /dev/null; then
+            echo "::error::Only published stable GitHub releases can be uploaded."
+            exit 1
+          fi
+          gh release download "$TAG" --pattern "$zip" --dir "$work_dir"
+          unzip -tq "$work_dir/$zip"
+          if ! unzip -p "$work_dir/$zip" ForeverSuite/ForeverSuite.toc | tr -d '\r' | grep -Fx "## Version: $version"; then
+            echo "::error::The packaged addon's version does not match the release tag."
+            exit 1
+          fi
+
+          curl --silent --show-error --fail --max-time 30 \
+            --header "X-Api-Token: $CURSEFORGE_API_TOKEN" \
+            'https://wow.curseforge.com/api/game/wow/versions' > "$work_dir/versions.json"
+          # 88568 is the CurseForge game version type for WoW Forever.
+          if ! game_version_id="$(jq -er '
+            map(select(.gameVersionTypeID == 88568 and .name == "1.60.1"))
+            | select(length == 1)
+            | .[0].id
+            | select(type == "number" and . > 0)
+          ' "$work_dir/versions.json")"; then
+            echo "::error::Could not resolve CurseForge's WoW Forever 1.60.1 version ID."
+            exit 1
+          fi
+
+          jq --arg version "$version" --argjson game_version_id "$game_version_id" '{
+            changelog: (.body // ""),
+            changelogType: "markdown",
+            displayName: ("ForeverSuite " + $version),
+            gameVersions: [$game_version_id],
+            releaseType: "release"
+          }' "$work_dir/release.json" > "$work_dir/metadata.json"
+
+          curl --silent --show-error --fail-with-body --max-time 180 \
+            --header "X-Api-Token: $CURSEFORGE_API_TOKEN" \
+            --form "metadata=<$work_dir/metadata.json" \
+            --form "file=@$work_dir/$zip;type=application/zip" \
+            'https://wow.curseforge.com/api/projects/1807261/upload-file' > "$work_dir/response.json" || {
+              echo "::error::CurseForge did not confirm the upload. Check the project files before retrying."
+              exit 1
+            }
+
+          file_id="$(jq -er '.id | select(type == "number" and . > 0)' "$work_dir/response.json")"
+          printf 'CurseForge accepted the upload for review. [View file](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz/files/%s)\n' "$file_id" >> "$GITHUB_STEP_SUMMARY"

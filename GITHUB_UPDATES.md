@@ -25,3 +25,11 @@ This updates the source on GitHub. The release workflow packages the download se
 To publish as soon as the checks pass, select **Publish immediately after the checks pass** when running the workflow. This publishes the release at the end of step 4.
 
 The workflow tests the addon, packages the ZIP, and attaches the patch notes and checksum. It creates a release only for a new version number. Before running it, update the version in `ForeverSuite.toc` and `Core/Init.lua` and add the new patch notes at the top of `CHANGELOG.md`. GitHub Actions uses its built-in token to create the release.
+
+## Send published releases to CurseForge
+
+Create an author upload token on the [CurseForge API Tokens page](https://www.curseforge.com/account/api-tokens). Save it as a repository Actions secret called `CURSEFORGE_API_TOKEN` under [GitHub repository secrets](https://github.com/Bovahkiin/ForeverSuite/settings/secrets/actions).
+
+A published stable GitHub release sends the same `-forever.zip` and patch notes to the [ForeverSuite CurseForge project](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz) for WoW Forever 1.60.1. Publication on CurseForge follows its review process. This runs both when you manually publish a draft and when the build workflow publishes directly. Drafts and prereleases do not upload.
+
+If the token was missing or CurseForge failed to confirm an upload, check the CurseForge project files first. If the version is absent, open **Publish ForeverSuite to CurseForge** in GitHub Actions and run it with the exact published tag. The Actions run summary links to the submitted file on success.
