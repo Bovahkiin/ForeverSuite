@@ -98,7 +98,12 @@ function M:GetTexture() return self.texture end
 function M:SetStatusBarColor(...) self.barColor={...} end
 function M:GetStatusBarColor() return unpack(self.barColor or {0,1,0,1}) end
 function M:SetMinMaxValues(lo,hi) self.minimum,self.maximum=lo,hi end
-function M:SetValue(value) self.value=value end
+function M:SetValue(value)
+    local changed=self.value~=value
+    self.value=value
+    if changed and self.kind=='Slider' and self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,value) end
+end
+function M:GetValue() return self.value or 0 end
 function M:SetReverseFill(value) self.reverse=value end
 function M:SetTexCoord(...) self.coords={...} end
 function M:SetAtlas(atlas) self.atlas=atlas end
@@ -114,6 +119,11 @@ function M:GetBagID() return self.bag end
 function M:GetParent() return self.parent end
 function M:SetParent(parent) assert(not TEST.combat); self.parent=parent end
 function M:SetFont(path,size,flags) self.font={path,size,flags} end
+function M:GetStringHeight()
+    local _,size=self:GetFont()
+    local chars=math.max(1,math.floor(self:GetWidth()/(size*.6)))
+    return math.max(1,math.ceil(#self:GetText()/chars))*size
+end
 function M:GetFont() return unpack(self.font or {'Fonts\\FRIZQT__.TTF',12,''}) end
 function M:GetShadowOffset() return unpack(self.shadowOffset or {0,0}) end
 function M:SetShadowOffset(x,y) self.shadowOffset={x,y} end
@@ -182,10 +192,10 @@ function M:SetShown(v) if v then self:Show() else self:Hide() end end
 function M:IsShown() return self.shown and (not self.parent or self.parent:IsShown()) end
 function M:AddLine(text) self.lines[#self.lines+1] = text end
 function M:AddMessage(text) self.lines[#self.lines+1] = text end
-function M:SetOwner(owner) self.owner = owner end
+function M:SetOwner(owner,anchor,x,y) self.owner=owner; self.tooltipAnchor={anchor,x,y} end
 for _,k in ipairs({'ClearAllPoints','SetAllPoints','SetFrameStrata','SetClampedToScreen','SetMovable',
     'RegisterForDrag','RegisterForClicks','SetBackdrop','StartMoving','StopMovingOrSizing','SetJustifyH','EnableMouseWheel',
-    'SetJustifyV','SetHighlightTexture','SetTextColor','SetAutoFocus','SetColorTexture',
+    'SetJustifyV','SetWordWrap','SetHighlightTexture','SetTextColor','SetAutoFocus','SetColorTexture',
     'SetFontString','SetFontObject','SetTextInsets','SetMaxLetters','SetFocus','SetBackdropColor','SetBackdropBorderColor','SetLooping','SetFromAlpha','SetToAlpha','SetDuration','SetHyperlink'}) do M[k] = function() end end
 function M:SetFontString(region) self.fontString=region end
 function M:GetFontString() return self.fontString end
@@ -1224,6 +1234,10 @@ MainMenuMicroButton=CreateFrame('Button','MainMenuMicroButton',MicroMenuContaine
 local count=0; CharacterMicroButton:SetScript('OnClick',function() count=count+1 end)
 A:SettingsChanged(); assert(MicroMenuContainer.point[1]=='BOTTOMRIGHT' and CharacterMicroButton.point[1]=='TOPLEFT')
 local s=A.menuButtons[CharacterMicroButton]; assert(s.proxy==CharacterMicroButton and not s.proxy:GetAttribute('clickbutton') and s.proxy:IsMouseEnabled() and s.icon.texture==FS.menuAtlas)
+CharacterMicroButton.tooltipText='Character Info (C)'
+GameTooltip.lines={}; s.proxy.scripts.OnEnter(s.proxy)
+assert(#GameTooltip.lines==1 and GameTooltip.lines[1]=='Character Info (C)' and s.icon:GetWidth()==36)
+assert(GameTooltip.tooltipAnchor[1]=='ANCHOR_TOP' and GameTooltip.tooltipAnchor[3]>0)
 Click(s.proxy); TEST.combat=true; Click(s.proxy); TEST.combat=false; assert(count==2 and CharacterMicroButton.alpha==1 and CharacterMicroButton:GetWidth()==36)
 CharacterMicroButton:SetEnabled(false); s.proxy.scripts.OnUpdate(s.proxy,.3); assert(s.icon.desaturated)
 FS.db.actionBars.menu=false; A:SettingsChanged(); assert(not s.icon:IsShown() and CharacterMicroButton:GetWidth()==25 and CharacterMicroButton.alpha==1 and MicroMenuContainer.point[1]=='BOTTOMRIGHT')
@@ -1548,7 +1562,21 @@ for icon in menu_icons:
         assert im.getchannel('A').getextrema() == (0,255)
         assert im.getpixel((0,0))[3] == 0
     assert icon.read_bytes()[2] == 2
-print('PASS: 16 original menu icons have uncompressed RGBA textures and transparent corners')
+from build_themed_icons import ATLAS, CELL, COLUMNS, ICONS, THEMES
+assert [name for name, *_ in THEMES] == ['Legacy', *lua.globals().ForeverSuite.Themes.names.values()]
+lua_icon_src = Path('UI/Icons.lua').read_text().split('local names = {', 1)[1].split('}', 1)[0]
+assert lua_icon_src.replace('"', '').replace(',', ' ').split() == list(ICONS)
+with Image.open('Assets/Menu/FantasyAtlas.tga') as atlas:
+    for index in range(len(ICONS)):
+        images = set()
+        for theme in range(len(THEMES)):
+            x = index % COLUMNS * CELL
+            y = (theme*2 + index//COLUMNS) * CELL
+            tile = atlas.crop((x, y, x+CELL, y+CELL))
+            assert tile.getchannel('A').getextrema() == (0, 255)
+            images.add(tile.tobytes())
+        assert len(images) == len(THEMES)
+print('PASS: complete themed icon atlas with transparent corners and distinct styles')
 
 bar_art=list(Path('Assets/ActionBars').glob('*.tga'))
 assert len(bar_art)==6

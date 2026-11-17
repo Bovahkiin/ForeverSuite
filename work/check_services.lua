@@ -164,6 +164,103 @@ M:Scan(); assert(M.collected[nested] and M.collected[broker] and not M.collected
 M:Restore(nested); M:Restore(broker); assert(nested:GetParent()==wrapper and broker:GetParent()==UIParent)
 nested:Hide(); broker:Hide(); pin:Hide(); LibStub=oldLib
 
+-- TEST: Collector finds anchored and unnamed addon frames and ignores protected controls
+ResetTest(); local FS=ForeverSuite; local M=FS.modules.MinimapButtons
+local anonymous=CreateFrame('Button',nil,Minimap); anonymous:SetSize(25,25)
+anonymous:SetScript('OnClick',function() end)
+anonymous.icon=134400; local art=anonymous:CreateTexture(); art:SetTexture('Interface\\AddOns\\ExampleAddon\\Media\\Broker')
+local anchored=CreateFrame('Button','ExampleMinimapButton',UIParent); anchored:SetSize(25,25)
+anchored:SetPoint('LEFT',Minimap,'RIGHT')
+local native=CreateFrame('Button','AddonCompartmentFrame',Minimap); native:SetSize(25,25)
+local other=CreateFrame('Button','UnrelatedAddonMinimapButton',UIParent); other:SetSize(25,25)
+other:SetPoint('LEFT',UIParent,'RIGHT')
+M:Scan()
+assert(M.collected[anonymous] and M.collected[anchored] and not M.collected[native] and not M.collected[other])
+M:Restore(anonymous); M:Restore(anchored); anonymous:Hide(); anchored:Hide(); native:Hide(); other:Hide()
+
+-- TEST: Tray launches hidden brokers and compartment entries once and passes through mouse buttons
+ResetTest(); local FS=ForeverSuite; local M=FS.modules.MinimapButtons
+local oldLib,oldCompartment=LibStub,AddonCompartmentFrame
+local hidden=CreateFrame('Button','LibDBIcon10_HiddenGuide',Minimap); hidden:Hide()
+local live=CreateFrame('Button','LibDBIcon10_Live',Minimap); live:SetSize(30,30)
+local brokerClick,compartmentClick
+hidden.dataObject={label='Hidden Guide',icon=134400,OnClick=function(_,mouse) brokerClick=mouse end}
+local lib={
+    GetButtonList=function() return {'HiddenGuide','Live'} end,
+    GetMinimapButton=function(_,name) return name=='HiddenGuide' and hidden or live end,
+}
+LibStub=function() return lib end
+AddonCompartmentFrame=CreateFrame('Button',nil,Minimap)
+AddonCompartmentFrame.registeredAddons={
+    {text='Hidden Guide',func=function() error('Duplicate broker entry') end},
+    {text='Live',func=function() error('Duplicate visible entry') end},
+    {text='|cffffcc00OpenMap|r',icon=134400,
+        func=function(_,data,owner) assert(owner==M.launcherButtons.openmap); compartmentClick=data.buttonName end},
+}
+M:ToggleTray()
+assert(M.collected[live] and hidden:GetParent()==Minimap and not hidden:IsShown())
+assert(M.launcherButtons.hiddenguide:IsShown() and M.launcherButtons.openmap:IsShown() and not M.launcherButtons.live)
+M.launcherButtons.hiddenguide:Click('RightButton'); assert(brokerClick=='RightButton')
+M.launcherButtons.openmap:Click('LeftButton'); assert(compartmentClick=='LeftButton')
+M:Build()
+local found
+for _,row in ipairs(M.rows) do if row.name=='Compartment:openmap' then found=row end end
+assert(found)
+M.selected=found; M.actions[2].run(M)
+assert(M:Data().excluded['Compartment:openmap'] and not M.launcherButtons.openmap:IsShown())
+TEST.combat=true; M:Scan(); assert(M.pending); TEST.combat=false
+M:Restore(live); live:Hide(); M.tray:Hide()
+hidden.dataObject=nil
+LibStub,AddonCompartmentFrame=oldLib,oldCompartment
+M:Scan()
+assert(not M.launcherButtons.hiddenguide:IsShown())
+
+-- TEST: Tray hosts arbitrary visible LibDBIcon and broker-only launchers with reversible original placement
+ResetTest(); local FS=ForeverSuite; local M=FS.modules.MinimapButtons
+local oldLib,oldCompartment=LibStub,AddonCompartmentFrame
+local original=CreateFrame('Button','LibDBIcon10_AnyAddon',Minimap)
+original:SetSize(29,27); original:SetPoint('CENTER',Minimap,'CENTER',25,30); original:SetAlpha(0)
+local registeredCalls,brokerCalls=0,0
+local live={type='launcher',label='Arbitrary Tool',icon=134400,OnClick=function(owner,mouse)
+    if owner.dataObject and mouse=='RightButton' then registeredCalls=registeredCalls+1 end
+end}
+local data={type='data source',label='Third-Party Guide',icon=134401,OnClick=function()
+    brokerCalls=brokerCalls+1
+end}
+local widgets={AnyAddon=live,Alias=live,ThirdPartyGuide=data,TextOnly={type='data source'}}
+local iconLibrary={
+    GetButtonList=function() return {'AnyAddon'} end,
+    GetMinimapButton=function() return original end,
+}
+local brokerLibrary={
+    DataObjectIterator=function() return pairs(widgets) end,
+    GetDataObjectByName=function(_,name) return widgets[name] end,
+}
+local late
+brokerLibrary.RegisterCallback=function(_,event,handler)
+    assert(event=='LibDataBroker_DataObjectCreated'); late=handler
+end
+LibStub=function(name)
+    return name=='LibDBIcon-1.0' and iconLibrary or brokerLibrary
+end
+AddonCompartmentFrame=CreateFrame('Button',nil,Minimap)
+AddonCompartmentFrame.registeredAddons={{text='Arbitrary Tool',func=function() error('Duplicate compartment') end}}
+M:CreateTray(); M.tray:Hide(); M:ToggleTray()
+local proxy=M.launcherButtons.anyaddon
+assert(proxy:IsShown() and proxy.icon.texture==134400 and original:GetParent()==M.parking and not original:IsShown())
+assert(M.launcherButtons.thirdpartyguide:IsShown() and not M.launcherButtons.arbitrarytool and not M.launcherButtons.alias and not M.launcherButtons.textonly)
+proxy:Click('RightButton'); M.launcherButtons.thirdpartyguide:Click(); assert(registeredCalls==1 and brokerCalls==1)
+widgets.LateAddon={type='launcher',icon=134402,OnClick=function() end}
+assert(late); late(); Drain(); assert(M.launcherButtons.lateaddon:IsShown())
+M:Data().excluded['LibDBIcon10_AnyAddon']=true; M:Scan()
+assert(not proxy:IsShown() and original:GetParent()==Minimap and original:GetWidth()==29 and original.point[4]==25)
+M:Data().excluded['LibDBIcon10_AnyAddon']=nil; M:Scan()
+assert(original:GetParent()==M.parking)
+FS:SetModuleEnabled('MinimapButtons',false)
+assert(original:GetParent()==Minimap and not proxy:IsShown() and not M.tray:IsShown())
+original:Hide(); original.dataObject=nil; LibStub,AddonCompartmentFrame=oldLib,oldCompartment
+FS:SetModuleEnabled('MinimapButtons',true)
+
 -- TEST: Tray is anchored to the collector button and flips above or below near screen edges
 ResetTest(); local M=ForeverSuite.modules.MinimapButtons; M:CreateTray(); local b=M.button; local original=b.GetCenter
 b.GetCenter=function() return UIParent:GetWidth()-20,UIParent:GetHeight()-20 end; M:AnchorTray()

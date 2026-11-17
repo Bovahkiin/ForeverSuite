@@ -597,7 +597,15 @@ for index=2,#C.pages do
  local control=CreateFrame('CheckButton',nil,native); control:SetPoint('BOTTOMLEFT',CharacterFrame,'BOTTOMLEFT',20,24)
  CharacterFrame.activeSubframe=name; C:Apply()
  assert(native:GetParent()==C.content and C.content.clipsChildren)
- assert(native:GetHeight()*native:GetScale()<=416.001 and native:GetWidth()*native:GetScale()<=732.001)
+ assert(native:GetWidth()==732 and native:GetHeight()==416 and native:GetScale()==1)
+ assert(native.point[2]==C.content and native.point[4]==8 and native.point[5]==-8)
+ local hosts=C.mounted.hosts
+ assert(hosts.left:IsShown())
+ if name=='StatisticsFrame' then
+  assert(hosts.left:GetWidth()==732 and not hosts.right:IsShown() and not hosts.divider:IsShown())
+ else
+  assert(hosts.left:GetWidth()==499 and hosts.right:GetWidth()==233 and hosts.divider:IsShown())
+ end
  assert(title.point[2]==native and control.point[2]==native, 'Header and footer widgets must anchor inside the page')
  control:SetPoint('BOTTOMLEFT',CharacterFrame,'BOTTOMLEFT',30,30)
  assert(control.point[2]==native, 'Native refresh must not restore an outside anchor')
@@ -614,14 +622,22 @@ CharacterFrameLeftPaneHost=CreateFrame('Frame','CharacterFrameLeftPaneHost',Char
 CharacterFrameRightPaneHost=CreateFrame('Frame','CharacterFrameRightPaneHost',CharacterFrame)
 local old=SkillsFrame; SkillsFrame=CreateFrame('Frame',nil,CharacterFrame); SkillsFrame:SetSize(631,540)
 local list=CreateFrame('Frame',nil,SkillsFrame); list:SetPoint('TOPLEFT',CharacterFrameLeftPaneHost,'TOPLEFT',10,-40)
+SkillsFrame.ScrollBox=list
+local scrollBar=CreateFrame('Frame',nil,SkillsFrame); SkillsFrame.ScrollBar=scrollBar
+local scrollThumb=scrollBar:CreateTexture(nil,'BACKGROUND')
 local details=CreateFrame('Frame',nil,SkillsFrame); details:SetPoint('TOPLEFT',CharacterFrameRightPaneHost,'TOPLEFT',16,-14)
 CharacterFrame.activeSubframe='SkillsFrame'; CharacterFrame:Show(); C:Apply()
 local hosts=C.mounted.hosts
 assert(list.point[2]==hosts.left and details.point[2]==hosts.right and hosts.left~=hosts.right)
 assert(hosts.right:GetWidth()==233 and hosts.right.point[4]==SkillsFrame:GetWidth()-233)
-local row=CreateFrame('Frame',nil,list); local text=row:CreateFontString(nil,'OVERLAY'); text:SetFont('old',9,'')
+local row=CreateFrame('Button',nil,list); row:SetSize(400,28)
+local text=row:CreateFontString(nil,'OVERLAY'); text:SetFont('old',9,'')
+local checkbox=CreateFrame('CheckButton',nil,row)
+local checkArt=checkbox:CreateTexture(nil,'BACKGROUND')
 SkillsFrame.scripts.OnUpdate(SkillsFrame,.3)
 local font,size=text:GetFont(); assert(font==FS.font and size==12)
+assert(C.controls[row] and not FS.Themes.frames[C.controls[row]], 'Rows use flat styling')
+assert(scrollThumb:GetAlpha()==1 and checkArt:GetAlpha()==1, 'Keep native scrollbar and checkbox art')
 details:SetPoint('TOPLEFT',CharacterFrameRightPaneHost,'TOPLEFT',16,-14); assert(details.point[2]==hosts.right)
 C:RestoreMounted(); assert(list.point[2]==CharacterFrameLeftPaneHost and details.point[2]==CharacterFrameRightPaneHost)
 assert(not hosts.left:IsShown() and not hosts.right:IsShown())
@@ -654,14 +670,77 @@ for _,index in ipairs({3,4}) do
  local page=CreateFrame('Frame',nil,CharacterFrame); page:SetSize(780,580); _G[name]=page
  local bar=CreateFrame('StatusBar',nil,page); bar:SetMinMaxValues(0,75); bar:SetValue(3)
  local text=bar:CreateFontString(nil,'OVERLAY'); text:SetText('3 / 75')
+ local masked=CreateFrame('StatusBar',nil,page); masked:SetSize(150,25)
+ masked.Fill=masked:CreateTexture(nil,'BACKGROUND')
+ masked.SetFillPercent=function(self,percent) self.Fill:SetWidth(self:GetWidth()*percent) end
+ masked:SetStatusBarTexture('native-track'); masked:SetFillPercent(11/75)
  CharacterFrame.activeSubframe=name; CharacterFrame:Show(); C:Apply()
  assert(page:GetScale()==1 and page:GetWidth()==732 and page:GetHeight()==416)
  assert(C.mounted.hosts.left:GetWidth()+C.mounted.hosts.right:GetWidth()==732)
- assert(bar.value==3 and bar.maximum==75); local _,size=text:GetFont(); assert(size==12)
+ assert(bar.value==3 and bar.maximum==75 and bar.barTexture==FS.HUD.texture)
+ assert(masked.barTexture=='native-track' and masked.Fill:GetAlpha()==1 and masked.Fill:GetWidth()==22)
+ local _,size=text:GetFont(); assert(size==12)
  C:RestoreMounted(); assert(page:GetWidth()==780 and page:GetHeight()==580)
  page:Hide(); _G[name]=original
 end
 CharacterFrame.activeSubframe='PaperDollFrame'; C:Apply(); CharacterFrame:Hide()
+
+-- TEST: Skills and PvP scroll all detail text and restore the native pane when leaving the tab
+ResetTest(); local FS=ForeverSuite; local C=FS.modules.Character
+for _,name in ipairs({'SkillsFrame','PVPRankFrame'}) do
+ local old=_G[name]; local page=CreateFrame('Frame',nil,CharacterFrame); _G[name]=page
+ local pane=CreateFrame('Frame',nil,page)
+ if name=='SkillsFrame' then page.SkillDetailFrame=pane; pane.RankBar=CreateFrame('StatusBar',nil,pane)
+ else page.DetailFrame=pane end
+ pane.Title=pane:CreateFontString(); pane.Title:SetText('Staves')
+ pane.Divider=pane:CreateTexture()
+ pane.Description=CreateFrame('Frame',nil,pane)
+ local desc=pane.Description:CreateFontString(); pane.Description:SetFontString(desc)
+ desc:SetText(('Weapon or rank information. '):rep(12))
+ pane.DescriptionScrollBar=CreateFrame('Frame',nil,pane)
+ pane.Content=CreateFrame('Frame',nil,pane); pane.Content:SetPoint('TOP',pane.Description,'BOTTOM',0,-6)
+ local row=CreateFrame('Frame',nil,pane.Content); row:SetHeight(16)
+ row.Label=row:CreateFontString(); row.Label:SetWidth(180); row.Label:SetText(('Rank or weapon information. '):rep(14))
+ function pane:LayoutRows() self.Content:SetHeight(row:GetHeight()) end
+ pane:LayoutRows()
+ CharacterFrame.activeSubframe=name; CharacterFrame:Show(); C:Apply()
+ local state=C.mounted.detail
+ assert(state.text:GetText()==desc:GetText() and state.slider:IsShown())
+ assert(pane.Content:GetParent()==state.body and state.scroll.clipsChildren)
+ assert(pane.Description:GetAlpha()==0 and not pane.Description:IsMouseEnabled() and row:GetHeight()>16)
+ state.scroll.scripts.OnMouseWheel(state.scroll,-20)
+ assert(state.scroll:GetVerticalScroll()==state.scroll.maximum and state.scroll.maximum>0)
+ pane.Title:SetText('Swords'); page.scripts.OnUpdate(page,.3); assert(state.scroll:GetVerticalScroll()==0)
+ desc:SetText('Short'); row.Label:SetText('Short'); row:SetHeight(16); pane:LayoutRows()
+ page.scripts.OnUpdate(page,.3)
+ assert(state.text:GetText()=='Short' and not state.slider:IsShown())
+ C:RestoreMounted()
+ assert(pane.Content:GetParent()==pane and select(2,pane.Content:GetPoint())==pane.Description)
+ assert(pane.Description:GetAlpha()==1 and pane.Description:IsMouseEnabled())
+ page:Hide(); _G[name]=old
+end
+CharacterFrame.activeSubframe='PaperDollFrame'; C:Apply(); CharacterFrame:Hide()
+
+-- TEST: Forever menu keeps Legacy, hides unsupported shortcuts, and restores original native controls
+ResetTest(); local FS=ForeverSuite; local A=FS.modules.ActionBars
+local names={'HousingMicroButton','AchievementMicroButton','EJMicroButton','LegacyMicroButton'}
+local old,client={},FS.client; FS.client={isForever=true}
+for _,name in ipairs(names) do
+ old[name]=_G[name]; _G[name]=CreateFrame('Button',name,UIParent); _G[name]:SetAlpha(.8)
+end
+A.active=true; FS.db.actionBars.menu=true; A:ApplyMenu()
+assert(LegacyMicroButton:GetParent()==A.menuRoot and LegacyMicroButton:IsMouseEnabled())
+for i=1,3 do
+ local button=_G[names[i]]
+ assert(button:GetParent()==UIParent and button:GetAlpha()==0 and not button:IsMouseEnabled() and not A.menuButtons[button])
+end
+FS.db.actionBars.menu=false; A:ApplyMenu()
+for _,name in ipairs(names) do
+ local button=_G[name]
+ assert(button:GetAlpha()==.8 and button:IsMouseEnabled() and button:GetParent()==UIParent)
+ button:Hide(); A.menuButtons[button]=nil; _G[name]=old[name]
+end
+FS.client=client; FS.db.actionBars.menu=true; A:ApplyMenu()
 
 -- TEST: Suite style groups bars without replacing native clicks, icons, class colors or saved gear placement
 ResetTest(); local FS=ForeverSuite; local S=FS.Style; local A=FS.modules.ActionBars
@@ -1328,6 +1407,28 @@ skin.Icon:SetTexture(6789); N:Refresh(); assert(N.controls[skin].professionIcon:
 TEST.combat=true; skin:SetPoint('LEFT',f,'RIGHT',1,-90); N:Refresh(); assert(skin.point[1]=='LEFT'); TEST.combat=false; N:Refresh(); assert(skin.point[1]=='TOPRIGHT')
 FS:SetModuleEnabled('Professions',false); N:Refresh(); assert(skin.w==50 and skin.point[1]=='LEFT' and skin.point[4]==0 and skin.Icon:GetAlpha()==1 and not N.controls[skin].professionIcon:IsShown())
 overview:Hide(); f:Hide(); ProfessionsFrame=old; FS:SetModuleEnabled('Professions',true)
+
+-- TEST: Profession recipe categories and entries keep native bars, markers, and a clean flat list
+ResetTest(); local FS=ForeverSuite; local N=FS.NativeWindows; local old=ProfessionsFrame
+local profession=CreateFrame('Frame','ProfessionsFrame',UIParent); ProfessionsFrame=profession
+local list=CreateFrame('Frame',nil,profession)
+local category=CreateFrame('Button',nil,list)
+local categoryArt=category:CreateTexture(nil,'BACKGROUND')
+local collapse=CreateFrame('Button',nil,category); collapse.Icon=collapse:CreateTexture(nil,'OVERLAY')
+category.GetCollapseButton=function() return collapse end; category.SetHeaderText=function() end
+local recipe=CreateFrame('Button',nil,list); recipe.Label=recipe:CreateFontString()
+recipe.SkillUps=CreateFrame('Button',nil,recipe); local arrow=recipe.SkillUps:CreateTexture(nil,'OVERLAY')
+recipe.LockedIcon=CreateFrame('Button',nil,recipe)
+local other=CreateFrame('Button',nil,profession)
+local collapsed,clicked=false,false
+category:SetScript('OnClick',function() collapsed=not collapsed end)
+recipe:SetScript('OnClick',function() clicked=true end)
+N:Tree(profession,true,profession)
+assert(categoryArt:GetAlpha()==1 and collapse.Icon:GetAlpha()==1 and arrow:GetAlpha()==1)
+assert(not N.controls[recipe] and not N.controls[category] and N.controls[other])
+category:Click(); recipe:Click(); assert(collapsed and clicked)
+N:Tree(profession,false,profession); assert(categoryArt:GetAlpha()==1 and arrow:GetAlpha()==1)
+profession:Hide(); ProfessionsFrame=old
 
 -- TEST: Profession modern scrollbar shows arrows and thumb while native scroll drag disabled state and restoration survive
 ResetTest(); local FS=ForeverSuite; local N=FS.NativeWindows; local old=ProfessionsFrame

@@ -26,9 +26,3 @@ function FS:ClickEffect(button)
     button:HookScript("PostClick", function() group:Stop(); flash:Show(); group:Play() end)
     return group
 end
-FS.menuAtlas = "Interface\\AddOns\\ForeverSuite\\Assets\\Menu\\FantasyAtlas.tga"
-FS.menuIndices = { Character=0, Professions=1, Spells=2, Talents=3, Achievements=4, Quests=5, Guild=6, Social=7, Groups=8, PVP=9, Collections=10, Guide=11, Map=12, Store=13, Menu=14, Help=15, Legacy=16, Housing=17, Reputation=18, Skills=19, Currency=20, Statistics=21, Enemy=22, Equipment=23, Friendly=24 }
-function FS:SetMenuIcon(texture, name)
-    local index = self.menuIndices[name] or 0; local x,y = index % 5, math.floor(index / 5)
-    texture:SetTexture(self.menuAtlas); texture:SetTexCoord((x+0.015)/5,(x+0.985)/5,(y+0.015)/5,(y+0.985)/5)
-end

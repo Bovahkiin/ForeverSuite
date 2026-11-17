@@ -1,5 +1,13 @@
 local _,FS=...
 FS.patchNotes={
+    {version="1.0.6",lines={
+        "New Blender-rendered interface icons for all eleven themes, including clearer main-menu icons and a tooltip that opens above the bar.",
+        "Addon Buttons discovers more launchers, including LibDBIcon and LibDataBroker buttons, AddOns-menu entries and compatible custom minimap buttons.",
+        "Character Info aligns its secondary tabs, displays accurate skill progress and keeps long Skills and PvP details readable and scrollable.",
+        "World map controls fit the visible map beside the quest log and sit above the coordinates.",
+        "Profession recipe lists retain clear category bars, flat recipe rows and skill-up markers.",
+        "The WoW Forever main menu keeps Legacy and removes Housing, Adventure Guide and the duplicate Achievements shortcut.",
+    }},
     {version="1.0.4",lines={
         "Search the Control Center in English for tasks such as text size, restore waypoint, feed pet, or move bags.",
     }},

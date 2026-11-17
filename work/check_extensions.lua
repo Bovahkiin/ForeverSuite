@@ -1200,6 +1200,29 @@ WorldMapFrame,OpenMapAPI,M.Position=oldMap,oldAPI,oldPosition
 L.targets.WorldMapFrame=oldTarget
 M.openMapCallbacks=nil; world:Hide()
 
+-- TEST: World map toolbar stays inside the viewport and above the native footer when the map changes size
+local FS=ExtensionFixture(); local M=FS.modules.Map
+local oldMap=WorldMapFrame
+local map=CreateFrame('Frame',nil,UIParent); map:SetSize(1050,550); map:Show()
+local viewport=CreateFrame('ScrollFrame',nil,map); viewport:SetSize(360,460); viewport:Show()
+local canvas=CreateFrame('Frame',nil,viewport); canvas:SetSize(720,920)
+viewport.Child=canvas
+map.ScrollContainer=viewport; map.GetMapID=function() return 12 end
+map.GetCanvasContainer=function() return viewport end
+local coords=CreateFrame('Frame',nil,map); coords:SetPoint('BOTTOMRIGHT',viewport,'BOTTOMRIGHT',-32,2)
+local toggle=CreateFrame('Button',nil,map); toggle:SetPoint('BOTTOMRIGHT',viewport,'BOTTOMRIGHT',-2,1)
+WorldMapFrame=map; M:UpdatePins()
+local toolbar=M.worldControls
+local point,parent,edge,x,y=toolbar:GetPoint()
+assert(toolbar:IsShown() and point=='BOTTOM' and parent==viewport and edge=='BOTTOM' and x==0)
+assert(math.abs(y*toolbar:GetScale()-58)<.001 and toolbar:GetWidth()*toolbar:GetScale()<=336.001)
+viewport:SetSize(1000,520); viewport.scripts.OnSizeChanged(viewport)
+assert(toolbar:GetScale()==1 and select(5,toolbar:GetPoint())==58)
+canvas:SetSize(1500,1500); M:UpdatePins()
+assert(select(2,toolbar:GetPoint())==viewport and toolbar:GetScale()==1)
+assert(select(4,coords:GetPoint())==-32 and select(4,toggle:GetPoint())==-2)
+map:Hide(); WorldMapFrame=oldMap
+
 -- TEST: World map controls filter addon markers and link the map to route planning
 local FS,E,W=ExtensionFixture(); local M=FS.modules.Map
 local oldMap,oldShift,oldUtil=WorldMapFrame,IsShiftKeyDown,MapUtil

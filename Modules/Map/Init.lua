@@ -99,6 +99,24 @@ function M:Build()
         if n and locked then self.rows[#self.rows+1]={text="[Lockout] "..n.." | "..(killed or 0).."/"..(encounters or 0).." bosses | "..math.ceil((reset or 0)/3600).."h until reset"} end
     end
 end
+local function layoutWorldControls(toolbar,viewport)
+    local width=viewport:GetWidth()
+    local viewportScale=viewport:GetEffectiveScale()
+    local parentScale=toolbar:GetParent():GetEffectiveScale()
+    if not T:Number(width) or width<=0 or not T:Number(viewportScale) or viewportScale<=0
+        or not T:Number(parentScale) or parentScale<=0 then return end
+    local widthInParent=width*viewportScale/parentScale
+    local margin=math.min(24,widthInParent/4)
+    local scale=math.min(1,(widthInParent-margin)/toolbar:GetWidth())
+    -- Keep a separate row above the coordinates and the quest log toggle.
+    local clearance=58*viewportScale/parentScale/scale
+    if toolbar:GetScale()~=scale then toolbar:SetScale(scale) end
+    local _,anchor,_,_,offset=toolbar:GetPoint()
+    if anchor~=viewport or offset~=clearance then
+        toolbar:ClearAllPoints()
+        toolbar:SetPoint("BOTTOM",viewport,"BOTTOM",0,clearance)
+    end
+end
 function M:UpdateWorldControls(world)
     local db=self:Data()
     local f=self.worldControls
@@ -108,7 +126,7 @@ function M:UpdateWorldControls(world)
     if not f then
         local H=FS.HUD
         f=CreateFrame("Frame",nil,world,"BackdropTemplate"); self.worldControls=f
-        H:Skin(f); f:SetSize(432,36); f:SetPoint("BOTTOM",world,"BOTTOM",0,12)
+        H:Skin(f); f:SetSize(432,36)
         f:SetFrameLevel(world:GetFrameLevel()+12)
         f.zone=H:Button(f,"My zone",4,-3,100,function()
             if InCombatLockdown() then return end
@@ -131,11 +149,17 @@ function M:UpdateWorldControls(world)
     local stops=db.worldRoute and "Stops: On" or "Stops: Off"
     if f.pins:GetText()~=pins then f.pins:SetText(pins) end
     if f.stops:GetText()~=stops then f.stops:SetText(stops) end
-    local width=world:GetWidth()
-    if T:Number(width) and width>0 then
-        local scale=math.min(1,math.max(.2,(width-24)/432))
-        if f:GetScale()~=scale then f:SetScale(scale) end
+    local viewport=T:Call(world.GetCanvasContainer,world) or world.ScrollContainer
+    if not viewport or not viewport.GetWidth or (viewport.IsForbidden and viewport:IsForbidden()) then viewport=world end
+    if f.viewport~=viewport then
+        f.viewport=viewport
+        viewport:HookScript("OnSizeChanged",function()
+            if self.worldControls==f and f.viewport==viewport and f:IsShown() and world:IsShown() and not InCombatLockdown() then
+                layoutWorldControls(f,viewport)
+            end
+        end)
     end
+    layoutWorldControls(f,viewport)
     f:Show()
 end
 function M:ToggleWorldLayer(key)

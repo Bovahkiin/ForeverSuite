@@ -552,14 +552,24 @@ FS.Print=print; C_AddOns=old; FS.db.nameplates.enabled=enabled
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.window.next:Click(); I.window.next:Click()
 assert(#FS.Themes.names==11 and #I.window.choices==#FS.Themes.names and I.step==2)
 assert(I.window.themeSample:IsShown())
+assert(FS.Themes:Refresh())
+local liveIcon=FS.window.cards.Bags.icon
+local previewIcon=I.window.themeSample.icons.Bags
+local legacyY=liveIcon.coords[3]
 for i,name in ipairs(FS.Themes.names) do
     I.window.choices[i]:Click()
     assert(I.draft.theme==name and I.window.design.image.texture==FS.Themes:Asset(i,'Preview'))
     assert(FS.Themes.frames[I.window.themeSample.button].parts[1].texture==FS.Themes:Asset(i,'Button'))
     assert(I.window.themeSample.arrow.texture==FS.Themes:Asset(i,'Arrow'))
+    assert(previewIcon.texture==FS.menuAtlas and previewIcon.coords[3] > legacyY)
+    assert(math.abs(previewIcon.coords[3]-legacyY-i*72/1024) < 0.0001)
+    assert(liveIcon.coords[3]==legacyY)
     assert(FS.db.appearance.theme=='Legacy' and not FS.db.setup.completed)
 end
 I:Dismiss(); assert(FS.db.appearance.theme=='Legacy')
+assert(FS.Themes:Set('Azeroth Heritage'))
+assert(liveIcon.coords[3]==previewIcon.coords[3])
+assert(FS.Themes:Set('Legacy') and liveIcon.coords[3]==legacyY)
 
 -- TEST: Theme picker cancellation and applying preserve setup progress modules and native geometry
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer

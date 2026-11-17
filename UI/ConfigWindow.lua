@@ -138,34 +138,34 @@ function FS:CreateConfigWindow()
     frame.emptyModules:SetJustifyH("CENTER"); frame.emptyModules:Hide()
     frame.cards = {}
     local modules = {
-        { name = "Bags", title = "Bags & Stock", detail = "Organize bags and keep items safe", icon = "Interface\\Icons\\INV_Misc_Bag_08" },
-        { name = "Vendor", title = "Vendor & Junk", detail = "Sell junk, repair gear and buy supplies", icon = "Interface\\Icons\\INV_Misc_Coin_02" },
+        { name = "Bags", title = "Bags & Stock", detail = "Organize bags and keep items safe" },
+        { name = "Vendor", title = "Vendor & Junk", detail = "Sell junk, repair gear and buy supplies" },
     }
-    modules[#modules + 1] = { name = "Gear", title = "Gear & Durability", detail = "Inspect equipment and repair status", icon = "Interface\\Icons\\INV_Chest_Plate04" }
-    modules[#modules + 1] = { name = "UnitFrames", title = "Unit Frames", detail = "Player and target health at a glance", icon = "Interface\\Icons\\Spell_Holy_PrayerOfHealing" }
-    modules[#modules + 1] = { name = "ActionBars", title = "Action Bars & Menu", detail = "Clean buttons and a compact main menu", icon = "Interface\\Icons\\INV_Sword_04" }
-    modules[#modules + 1] = { name = "Nameplates", title = "Nameplates", detail = "Clear health bars above units", icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath" }
-    modules[#modules + 1] = { name = "Character", title = "Character Info", detail = "Equipment, reputation, skills and more", icon = "Interface\\Icons\\INV_Helmet_03" }
+    modules[#modules + 1] = { name = "Gear", title = "Gear & Durability", detail = "Inspect equipment and repair status" }
+    modules[#modules + 1] = { name = "UnitFrames", title = "Unit Frames", detail = "Player and target health at a glance" }
+    modules[#modules + 1] = { name = "ActionBars", title = "Action Bars & Menu", detail = "Clean buttons and a compact main menu" }
+    modules[#modules + 1] = { name = "Nameplates", title = "Nameplates", detail = "Clear health bars above units" }
+    modules[#modules + 1] = { name = "Character", title = "Character Info", detail = "Equipment, reputation, skills and more" }
     local additions={
-        {"Map","Map","Coordinates, pins and instance details","INV_Misc_Map_01"},
-        {"Quests","Quests","Objectives and optional quest convenience","INV_Misc_Note_01"},
-        {"Loot","Loot","Fast loot, recent drops and roll choices","INV_Misc_Bag_10"},
-        {"Buffs","Buffs","Buffs, debuffs and missing buff reminders","Spell_Holy_MagicalSentry"},
-        {"Cooldowns","Cooldowns","Your spells, interrupts and defensives","Spell_Nature_TimeStop"},
-        {"Combat","Combat","Group damage, healing and combat summaries","Ability_Warrior_BattleShout"},
-        {"Professions","Professions","Recipes and required materials","Trade_BlackSmithing"},
-        {"AuctionHouse","Auction House","Observed prices and shopping list","INV_Misc_Coin_01"},
-        {"Chat","Chat","Chat panels, text and message display","INV_Misc_Note_02"},
-        {"Social","Social","Contacts and friends list tools","INV_Misc_GroupLooking"},
-        {"Guild","Guild","Guild members and community tools","INV_Misc_Tournaments_Tabard_Human"},
-        {"QoL","Leveling & QoL","Level progress and convenient tools","INV_Misc_Book_11"},
-        {"Bank","Bank","Grouped bank items and search","INV_Misc_Bag_10"},
-        {"Bindings","Key Bindings","Choose keys for action, stance and pet bars","INV_Misc_Gear_01"},
-        {"Mail","Mail","Read mail and collect attachments or money","INV_Letter_15"},
-        {"MinimapButtons","Addon Buttons","Collect minimap addon buttons in one tray","INV_Misc_EngGizmos_17"},
-        {"GearAdvisor","Gear Advisor","Compare equipment with customizable stat weights","INV_Chest_Chain_05"},
+        {"Map","Map","Coordinates, pins and instance details"},
+        {"Quests","Quests","Objectives and optional quest convenience"},
+        {"Loot","Loot","Fast loot, recent drops and roll choices"},
+        {"Buffs","Buffs","Buffs, debuffs and missing buff reminders"},
+        {"Cooldowns","Cooldowns","Your spells, interrupts and defensives"},
+        {"Combat","Combat","Group damage, healing and combat summaries"},
+        {"Professions","Professions","Recipes and required materials"},
+        {"AuctionHouse","Auction House","Observed prices and shopping list"},
+        {"Chat","Chat","Chat panels, text and message display"},
+        {"Social","Social","Contacts and friends list tools"},
+        {"Guild","Guild","Guild members and community tools"},
+        {"QoL","Leveling & QoL","Level progress and convenient tools"},
+        {"Bank","Bank","Grouped bank items and search"},
+        {"Bindings","Key Bindings","Choose keys for action, stance and pet bars"},
+        {"Mail","Mail","Read mail and collect attachments or money"},
+        {"MinimapButtons","Addon Buttons","Collect minimap addon buttons in one tray"},
+        {"GearAdvisor","Gear Advisor","Compare equipment with customizable stat weights"},
     }
-    for _,d in ipairs(additions) do modules[#modules+1]={name=d[1],title=d[2],detail=d[3],icon="Interface\\Icons\\"..d[4]} end
+    for _,d in ipairs(additions) do modules[#modules+1]={name=d[1],title=d[2],detail=d[3]} end
     frame.cardCount=#modules; frame.cardPage=1; frame.moduleOrder={}
     for i, data in ipairs(modules) do
         frame.moduleOrder[#frame.moduleOrder+1]=data.name
@@ -179,7 +179,7 @@ function FS:CreateConfigWindow()
         FS.Themes:Register(card,"Panel")
         local rail = card:CreateTexture(nil, "ARTWORK"); rail:SetColorTexture(color[1], color[2], color[3], 1)
         rail:SetWidth(3); rail:SetPoint("TOPLEFT", 1, -1); rail:SetPoint("BOTTOMLEFT", 1, 1)
-        local icon = card:CreateTexture(nil, "ARTWORK"); icon:SetTexture(data.icon)
+        local icon = card:CreateTexture(nil, "ARTWORK"); self:SetMenuIcon(icon, name)
         icon:SetSize(42, 42); icon:SetPoint("TOPLEFT", 14, -16)
         local heading=text(card, data.title, 68, -12, 340, "ForeverSuiteFontLarge"); heading:SetTextColor(color[1], color[2], color[3])
         data.detail = FS.Beginner.help[name] or data.detail

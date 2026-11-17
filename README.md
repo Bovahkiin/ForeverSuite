@@ -10,7 +10,7 @@ profile. Made by **DeluxiZ**.
 
 [Join the ForeverSuite Discord](https://discord.gg/wmBcax2bvJ) for support, bug reports, and suggestions.
 
-**Current release:** 1.0.4 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.6 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 

@@ -93,6 +93,7 @@ function T:Refresh()
         for _,region in ipairs({frame:GetRegions()}) do if region.GetFont then self:Font(region) end end
     end
     for region in pairs(self.fonts) do self:Font(region) end
+    FS:RefreshMenuIcons(self:Current())
     if FS.modules.ActionBars.ApplyAppearance then FS.modules.ActionBars:ApplyAppearance() end
     if FS.Style then FS.Style:Refresh() end
     return true

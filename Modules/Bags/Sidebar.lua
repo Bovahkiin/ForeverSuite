@@ -1,9 +1,11 @@
 local _, FS = ...
 local B, V = FS.modules.Bags, FS.modules.Vendor
-local icons = { All = 133635, Favorites = 135994, Gear = 132722, Consumables = 134829,
-    Ammo = 132382, Materials = 133234, ["Quest Items"] = 134400, Junk = 133784,
-    Other = 133647, Bags = 133634, Stock = 133639, Gems = 134071, Recipes = 134939,
-    Professions = 136241, Keys = 134238, Pets = 132599, Mounts = 132261 }
+local categoryIcons = {
+    Favorites = "Star", Gear = "Gear", Consumables = "Potion",
+    Ammo = "Ammo", Materials = "Stock", ["Quest Items"] = "Quests", Junk = "Junk",
+    Bags = "Bags", Stock = "Statistics", Gems = "Gem", Recipes = "Guide",
+    Professions = "Professions", Keys = "Keys", Pets = "Pet", Mounts = "Mounts",
+}
 local function text(parent, value, x, y, width)
     local f = FS.Widgets:Label(parent, "ForeverSuiteFontSmall")
     f:SetText(value)
@@ -201,15 +203,15 @@ function B:RefreshSidebar(view)
         local name = self:Category(row); counts[name] = (counts[name] or 0) + 1; total = total + 1
     end
     local entries = {
-        { title = "All Items", mode = "categories", category = "All", icon = icons.All, count = total },
-        { title = "OneBag", mode = "onebag", category = "All", icon = 133634, count = total },
-        { title = "MultiBag", mode = "multibag", category = "All", icon = 133633, count = total },
-        { title = "Recent Items", mode = "recent", category = "All", icon = 134377, count = #self:RecentRows({ rows = view.plan.items }) },
+        { title = "All Items", mode = "categories", category = "All", icon = "Menu", count = total },
+        { title = "OneBag", mode = "onebag", category = "All", icon = "Bags", count = total },
+        { title = "MultiBag", mode = "multibag", category = "All", icon = "Grid", count = total },
+        { title = "Recent Items", mode = "recent", category = "All", icon = "Cooldowns", count = #self:RecentRows({ rows = view.plan.items }) },
     }
     for _, name in ipairs(self.categories) do
         local custom = false; for _, value in ipairs(db.customCategories) do if value == name then custom = true end end
         if name ~= "All" and (name == "Favorites" or (counts[name] or 0) > 0 or custom or name == db.category) then
-            entries[#entries + 1] = { title = self.categoryNames[name] or name, mode = "categories", category = name, icon = icons[name] or 134400, count = counts[name] or 0 }
+            entries[#entries + 1] = { title = self.categoryNames[name] or name, mode = "categories", category = name, icon = categoryIcons[name] or "Category", count = counts[name] or 0 }
         end
     end
     local sidebarTop=large and 18+f.sidebarTitle:GetHeight() or 34
@@ -226,7 +228,7 @@ function B:RefreshSidebar(view)
         c.entry = entry; c:SetShown(entry ~= nil)
         if entry then
             c:SetWidth(sidebarWidth-14); c:SetHeight(large and rowHeight-4 or 28); at(c,7,sidebarTop+(i-1)*rowHeight)
-            c.caption:SetText(entry.title); c.count:SetText(entry.count); c.icon:SetTexture(entry.icon)
+            c.caption:SetText(entry.title); c.count:SetText(entry.count); FS:SetMenuIcon(c.icon, entry.icon)
             local countWidth=large and math.max(32,fontSize*2.5) or 23
             c.caption:SetWidth(sidebarWidth-60-countWidth); if c.caption.SetNonSpaceWrap then c.caption:SetNonSpaceWrap(true) end; H:TextHeight(c.caption,sidebarWidth-60-countWidth,2)
             at(c.count,sidebarWidth-22-countWidth,large and (c:GetHeight()-fontSize-3)/2 or 7)

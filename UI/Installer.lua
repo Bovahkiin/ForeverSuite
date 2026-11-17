@@ -89,6 +89,14 @@ function I:Create()
     f.themeSample.arrow=f.themeSample:CreateTexture(nil,"ARTWORK"); f.themeSample.arrow:SetSize(38,38)
     f.themeSample.arrow:SetPoint("LEFT",205,0)
     H:Label(f.themeSample,"Waypoint arrow",250,-13,200)
+    f.themeSample.icons = {}
+    for index, name in ipairs({"Character", "Bags", "Map"}) do
+        local badge = f.themeSample:CreateTexture(nil, "ARTWORK")
+        badge:SetSize(28, 28)
+        badge:SetPoint("LEFT", 488 + (index - 1) * 37, 0)
+        f.themeSample.icons[name] = badge
+    end
+    H:Label(f.themeSample, "Icons", 608, -13, 100)
     f.preview.player=H:Label(f.preview,"Player  |  100%",18,-20,210)
     f.preview.target=H:Label(f.preview,"Target  |  100%",470,-20,210)
     f.preview.quest=H:Label(f.preview,"Quest objectives\nFollow your waypoint",470,-62,215)
@@ -136,7 +144,7 @@ function I:Refresh()
     local titlesByStep={"Welcome to ForeverSuite","Choose your appearance","Choose readable text","Choose your modules","Choose your layout"}
     local descriptions={
         "ForeverSuite  |  v"..FS.version.."\nCreated by DeluxiZ\nUse the recommended start or choose your own layout, appearance and text. You can change every choice later.",
-        "Choose a theme to preview its frames, buttons and waypoint arrow.",
+        "Choose a theme to preview its frames, buttons, icons and waypoint arrow.",
         "Choose a text preset. The preview shows your staged text size. Apply & finish saves the layout, theme and text to your profile. Bar size buttons change the preview only.",
         "Choose what ForeverSuite manages.",
         "Choose Balanced, Compact or Classic. Player, target, pet, chat and quest positions are shown below. Each layout is fitted to your screen."
@@ -220,6 +228,9 @@ function I:Refresh()
         FS.Themes:Register(f.themeSample.button,"Button",theme)
         FS.Themes:Font(f.themeSample.button.fsLabel,theme)
         f.themeSample.arrow:SetTexture(FS.Themes:Asset(theme,"Arrow"))
+        for name, badge in pairs(f.themeSample.icons) do
+            FS:SetMenuIcon(badge, name, theme)
+        end
         f.themeSample:SetHeight(math.max(44,H:FitButton(f.themeSample.button,2)+10))
         y=y+f.themeSample:GetHeight()+8
     end

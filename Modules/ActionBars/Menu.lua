@@ -2,12 +2,12 @@ local _, FS = ...
 local A,H = FS.modules.ActionBars,FS.HUD
 A.menuButtons = {}; A.menuArt = {}
 local entries = {
-    {"CharacterMicroButton","Character"},{"ProfessionMicroButton","Professions"},{"PlayerSpellsMicroButton","Spells"},
-    {"SpellbookMicroButton","Spells"},{"TalentMicroButton","Talents"},{"AchievementMicroButton","Achievements"},
-    {"LegacyMicroButton","Legacy"},{"QuestLogMicroButton","Quests"},{"HousingMicroButton","Housing"},
-    {"GuildMicroButton","Guild"},{"SocialsMicroButton","Social"},{"LFDMicroButton","Groups"},{"PvPMicroButton","PVP"},
-    {"CollectionsMicroButton","Collections"},{"EJMicroButton","Guide"},{"WorldMapMicroButton","Map"},
-    {"StoreMicroButton","Store"},{"HelpMicroButton","Help"},{"MainMenuMicroButton","Menu"},
+    {"CharacterMicroButton","Character","Character Info"},{"ProfessionMicroButton","Professions","Professions"},{"PlayerSpellsMicroButton","Spells","Spellbook"},
+    {"SpellbookMicroButton","Spells","Spellbook"},{"TalentMicroButton","Talents","Talents"},{"AchievementMicroButton","Achievements","Achievements"},
+    {"LegacyMicroButton","Legacy","Legacy"},{"QuestLogMicroButton","Quests","Quest Log"},{"HousingMicroButton","Housing","Housing"},
+    {"GuildMicroButton","Guild","Guild"},{"SocialsMicroButton","Social","Social"},{"LFDMicroButton","Groups","Group Finder"},{"PvPMicroButton","PVP","PvP"},
+    {"CollectionsMicroButton","Collections","Collections"},{"EJMicroButton","Guide","Adventure Guide"},{"WorldMapMicroButton","Map","World Map"},
+    {"StoreMicroButton","Store","Shop"},{"HelpMicroButton","Help","Help"},{"MainMenuMicroButton","Menu","Game Menu"},
 }
 function A:QueueMenuWork(saved,art)
     if art then saved.artDirty=true else saved.layoutDirty=true end
@@ -37,12 +37,14 @@ function A:HideMenuArt(saved)
     for region in pairs(saved.art) do region:SetAlpha(0) end
     saved.settingArt=false
 end
-function A:CreateMenuProxy(native, name)
+function A:CreateMenuProxy(native, name, label)
     local saved = self.menuButtons[native]; if saved then return saved end
     local b=native
     saved={proxy=b,parent=native:GetParent(),scale=native:GetScale(),alpha=native:GetAlpha(),mouse=native:IsMouseEnabled(),width=native:GetWidth(),height=native:GetHeight(),points=H:SavePoints(native),art={}}
     self.menuButtons[native]=saved
-    saved.border=CreateFrame("Frame",nil,b,"BackdropTemplate"); H:Skin(saved.border)
+    saved.border=CreateFrame("Frame",nil,b,"BackdropTemplate")
+    saved.border:SetBackdrop({bgFile=H.texture})
+    saved.border:SetBackdropColor(0,0,0,0)
     saved.border.ignoreInLayout=true
     saved.border:SetAllPoints(); saved.border:SetFrameLevel(math.max(0,b:GetFrameLevel()-1)); saved.border:EnableMouse(false)
     for _,region in ipairs({b:GetRegions()}) do
@@ -55,7 +57,7 @@ function A:CreateMenuProxy(native, name)
             end)
         end
     end
-    local icon=b:CreateTexture(nil,"OVERLAY"); icon:SetSize(30,30); icon:SetPoint("CENTER"); FS:SetMenuIcon(icon,name); saved.icon=icon
+    local icon=b:CreateTexture(nil,"OVERLAY"); icon:SetSize(36,36); icon:SetPoint("CENTER"); FS:SetMenuIcon(icon,name); saved.icon=icon
     icon.ignoreInLayout=true
     for _,method in ipairs({"SetPoint","SetSize","SetWidth","SetHeight","SetScale","SetParent"}) do
         hooksecurefunc(native,method,function()
@@ -66,14 +68,23 @@ function A:CreateMenuProxy(native, name)
     b:HookScript("OnEnter", function()
         if not self.active or not FS.db.actionBars.menu then return end
         self:HideMenuArt(saved)
-        saved.border:SetBackdropBorderColor(0.95,0.68,0.24,1); GameTooltip:SetOwner(b,"ANCHOR_BOTTOM")
-        GameTooltip:AddLine(native.tooltipText or name)
+        saved.border:SetBackdropColor(.80,.64,.29,.28)
+        GameTooltip:SetOwner(b,"ANCHOR_TOP",0,8)
+        local title,tooltip=label or name,native.tooltipText
+        if H:Safe(tooltip) and type(tooltip)=="string" and tooltip~="" then
+            if tooltip==title or tooltip:sub(1,#title+2)==title.." (" then
+                title=tooltip
+                tooltip=nil
+            end
+        else tooltip=nil end
+        GameTooltip:AddLine(title)
+        if tooltip then GameTooltip:AddLine(tooltip,.86,.91,.97,true) end
         if not native:IsEnabled() and native.disabledTooltip then GameTooltip:AddLine(native.disabledTooltip,1,0.5,0.3,true) end
         GameTooltip:Show()
     end)
     b:HookScript("OnLeave",function()
         if not self.active or not FS.db.actionBars.menu then return end
-        self:HideMenuArt(saved); saved.border:SetBackdropBorderColor(0.12,0.72,0.86,0.85); GameTooltip:Hide()
+        self:HideMenuArt(saved); saved.border:SetBackdropColor(0,0,0,0); GameTooltip:Hide()
     end)
     b:HookScript("OnMouseDown",function() if self.active and FS.db.actionBars.menu then self:HideMenuArt(saved) end end)
     b:HookScript("OnMouseUp",function() if self.active and FS.db.actionBars.menu then self:HideMenuArt(saved) end end)
@@ -101,6 +112,15 @@ function A:ApplyMenu()
         combined:SetAlpha(enabled and 0 or self.combinedOriginal.alpha)
         combined:EnableMouse(not enabled and self.combinedOriginal.mouse or false)
     end
+    local forever=FS.client and FS.client.isForever
+    self.suppressedForeverButtons=self.suppressedForeverButtons or {}
+    local omit={}
+    if forever then
+        omit.HousingMicroButton=true
+        omit.EJMicroButton=true
+        -- On Forever the achievement entry point opens the Legacy challenges.
+        omit.AchievementMicroButton=LegacyMicroButton and not (LegacyMicroButton.IsForbidden and LegacyMicroButton:IsForbidden())
+    end
     if not self.menuRoot then
         self.menuRoot=CreateFrame("Frame","ForeverSuiteMainMenu",UIParent,"SecureHandlerStateTemplate")
         self.menuRoot:SetSize(780,36); self.menuRoot:SetPoint("TOPLEFT",UIParent,"TOPLEFT",16,-16)
@@ -118,26 +138,40 @@ function A:ApplyMenu()
     for _,entry in ipairs(entries) do
         local native=_G[entry[1]]
         if native and native~=combined and not (native.IsForbidden and native:IsForbidden()) then
-            local saved=self:CreateMenuProxy(native,entry[2]); local b=saved.proxy
-            if enabled then
-                saved.slot=position; self:EnforceMenuLayout(saved)
-                native:SetAlpha(1); native:EnableMouse(true)
-                self:HideMenuArt(saved)
-                saved.icon:Show(); saved.border:Show()
-                b:ClearAllPoints(); b:SetPoint("TOPLEFT",self.menuRoot,"TOPLEFT",position*41,0)
-                -- b is the native button, not a proxy: never rewrite its
-                -- secure visibility/enabled state even to the same value.
-                if native:IsShown() then position=position+1 end
+            local suppressed=self.suppressedForeverButtons[native]
+            if enabled and omit[entry[1]] then
+                if not suppressed then
+                    self.suppressedForeverButtons[native]={alpha=native:GetAlpha(),mouse=native:IsMouseEnabled()}
+                end
+                native:SetAlpha(0); native:EnableMouse(false)
             else
-                saved.slot=nil; native:SetParent(saved.parent); native:SetScale(saved.scale)
-                native:SetAlpha(saved.alpha); native:EnableMouse(saved.mouse); native:SetSize(saved.width,saved.height)
-                H:RestorePoints(native,saved.points)
-                for region,alpha in pairs(saved.art) do region:SetAlpha(alpha) end
-                saved.icon:Hide(); saved.border:Hide(); saved.notice:Hide()
+                if suppressed then
+                    native:SetAlpha(suppressed.alpha); native:EnableMouse(suppressed.mouse)
+                    self.suppressedForeverButtons[native]=nil
+                end
+                if enabled or self.menuButtons[native] then
+                    self:PlaceMenuButton(native,entry,enabled,position)
+                    if enabled and native:IsShown() then position=position+1 end
+                end
             end
         end
     end
     if enabled then self.menuRoot:SetWidth(math.max(36,position*41-5)) end
+end
+function A:PlaceMenuButton(native,entry,enabled,position)
+    local saved=self:CreateMenuProxy(native,entry[2],entry[3])
+    if enabled then
+        saved.slot=position; self:EnforceMenuLayout(saved)
+        native:SetAlpha(1); native:EnableMouse(true)
+        self:HideMenuArt(saved)
+        saved.icon:Show(); saved.border:Show()
+    else
+        saved.slot=nil; native:SetParent(saved.parent); native:SetScale(saved.scale)
+        native:SetAlpha(saved.alpha); native:EnableMouse(saved.mouse); native:SetSize(saved.width,saved.height)
+        H:RestorePoints(native,saved.points)
+        for region,alpha in pairs(saved.art) do region:SetAlpha(alpha) end
+        saved.icon:Hide(); saved.border:Hide(); saved.notice:Hide()
+    end
 end
 function A:ApplyBagBar()
     if InCombatLockdown() then self.pending=true; return end

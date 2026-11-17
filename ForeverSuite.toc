@@ -4,7 +4,7 @@
 ## IconTexture: Interface\AddOns\ForeverSuite\Assets\Icon-FS.tga
 ## Author: DeluxiZ
 ## X-License: MIT
-## Version: 1.0.4
+## Version: 1.0.6
 ## SavedVariables: ForeverSuiteDB, ForeverSuiteStock
 ## OptionalDeps: OpenMap
 
@@ -20,6 +20,7 @@ UI/Typography.lua
 UI/Widgets.lua
 UI/HUD.lua
 UI/Themes.lua
+UI/Icons.lua
 UI/Tools.lua
 UI/Layout.lua
 UI/ConfigWindow.lua

@@ -67,6 +67,7 @@ function C:LayoutText()
     at(self.character,16,bodyTop); at(self.side,456,bodyTop); at(self.content,16,bodyTop)
     local offset=bodyTop-72; at(self.footer,16,516+offset)
     local footerWidth=width-32; self.footer:SetWidth(footerWidth); self.content:SetWidth(footerWidth)
+    self:LayoutMountedPage()
     local bottomWidth=math.floor((footerWidth-8)/6); local footerHeight=52
     for i,b in ipairs(self.tabs) do
         b:SetWidth(bottomWidth-4); at(b,4+(i-1)*bottomWidth,2)
@@ -123,10 +124,9 @@ function C:CreateNavigation()
     H:Button(self.character,"Rotate left",78,-342,128,function() self:RotateModel(-.35) end)
     H:Button(self.character,"Rotate right",220,-342,128,function() self:RotateModel(.35) end)
     self.side=panel(f,456,-72,308,432); self.sideTabs={}
-    for i,entry in ipairs({{"Stats","Statistics"},{"Gear sets","Equipment"},{"Titles","Reputation"},{"Pet","Friendly"}}) do
+    for i,entry in ipairs({{"Stats","Statistics"},{"Gear sets","Equipment"},{"Titles","Reputation"},{"Pet","Pet"}}) do
         self.sideTabs[i]=self:IconButton(self.side,entry[1],entry[2],6+(i-1)*100,-6,96,function() if InCombatLockdown() then FS:Print("Leave combat to change Character panels."); return end; self.sideMode=i; self.listPage=1; self.confirmAction=nil; self:RefreshCharacter() end)
     end
-    self.sideTabs[4].image:SetTexture('Interface\\Icons\\Ability_Hunter_BeastTaming'); self.sideTabs[4].image:SetTexCoord(0,1,0,1)
     self.sideHeading=label(self.side,"",12,-64,282)
     self.rows={}
     for i=1,9 do
@@ -162,9 +162,121 @@ function C:RefreshTabs()
         b:SetEnabled(_G[self.pages[i].frame]~=nil)
     end
 end
+function C:MountPageDetails(native)
+    local pane=native.SkillDetailFrame or native.DetailFrame
+    if not pane or not pane.Content or not pane.Description or not pane.Description.GetFontString or not pane.Divider then return end
+
+    local state=self.pageDetails and self.pageDetails[pane]
+    if not state then
+        self.pageDetails=self.pageDetails or {}
+        local scroll=CreateFrame("ScrollFrame",nil,pane)
+        scroll.fsCharacterSkin=true
+        scroll:SetPoint("TOP",pane.RankBar or pane.Divider,"BOTTOM",0,-8)
+        scroll:SetPoint("LEFT",pane,"LEFT"); scroll:SetPoint("RIGHT",pane,"RIGHT")
+        scroll:SetPoint("BOTTOM",pane,"BOTTOM",0,2)
+        scroll:SetClipsChildren(true); scroll:EnableMouseWheel(true)
+        local body=CreateFrame("Frame",nil,scroll)
+        body:SetPoint("TOPLEFT"); body:SetSize(1,1); scroll:SetScrollChild(body)
+        local description=FS.Widgets:Label(body,"ForeverSuiteFontSmall")
+        description.fsFontModule=self.name
+        FS:ApplyFont(description,12)
+        description:SetPoint("TOPLEFT",0,-2); description:SetJustifyH("LEFT"); description:SetJustifyV("TOP")
+        description:SetWordWrap(true)
+
+        local slider=CreateFrame("Slider",nil,pane,"BackdropTemplate")
+        slider.fsCharacterSkin=true
+        H:Skin(slider); slider:SetWidth(9); slider:SetOrientation("VERTICAL")
+        slider:SetPoint("TOPLEFT",scroll,"TOPRIGHT",2,0)
+        slider:SetPoint("BOTTOMLEFT",scroll,"BOTTOMRIGHT",2,0)
+        slider:SetThumbTexture(H.texture)
+        local thumb=slider:GetThumbTexture(); thumb:SetSize(7,24); thumb:SetVertexColor(.12,.72,.86,1)
+        slider:SetMinMaxValues(0,0)
+        slider:SetScript("OnValueChanged",function(_,value) scroll:SetVerticalScroll(value) end)
+        scroll:SetScript("OnMouseWheel",function(_,delta)
+            slider:SetValue(math.max(0,math.min(scroll.maximum or 0,scroll:GetVerticalScroll()-delta*36)))
+        end)
+        slider:EnableMouseWheel(true); slider:SetScript("OnMouseWheel",scroll:GetScript("OnMouseWheel"))
+        state={scroll=scroll,body=body,text=description,slider=slider,pane=pane}
+        self.pageDetails[pane]=state
+    end
+
+    local content=pane.Content
+    state.points=H:SavePoints(content)
+    state.rows={}
+    state.title=nil
+    content:SetParent(state.body)
+    content:ClearAllPoints(); content:SetPoint("TOPLEFT",state.text,"BOTTOMLEFT",0,-6)
+    self:HideNativeFrame(pane.Description,true)
+    self:HideNativeFrame(pane.DescriptionScrollBar,true)
+    state.scroll:SetVerticalScroll(0); state.scroll:Show(); state.slider:Hide()
+    self.mounted.detail=state
+end
+function C:UpdatePageDetails(native)
+    local state=self.mounted.detail
+    if not state then return end
+    local pane,scroll,body,text,slider=state.pane,state.scroll,state.body,state.text,state.slider
+    local width,height=scroll:GetWidth(),scroll:GetHeight()
+    if not H:Safe(width) or not H:Safe(height) or width<=0 or height<=0 then return end
+
+    local source=pane.Description:GetFontString()
+    local value=source and source:GetText()
+    if not pane.Description:IsShown() or not H:Safe(value) or type(value)~="string" then value="" end
+    if text:GetText()~=value then text:SetText(value) end
+    if source and source.GetTextColor then text:SetTextColor(source:GetTextColor()) end
+    if text:GetWidth()~=width then text:SetWidth(width) end
+
+    local content=pane.Content
+    self:SkinTree(content)
+    self:FitPageTree(content,native)
+    local changed=false
+    for _,row in ipairs({content:GetChildren()}) do
+        local label=row.Label
+        if row:IsShown() and label and label.GetStringHeight then
+            local actual,needed=row:GetHeight(),label:GetStringHeight()
+            if H:Safe(actual) and H:Safe(needed) and needed>actual then
+                local original=state.rows[row]
+                if not original or original.applied~=actual then original={height=actual}; state.rows[row]=original end
+                original.applied=needed; row:SetHeight(needed); changed=true
+            end
+        end
+    end
+    if changed then pane:LayoutRows() end
+
+    local textHeight=value~="" and text:GetStringHeight() or 0
+    local bodyHeight=math.max(height,textHeight+content:GetHeight()+12)
+    if body:GetWidth()~=width or body:GetHeight()~=bodyHeight then
+        body:SetSize(width,bodyHeight)
+        if scroll.UpdateScrollChildRect then scroll:UpdateScrollChildRect() end
+    end
+    local maximum=bodyHeight-height
+    local title=pane.Title and pane.Title:GetText()
+    if not H:Safe(title) then title=nil end
+    local offset=state.title==title and scroll:GetVerticalScroll() or 0
+    state.title=title
+    if maximum~=scroll.maximum then slider:SetMinMaxValues(0,maximum); scroll.maximum=maximum end
+    offset=math.min(offset,maximum)
+    if slider:GetValue()~=offset then slider:SetValue(offset) end
+    if scroll:GetVerticalScroll()~=offset then scroll:SetVerticalScroll(offset) end
+    slider:SetShown(maximum>0)
+end
+function C:RestorePageDetails(state)
+    if not state then return end
+    local pane=state.pane
+    pane.Content:SetParent(pane); H:RestorePoints(pane.Content,state.points)
+    local changed=false
+    for row,saved in pairs(state.rows) do
+        if row:GetHeight()==saved.applied then row:SetHeight(saved.height); changed=true end
+    end
+    if changed then pane:LayoutRows() end
+    self:HideNativeFrame(pane.Description,false)
+    self:HideNativeFrame(pane.DescriptionScrollBar,false)
+    state.scroll:Hide(); state.slider:Hide()
+    state.points=nil; state.rows=nil
+end
 function C:RestoreMounted()
     if not self.mounted then return end
     local s=self.mounted; self.mountChanging=true
+    self:RestorePageDetails(s.detail)
     for node,points in pairs(s.anchors or {}) do H:RestorePoints(node,points) end
     for _,host in pairs(s.hosts or {}) do host:Hide() end
     s.frame:SetParent(s.parent); H:RestorePoints(s.frame,s.points); s.frame:SetSize(s.width,s.height); s.frame:SetScale(s.scale); s.frame:SetFrameLevel(s.level); self:HideNativeFrame(s.frame,false); self.mounted=nil; self.mountChanging=false
@@ -202,10 +314,13 @@ function C:RebasePageNode(node,native)
         end)
     end
 end
-function C:FitPageTree(node,native,scale,depth)
-    depth=depth or 0; if depth>12 or not node or node.fsCharacterSkin then return end
+function C:FitPageTree(node,native,depth)
+    depth=depth or 0; if depth>12 or not node or node.fsCharacterSkin or (node.IsForbidden and node:IsForbidden()) then return end
     self:RebasePageNode(node,native)
-    if node.GetObjectType and node:GetObjectType()=="StatusBar" and (self.page==3 or self.page==4) then
+    -- Forever's colored skill bars use a separate masked Fill. Replacing
+    -- the normal StatusBar texture would paint the entire track.
+    if node.GetObjectType and node:GetObjectType()=="StatusBar" and not node.Fill and not node.SetFillPercent
+        and (self.page==3 or self.page==4) then
         if not self.pageBars then self.pageBars={} end
         if not self.pageBars[node] then
             local texture=node.GetStatusBarTexture and node:GetStatusBarTexture()
@@ -215,7 +330,6 @@ function C:FitPageTree(node,native,scale,depth)
             self.pageBars[node]={texture=path,color={r,g,b,a}}
         end
         node:SetStatusBarTexture(H.texture); node:SetStatusBarColor(.12,.72,.86,1)
-        self:SkinControl(node)
     end
     if node.GetRegions then
         for _,region in ipairs({node:GetRegions()}) do
@@ -223,44 +337,65 @@ function C:FitPageTree(node,native,scale,depth)
             if region.GetObjectType and region:GetObjectType()=="FontString" then FS:ApplyFont(region,12) end
         end
     end
-    if node.GetChildren then for _,child in ipairs({node:GetChildren()}) do self:FitPageTree(child,native,scale,depth+1) end end
+    if node.GetChildren then for _,child in ipairs({node:GetChildren()}) do self:FitPageTree(child,native,depth+1) end end
+end
+function C:LayoutMountedPage()
+    local mounted=self.mounted
+    if not mounted then return end
+    local width,height=self.content:GetWidth()-16,self.content:GetHeight()-16
+    if mounted.viewportWidth==width and mounted.viewportHeight==height then return end
+    mounted.viewportWidth,mounted.viewportHeight=width,height
+
+    local native,hosts=mounted.frame,mounted.hosts
+    native:ClearAllPoints(); native:SetPoint("TOPLEFT",self.content,"TOPLEFT",8,-8)
+    native:SetSize(width,height); native:SetScale(1)
+
+    local hasDetails=native~=_G.StatisticsFrame
+    local detailWidth=hasDetails and 233 or 0
+    local listWidth=width-detailWidth
+    hosts.left:SetSize(listWidth,height)
+    hosts.left:ClearAllPoints(); hosts.left:SetPoint("TOPLEFT",native,"TOPLEFT",0,0)
+    hosts.left:Show()
+    hosts.right:SetSize(math.max(1,detailWidth),height)
+    hosts.right:ClearAllPoints(); hosts.right:SetPoint("TOPLEFT",native,"TOPLEFT",listWidth,0)
+    hosts.right:SetShown(hasDetails); hosts.divider:SetShown(hasDetails)
 end
 function C:MountPage(native)
-    local width,height=native:GetWidth(),native:GetHeight()
-    self.mounted={frame=native,parent=native:GetParent(),points=H:SavePoints(native),width=width,height=height,scale=native:GetScale(),level=native:GetFrameLevel(),anchors={}}
-    -- Preserve a full native layout canvas; resizing it to the viewport leaves
-    -- fixed-height controls and CharacterFrame-relative anchors in the footer.
-    local canvasWidth,canvasHeight=math.max(631,width),math.max(540,height)
-    local fitted=self.page==3 or self.page==4
-    if fitted then canvasWidth,canvasHeight=732,416 end
-    local scale=math.min(732/canvasWidth,416/canvasHeight)
-    native:SetParent(self.content); native:ClearAllPoints(); native:SetPoint("TOPLEFT",(748-canvasWidth*scale)/2,-8)
-    native:SetSize(canvasWidth,canvasHeight); native:SetScale(scale); native:SetFrameLevel(self.content:GetFrameLevel()+1)
+    self.mounted={frame=native,parent=native:GetParent(),points=H:SavePoints(native),width=native:GetWidth(),
+        height=native:GetHeight(),scale=native:GetScale(),level=native:GetFrameLevel(),anchors={}}
+    native:SetParent(self.content); native:SetFrameLevel(self.content:GetFrameLevel()+1)
     -- The client's list and detail templates reference DIFFERENT pane hosts.
     -- Keep that distinction instead of redirecting both onto the full page.
     self.pageHosts=self.pageHosts or {}
     local hosts=self.pageHosts[native]
     if not hosts then
-        hosts={left=CreateFrame("Frame",nil,native,"BackdropTemplate"),right=CreateFrame("Frame",nil,native,"BackdropTemplate")}
-        for _,host in pairs(hosts) do H:Skin(host); host:SetBackdropColor(.025,.035,.05,1); host:EnableMouse(false) end
+        hosts={left=CreateFrame("Frame",nil,native),right=CreateFrame("Frame",nil,native)}
         hosts.left.fsCharacterSkin=true; hosts.right.fsCharacterSkin=true
+        hosts.divider=native:CreateTexture(nil,"BACKGROUND",nil,1)
+        hosts.divider.fsCharacterSkin=true
+        hosts.divider:SetPoint("TOPLEFT",hosts.right,"TOPLEFT",0,-4)
+        hosts.divider:SetPoint("BOTTOMLEFT",hosts.right,"BOTTOMLEFT",0,4)
+        hosts.divider:SetWidth(1); hosts.divider:SetColorTexture(.5,.60,.68,.28)
         self.pageHosts[native]=hosts
     end
     self.mounted.hosts=hosts
-    local leftWidth=canvasWidth-233
-    hosts.left:SetSize(leftWidth,canvasHeight); hosts.left:ClearAllPoints(); hosts.left:SetPoint("TOPLEFT",native,"TOPLEFT",0,0); hosts.left:Show()
-    hosts.right:SetSize(233,canvasHeight); hosts.right:ClearAllPoints(); hosts.right:SetPoint("TOPLEFT",native,"TOPLEFT",leftWidth,0); hosts.right:Show()
+    self:LayoutMountedPage()
     self:HideNativeFrame(native,false); self:SkinTree(native); native:Show()
     if not native.fsPageRefresh then
         native.fsPageRefresh=true; local elapsed=0
         native:HookScript("OnUpdate",function(_,dt)
             elapsed=elapsed+dt; if elapsed<.2 then return end; elapsed=0
             if self.mounted and self.mounted.frame==native and not InCombatLockdown() then
-                self:SkinTree(native); self:FitPageTree(native,native,native:GetScale())
+                self:SkinTree(native); self:FitPageTree(native,native)
+                self:UpdatePageDetails(native)
             end
         end)
     end
-    self:FitPageTree(native,native,scale)
+    self:FitPageTree(native,native)
+    if self.page==3 or self.page==4 then
+        self:MountPageDetails(native)
+        self:UpdatePageDetails(native)
+    end
 end
 function C:Apply()
     if not CharacterFrame or self.applying then return end

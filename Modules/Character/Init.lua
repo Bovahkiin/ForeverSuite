@@ -27,14 +27,20 @@ function C:Font(region)
     if not self.fonts[region] then self.fonts[region]={region:GetFont()} end
     region.fsFontModule="Character"; FS:ApplyFont(region)
 end
-function C:SkinControl(b)
+function C:SkinControl(b,flat)
     for _,method in ipairs({"GetNormalTexture","GetPushedTexture","GetHighlightTexture","GetDisabledTexture","GetCheckedTexture"}) do
         local region=b[method] and b[method](b)
-        if region and region~=b.icon and region~=b.Icon then self:HideArt(region) end
+        if region and region~=b.icon and region~=b.Icon and
+            (not flat or (method~="GetHighlightTexture" and method~="GetCheckedTexture")) then self:HideArt(region) end
     end
     local skin=self.controls[b]
     if not skin then
-        skin=CreateFrame("Frame",nil,b,"BackdropTemplate"); skin.fsCharacterSkin=true; H:Skin(skin); skin:SetAllPoints(); skin:EnableMouse(false)
+        skin=CreateFrame("Frame",nil,b,"BackdropTemplate"); skin.fsCharacterSkin=true
+        if flat then
+            skin:SetBackdrop({bgFile=H.texture}); skin:SetBackdropColor(.14,.18,.23,.47)
+            skin:SetPoint("TOPLEFT",b,"TOPLEFT",0,-1); skin:SetPoint("BOTTOMRIGHT",b,"BOTTOMRIGHT",0,1)
+        else H:Skin(skin); skin:SetAllPoints() end
+        skin:EnableMouse(false)
         skin:SetFrameLevel(math.max(0,b:GetFrameLevel()-1)); self.controls[b]=skin
         local name=b.GetName and b:GetName() or ""
         local glyph=name:find("ZoomIn") and "+" or name:find("ZoomOut") and "-" or name:find("RotateLeft") and "<" or name:find("RotateRight") and ">" or name:find("Reset") and "R" or name:find("Close") and "X"
@@ -42,26 +48,35 @@ function C:SkinControl(b)
     end
     skin:Show(); if skin.caption then skin.caption:Show() end
 end
-function C:SkinTree(frame,depth)
+function C:SkinTree(frame,depth,inList)
     if not frame or frame.fsCharacterSkin or (frame.IsForbidden and frame:IsForbidden()) then return end
     depth=depth or 0; if depth>12 then return end
+    local native=self.mounted and self.mounted.frame
+    if native and frame==native.ScrollBar then return end
+    inList=inList or (native and frame==native.ScrollBox)
     local kind=frame.GetObjectType and frame:GetObjectType()
-    if kind=="Button" or kind=="CheckButton" then self:SkinControl(frame) end
+    local width=kind=="Button" and inList and frame:GetWidth()
+    local keepControlArt=kind=="CheckButton" or (H:Safe(width) and type(width)=="number" and width<=28)
+    if kind=="Button" and not keepControlArt then self:SkinControl(frame,inList) end
     if frame.GetRegions then
         for _,region in ipairs({frame:GetRegions()}) do
             if region.GetObjectType and region:GetObjectType()=="FontString" then self:Font(region)
-            elseif region.GetDrawLayer then
+            elseif region.GetDrawLayer and not region.fsCharacterSkin and not keepControlArt then
                 local layer=region:GetDrawLayer()
-                local icon=region==frame.icon or region==frame.Icon or region==frame.Portrait
+                local icon=region==frame.icon or region==frame.Icon or region==frame.Portrait or region==frame.StateIcon
                 local name=region.GetName and region:GetName()
                 if name and name:find("Icon") then icon=true end
-                local bar=frame.GetObjectType and frame:GetObjectType()=="StatusBar"
-                if not icon and not bar and (layer=="BACKGROUND" or layer=="BORDER" or (name and (name:find("Background") or name:find("Border")))) then self:HideArt(region) end
+                local bar=kind=="StatusBar" or frame.Fill or frame.SetFillPercent
+                local atlas=region.GetAtlas and region:GetAtlas()
+                if H:Safe(atlas) and atlas=="UI-Character-Info-ScrollLine-Long" then self:HideArt(region)
+                elseif not icon and not bar and (layer=="BACKGROUND" or layer=="BORDER" or (name and (name:find("Background") or name:find("Border")))) then
+                    self:HideArt(region)
+                end
             end
         end
     end
     self:Font(frame.Label); self:Font(frame.Value); self:Font(frame.Text)
-    if frame.GetChildren then for _,child in ipairs({frame:GetChildren()}) do self:SkinTree(child,depth+1) end end
+    if frame.GetChildren then for _,child in ipairs({frame:GetChildren()}) do self:SkinTree(child,depth+1,inList) end end
 end
 function C:SettingsChanged() self:Apply(); self:RefreshSettings() end
 function C:Initialize()

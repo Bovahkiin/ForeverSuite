@@ -240,7 +240,15 @@ function N:ProfessionTabs(frame,enabled)
             local texture=icon and icon.GetTexture and icon:GetTexture()
             local atlas=icon and icon.GetAtlas and icon:GetAtlas()
             local r=state.professionIcon
-            if atlas and r.SetAtlas then r:SetAtlas(atlas) elseif texture then r:SetTexture(texture) else FS:SetMenuIcon(r,"Professions") end
+            if atlas and r.SetAtlas then
+                FS:ClearMenuIcon(r)
+                r:SetAtlas(atlas)
+            elseif texture then
+                FS:ClearMenuIcon(r)
+                r:SetTexture(texture)
+            else
+                FS:SetMenuIcon(r, "Professions")
+            end
             for _,r in ipairs({tab:GetRegions()}) do if r.GetObjectType and r:GetObjectType()=="Texture" and not own(r) then self:Art(r,enabled) end end
             state.professionIcon:SetShown(enabled)
         end
@@ -269,12 +277,22 @@ function N:Achievements(frame,enabled)
         local plate=S:Plate(categories); plate:ClearAllPoints(); plate:SetAllPoints(categories); plate.gold:Hide(); plate.cyan:Hide(); plate:SetShown(enabled)
     end
 end
+function N:ProfessionRecipeRow(frame,root)
+    if root~=ProfessionsFrame and root~=TradeSkillFrame and root~=CraftFrame then return false end
+    -- Keep the shared recipe template's category bars and flat rows, including
+    -- their collapse controls, selection art and skill-up/locked markers.
+    if (frame.GetCollapseButton and frame.SetHeaderText) or (frame.Label and frame.SkillUps and frame.LockedIcon) then return true end
+    local name=named(frame)
+    return (root==TradeSkillFrame and name:match("^tradeskillskill%d+$"))
+        or (root==CraftFrame and name:match("^craft%d+$"))
+end
 function N:Tree(frame,enabled,root,depth,deco,role)
     if not frame or forbidden(frame) or own(frame) then return end
     depth=depth or 0; if depth>14 then return end
     -- Map tiles, labels and both native and addon pins live in the canvas subtree.
     if root==WorldMapFrame and frame==root.ScrollContainer then return end
     if frame.widgetSetID or frame.GetWidgetSetID then return end
+    if root and self:ProfessionRecipeRow(frame,root) then return end
     local kind=frame.GetObjectType and frame:GetObjectType()
     if kind=="PlayerModel" or kind=="DressUpModel" or kind=="ModelScene" then return end
     if kind=="StatusBar" then self:Bar(frame,enabled) end
