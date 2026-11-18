@@ -196,7 +196,7 @@ function M:SetOwner(owner,anchor,x,y) self.owner=owner; self.tooltipAnchor={anch
 for _,k in ipairs({'ClearAllPoints','SetAllPoints','SetFrameStrata','SetClampedToScreen','SetMovable',
     'RegisterForDrag','RegisterForClicks','SetBackdrop','StartMoving','StopMovingOrSizing','SetJustifyH','EnableMouseWheel',
     'SetJustifyV','SetWordWrap','SetHighlightTexture','SetTextColor','SetAutoFocus','SetColorTexture',
-    'SetFontString','SetFontObject','SetTextInsets','SetMaxLetters','SetFocus','SetBackdropColor','SetBackdropBorderColor','SetLooping','SetFromAlpha','SetToAlpha','SetDuration','SetHyperlink'}) do M[k] = function() end end
+    'SetFontString','SetFontObject','SetTextInsets','SetMaxLetters','SetBackdropColor','SetBackdropBorderColor','SetLooping','SetFromAlpha','SetToAlpha','SetDuration','SetHyperlink'}) do M[k] = function() end end
 function M:SetFontString(region) self.fontString=region end
 function M:GetFontString() return self.fontString end
 function M:SetBackdropBorderColor(...) self.border={...} end
@@ -206,7 +206,11 @@ function M:SetFrameStrata(value) self.frameStrata=value end
 function M:SetAllPoints(...) self.allPoints={...} end
 function CreateFrame(kind,name,parent,template)
     local f = setmetatable({name=name,kind=kind,template=template,attributes={},scripts={},events={},shown=true,parent=parent,lines={}}, {
-        __index = function(t,k) if M[k] then return M[k] end; return nil end})
+        __index = function(t,k)
+            -- Text regions do not implement Frame's mouse/script methods.
+            if t.kind=='FontString' and (k=='HookScript' or k=='SetScript' or k=='GetScript' or k=='EnableMouse') then return nil end
+            if M[k] then return M[k] end; return nil
+        end})
     if template and template:find('SecureActionButtonTemplate',1,true) then
         f.scripts.OnClick=function(control,mouse,down)
             if control:GetAttribute('type')=='click' and not down then control:GetAttribute('clickbutton'):Click(mouse); return end
@@ -1431,7 +1435,7 @@ FS:InitializeDatabase(); assert(not FS.db.patchLog.showOnLoad)
 f.close:Click(); center.patchLog:Click(); assert(f:IsShown() and f.hideStartup:GetChecked())
 center.credits:Click(); assert(f.body:GetText():find('DeluxiZ',1,true) and f.body:GetText():find('AI',1,true) and not f.hideStartup:IsShown() and not f.hideStartup.label:IsShown())
 f.close:Click(); FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(not f:IsShown())
-FS.db.patchLog.showOnLoad=true; FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(f:IsShown() and FS.aboutMode=='patch')
+FS.db.patchLog.showOnLoad=true; FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(f:IsShown() and FS.aboutMode=='update')
 f.hideStartup:SetChecked(false); f.hideStartup:Click(); assert(FS.db.patchLog.showOnLoad)
 f.close:Click()
 """

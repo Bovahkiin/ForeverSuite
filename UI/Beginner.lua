@@ -51,7 +51,7 @@ local explicit = {
     Vendor = {"includeGray", "autoRepair", "report", "protectRare"},
     Gear = {"showButton", "warn", "warningPercent"},
     UnitFrames = {"showPet", "showFocus", "showParty", "showRaid"},
-    ActionBars = {"menu"},
+    ActionBars = {"mouseover", "fade", "menu"},
     Nameplates = {"enemies", "friendlyPlayers", "friendlyNPCs"},
     Map = {"navigation", "coordinates", "autoQuest", "trail"},
     GearAdvisor = {"preset", "role", "tooltips", "minimum"},
@@ -102,6 +102,11 @@ function B:Present(f, entries, description)
     f.description:ClearAllPoints()
     f.description:SetPoint("TOPLEFT", 24, -y)
     y = y + H:TextHeight(f.description, 712, 6) + 20
+    if f.search then
+        f.search:ClearAllPoints(); f.search:SetPoint("TOPLEFT",24,-y)
+        local _,size=f.search:GetFont(); f.search:SetHeight(math.max(30,(size or 14)+12))
+        y=y+f.search:GetHeight()+14
+    end
     for index, entry in ipairs(entries) do
         if not f.rows[index] then
             f.rows[index] = H:Button(f, "", 24, 0, 712, function() end)
@@ -110,6 +115,7 @@ function B:Present(f, entries, description)
         row:SetText(entry.text)
         row:SetScript("OnClick", function() FS:SettingAction(entry.run) end)
         row:SetEnabled(entry.enabled ~= false)
+        H:SetHelp(row,entry.help)
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", 24, -y)
         row:Show()
@@ -124,6 +130,7 @@ function B:Present(f, entries, description)
     f:SetScale(math.min(1, (UIParent:GetWidth() - 32) / 760, (UIParent:GetHeight() - 32) / f:GetHeight()))
     FS:CloseOtherWindows(f)
     FS.settingsScreen=f
+    GameTooltip:Hide()
     f:Show()
     return true
 end
@@ -186,7 +193,7 @@ function B:ShowModule(name)
     for _, row in ipairs(self:Options(name)) do
         local value = row.ref[row.key]
         if type(value) == "boolean" then value = value and "On" or "Off" end
-        entries[#entries + 1] = {text = row.label .. ": " .. tostring(value), run = function()
+        entries[#entries + 1] = {text = row.label .. ": " .. tostring(value), help=self:OptionHelp(name,row.key,row.option), run = function()
             if self:ChangeOption(row) then self:ShowModule(name) end
         end}
     end
@@ -205,6 +212,9 @@ function B:ShowModule(name)
         entries[#entries + 1] = {text = "Choose which addon manages this", run = function()
             FS.Compatibility:Show(name == "Map" and "waypoints" or "nameplates")
         end}
+    end
+    if self:CanResetModule(name) then
+        entries[#entries+1]={text="Reset "..self:Title(name),run=function() self:ConfirmModuleReset(name) end}
     end
     local status = enabled and "Changes are saved automatically." or "Enable this module to see its features."
     if name == "Nameplates" then status = status .. " Switching to another nameplate addon requires Reload UI." end
@@ -266,6 +276,15 @@ function B:Search(query, page)
     if not self:Allowed() then return false end
     query = type(query) == "string" and query:match("^%s*(.-)%s*$") or ""
     local f = self:Window("searchWindow", "Find an option")
+    if not f.search then
+        f.search=FS.Tools:Edit(f,24,0,712)
+        f.search:SetMaxLetters(80)
+        if f.search.SetInstructionText then f.search:SetInstructionText("Search settings") end
+        f.search:SetScript("OnTextChanged",function(input,user)
+            if user then self:Search(input:GetText()) end
+        end)
+    end
+    if not f.search:HasFocus() and f.search:GetText()~=query then f.search:SetText(query) end
     local results = self:Find(query)
     local pages = math.max(1, math.ceil(#results / 7))
     page = math.max(1, math.min(pages, page or 1))
@@ -336,16 +355,53 @@ function B:ShowRecovery()
     }, "Choose a repair. Preview the recommended layout before applying it, or bring your saved frames back inside the screen.")
 end
 
+function B:ShowWelcome()
+    if not self:Allowed() then return false end
+    local f=self.welcomeWindow
+    if not f then
+        f=CreateFrame("Frame","ForeverSuiteWelcome",UIParent,"BackdropTemplate")
+        self.welcomeWindow=f
+        H:Skin(f); f:SetWidth(620); f:SetPoint("CENTER")
+        f:SetFrameStrata("DIALOG"); f:SetClampedToScreen(true); f:EnableMouse(true)
+        local logo=f:CreateTexture(nil,"ARTWORK")
+        logo:SetTexture(FS.logo); logo:SetSize(230,60); logo:SetPoint("TOPLEFT",20,-12)
+        f.heading=H:Label(f,"Welcome to ForeverSuite",24,-84,572)
+        f.description=H:Label(f,"Take a short tour of the Control Center, or go straight to Guided Setup.",24,0,572)
+        f.start=H:Button(f,"Start ForeverSuite Tour",24,0,276,function()
+            if self:ShowTour(1) then self.firstRunTour=true end
+        end)
+        f.skip=H:Button(f,"Skip ForeverSuite Tour",320,0,276,function()
+            if self:Allowed() and FS.Installer:Show() then FS.db.setup.tourDismissed=true end
+        end)
+    end
+    FS:FontTree(f)
+    local y=84+H:TextHeight(f.heading,572,2)+12
+    f.description:ClearAllPoints(); f.description:SetPoint("TOPLEFT",24,-y)
+    y=y+H:TextHeight(f.description,572,3)+18
+    local buttonHeight=0
+    for i,b in ipairs({f.start,f.skip}) do
+        b:ClearAllPoints(); b:SetPoint("TOPLEFT",i==1 and 24 or 320,-y)
+        buttonHeight=math.max(buttonHeight,H:FitButton(b,2,36))
+    end
+    f:SetHeight(y+buttonHeight+24)
+    f:SetScale(math.min(1,(UIParent:GetWidth()-32)/620,(UIParent:GetHeight()-32)/f:GetHeight()))
+    FS:CloseOtherWindows(f); f:Show()
+    return true
+end
+
 local tour = {
-    {title = "1 / 3  Search for settings", text = "Type a module name or a task like 'text size' into the highlighted search box. Press Enter to see matching settings and tools.", target = "moduleSearch"},
-    {title = "2 / 3  Move Frames", text = "Open the highlighted Move Frames button to drag or resize parts of your interface. Select a handle for alignment options, then click Save.", target = "move", above = true},
-    {title = "3 / 3  Profiles", text = "Use Save in the highlighted Profiles panel to keep a named setup. To switch profiles, choose one and click Use.", target = "profiles"},
+    {title = "1 / 3  Find and pin tools", text = "Use Browse all tools to see what each tool does and pin your favorites. The search box finds tools as you type. Press Enter to search individual settings.", target = "moduleSearch"},
+    {title = "2 / 3  Move Frames", text = "Use Move Frames to drag or resize parts of your interface. Select a handle for alignment options, then click Save.", target = "move", above = true},
+    {title = "3 / 3  Profiles", text = "The Profiles tab saves and switches named setups. Use Settings to customize modules and Modules to turn them on or off.", target = "profileTab"},
 }
 
 function B:ShowTour(index)
     if not self:Allowed() then return false end
+    local firstRun=self.firstRunTour
     FS:ShowConfig()
+    self.firstRunTour=firstRun
     index = math.max(1, math.min(3, index or 1))
+    if index==1 then FS:ShowWorkspacePage("home") end
     local f = self.tourWindow
     if not f then
         f = CreateFrame("Frame", "ForeverSuiteQuickTour", UIParent, "BackdropTemplate")
@@ -370,7 +426,7 @@ function B:ShowTour(index)
         f.highlight:EnableMouse(false)
         f.highlight:SetFrameStrata("FULLSCREEN_DIALOG")
         f:SetFrameLevel(f.highlight:GetFrameLevel()+1)
-        f:SetScript("OnHide",function() f.highlight:Hide() end)
+        f:SetScript("OnHide",function() f.highlight:Hide(); self.firstRunTour=nil end)
         FS.window:HookScript("OnHide",function() f:Hide() end)
         f:Hide()
         UISpecialFrames[#UISpecialFrames + 1] = f:GetName()
@@ -391,7 +447,7 @@ function B:ShowTour(index)
     f:SetHeight(y + height + 20)
     f:SetScale(math.min(1, (UIParent:GetWidth() - 32) / 620, (UIParent:GetHeight() - 32) / f:GetHeight()))
     f:ClearAllPoints(); f:SetPoint("CENTER")
-    local target = FS.window[step.target]
+    local target = step.target=="profileTab" and FS.window.tabs.profiles or FS.window[step.target]
     if target then
         if step.target == "moduleSearch" then FS:ScrollConfig(0) end
         f.highlight:ClearAllPoints()
@@ -410,6 +466,8 @@ function B:ShowTour(index)
 end
 
 function B:EndTour(dismiss)
-    if dismiss then FS.db.setup.tourDismissed = true end
+    local firstRun=self.firstRunTour
+    if dismiss or firstRun and not FS.db.setup.tourCompleted then FS.db.setup.tourDismissed = true end
     if self.tourWindow then self.tourWindow:Hide() end
+    if firstRun and FS.Installer:NeedsSetup() then FS.Installer:Show() end
 end

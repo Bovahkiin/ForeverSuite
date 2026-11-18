@@ -10,28 +10,37 @@ profile. Made by **DeluxiZ**.
 
 [Join the ForeverSuite Discord](https://discord.gg/wmBcax2bvJ) for support, bug reports, and suggestions.
 
-**Current release:** 1.0.6 · **Client:** WoW Forever · **Interface:** 16001
+**Current release:** 1.0.7 · **Client:** WoW Forever · **Interface:** 16001
 
 ## Getting started
 
-- Choose **Use recommended settings** to start from Balanced, or customize your
-  layout, theme and text using the four-step setup. Preview each choice and
-  select **Apply & finish** to save it.
-- Click a module card for its main options. **More options** opens the full
+- On first login, start the ForeverSuite Tour or go straight to Guided Setup.
+  Choose a theme, layout and play style. Review the choices
+  and select **Apply & finish** to save them to your current profile. For a
+  faster start, pick **Use recommended settings**.
+- On the **Tools** tab, open **Browse all tools** for descriptions and click
+  **Pin** to keep a shortcut on your home screen.
+- On the **Settings** tab, select a module for its main options. **More options** opens the full
   settings. Both screens have **Back to Control Center**.
-- Open **Quick tour** for three tips on modules, moving frames and profiles.
+- In **General settings**, open **Quick tour** for tips on tools, moving frames and profiles.
   **Help with layout** can bring saved frames back on screen or undo a change.
-- Type a task in the search field and press Enter. Try `text size`,
-  `restore waypoint`, `feed pet` or `move bags`.
+- Type a task in the Control Center search field and press Enter, or open
+  **Find a setting** and search as you type. Try `text size`, `restore waypoint`,
+  `feed pet` or `move bags`.
+- Use **Modules** to enable or disable features, **Profiles** to save or switch
+  your setup, or **Character Overview** in All Tools to check your character.
+- Right-click the minimap button for profiles, themes, layouts and other shortcuts.
 
 ## Features
 
-- **Guided setup:** a welcome screen, patch notes, eleven visual themes with previews,
-  three layouts, accessibility presets and a short tour.
+- **Guided setup:** five starter themes, three starting layouts, four play-style
+  choices, an optional text preview and a short tour. All eleven themes and
+  additional layouts remain available from Control Center and the minimap menu.
 - **Consistent customization:** module colors, font family, size and outline
   settings, plus movable and resizable supported frames with a centered grid.
-- **Action bars and unit frames:** configurable bar appearances, player and target
-  frames, an optional pet frame, levels, portraits, and cast bars.
+- **Action bars and unit frames:** mouseover and idle opacity, quick keybind mode,
+  configurable bar appearances, player and target frames, an optional pet frame,
+  levels, portraits and cast bars.
 - **Nameplates:** a layout designer, health and cast information, saved NPC rules,
   and emphasis for selected important spells.
 - **Bags and vendors:** inventory categories, favorites, recent items, stock tools,

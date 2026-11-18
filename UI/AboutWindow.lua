@@ -1,14 +1,4 @@
 local _,FS=...
-FS.patchNotes={
-    {version="1.0.6",lines={
-        "New themed icons and tooltips above the main menu.",
-        "Addon Buttons discovers more minimap launchers.",
-        "Long Skills and PvP details wrap and scroll.",
-        "Map controls clear the coordinates and quest log.",
-        "Crafting keeps clear categories and skill-up markers.",
-        "The Forever menu keeps Legacy and removes unused shortcuts.",
-    }},
-}
 function FS:CreateAboutWindow()
     if self.aboutWindow then return self.aboutWindow end
     local H=self.HUD
@@ -40,12 +30,12 @@ function FS:CreateAboutWindow()
 end
 function FS:RefreshAboutWindow()
     local f=self.aboutWindow; if not f then return end
-    local patches=self.aboutMode=="patch"
+    local patches=self.aboutMode=="patch" or self.aboutMode=="update"
     f.close:SetText(self.installerReturn and "Back to setup" or FS.Text.close)
     f.hideStartup:SetShown(patches); f.hideStartup.label:SetShown(patches)
     if patches then
         local entry=self.patchNotes[1]
-        f.title:SetText("PATCH LOG  |  v"..entry.version)
+        f.title:SetText(self.aboutMode=="update" and "Welcome to "..entry.version or "PATCH LOG  |  v"..entry.version)
         f.body:SetText("What's new\n\n- "..table.concat(entry.lines,"\n\n- "))
         f.hideStartup:SetChecked(not self.db.patchLog.showOnLoad)
     else
@@ -54,11 +44,12 @@ function FS:RefreshAboutWindow()
     end
     f:LayoutText()
 end
-function FS:ShowPatchLog(fromSetup)
+function FS:ShowPatchLog(fromSetup,fromUpdate)
     if InCombatLockdown() and CharacterFrame and CharacterFrame:IsShown() then self:Print("Leave combat to switch windows."); return end
     self.installerReturn=fromSetup==true
     self:CloseOtherWindows(self.aboutWindow, true)
-    self:CreateAboutWindow(); self.aboutMode="patch"; self:RefreshAboutWindow(); self.aboutWindow:Show()
+    self:CreateAboutWindow(); self.aboutMode=fromUpdate and "update" or "patch"; self:RefreshAboutWindow(); self.aboutWindow:Show()
+    return true
 end
 function FS:ShowCredits()
     if InCombatLockdown() and CharacterFrame and CharacterFrame:IsShown() then self:Print("Leave combat to switch windows."); return end

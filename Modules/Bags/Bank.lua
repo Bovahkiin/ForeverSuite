@@ -97,6 +97,9 @@ function K:Render()
         if r then b.icon:SetTexture(r.empty and "Interface\\PaperDoll\\UI-Backpack-EmptySlot" or r.icon); b.count:SetText(r.count and r.count>1 and tostring(r.count) or ""); b.category:SetText(r.category~=last and r.category or ""); last=r.category end
     end
     f.status:SetText(self.status); f.pageLabel:SetText("Page "..self.page.." / "..pages)
+    f.visibleRows=math.min(42,math.max(0,#rows-(self.page-1)*42))
+    T:UpdateToolControls(self,#rows,pages)
+    f:LayoutText()
 end
 local settings=K.SettingsChanged
 function K:SettingsChanged() settings(self); self:Native(self.open and self:Data().replace and FS:IsModuleEnabled(self.name)); if self.window and self.window:IsShown() then self:Refresh() end end

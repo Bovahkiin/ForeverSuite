@@ -26,7 +26,7 @@ end
 function FS:CloseSettingsScreens(keep)
     if self.settingsScreen~=keep then self.settingsScreen=nil end
     if self.Beginner then
-        for _, key in ipairs({"moduleWindow", "searchWindow", "petHelp", "recoveryWindow", "tourWindow"}) do
+        for _, key in ipairs({"moduleWindow", "toolSettings", "searchWindow", "petHelp", "recoveryWindow", "welcomeWindow", "tourWindow", "directoryWindow", "characterOverview", "moduleReset", "minimapShortcuts"}) do
             local frame = self.Beginner[key]
             if frame and frame ~= keep then frame:Hide() end
         end
@@ -47,6 +47,8 @@ function FS:CloseOtherWindows(keep,returnToCenter)
     self:CloseSettingsScreens(keep)
     if self.Extensions then for _,f in pairs({self.Extensions.form,self.Extensions.dialog}) do if f~=keep then f:Hide() end end end
     if self.Installer and self.Installer.window and self.Installer.window~=keep then self.Installer.window:Hide() end
+    local quick=self.modules.Bindings and self.modules.Bindings.quick
+    if quick and quick~=keep and quick:IsShown() then quick:Hide() end
     if self.WindowManager then self.WindowManager:HideNativeWindows(keep) end
     self.closingOtherWindows=true
     local bank=self.modules.Bank; local bags=self.modules.Bags

@@ -1,7 +1,7 @@
 local _,FS=...
 local T=FS.Tools
 local B=T:Module("Buffs","buffs","Buffs","See buffs, debuffs and weapon enchants. Add a spell ID below to remind you when that buff is missing.",{reminders={},showReminder=true,showBuffs=true,showDebuffs=true,showEnchants=true,showDuration=true,hideReminderCombat=false,reminderWidth=260},{"UNIT_AURA","PLAYER_EQUIPMENT_CHANGED","PLAYER_ENTERING_WORLD","PLAYER_REGEN_DISABLED"})
-B.options={{key="showReminder",label="Show missing buff reminders"},{key="showBuffs",label="Show buffs in overview"},{key="showDebuffs",label="Show debuffs in overview"},{key="showEnchants",label="Show weapon enchants"},{key="showDuration",label="Show remaining duration"},{key="hideReminderCombat",label="Hide reminder during combat"},{key="reminderWidth",label="Reminder width",values={260,360,480}}}
+B.options={{key="showReminder",label="Show missing buff reminders"},{key="showBuffs",label="Show buffs in overview"},{key="showDebuffs",label="Show debuffs in overview"},{key="showEnchants",label="Show weapon enchants"},{key="showDuration",label="Show remaining duration"},{key="hideReminderCombat",label="Hide reminder during combat"},{key="reminderWidth",label="Reminder width",values={260,360,480},help="Sets the width of the missing-buff reminder panel."}}
 local auraFilters={"HELPFUL","HARMFUL"}
 function B:Aura(unit,index,filter)
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then return T:Call(C_UnitAuras.GetAuraDataByIndex,unit,index,filter) end

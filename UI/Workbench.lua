@@ -11,7 +11,9 @@ W.views[#W.views+1]='Profession recommendations'
 W.views[#W.views+1]='Gear Planner'
 local plannerLevels={0,20,30,40,50,60}
 function W:RefreshOnTick()
-    return self:Data().view~='Gear Planner'
+    if self:Data().view=='Gear Planner' then return false end
+    local input=self.window and self.window.input
+    return not (input and input:IsShown() and input:HasFocus())
 end
 local guideRoot='https://www.wow-professions.com/forever/'
 local professionRecommendations={
@@ -34,11 +36,16 @@ local professionRecommendations={
 }
 local function setView(self,view,notesInstance)
     local data=self:Data()
-    if (data.view~=view or self.notesInstance~=notesInstance) and self.window then
-        self.window.search:SetText(''); self.window.input:SetText('')
-    end
+    local changed=data.view~=view or self.notesInstance~=notesInstance
     data.view=view
     self.notesInstance=view=='Run Notes' and notesInstance or nil
+    -- SetText fires OnTextChanged in the client. Switch the view atomically
+    -- so clearing its fields cannot rebuild a failed or expensive old tool.
+    if changed and self.window then
+        self.window.fsChangingView=true
+        self.window.search:SetText(''); self.window.input:SetText('')
+        self.window.fsChangingView=nil
+    end
     if view~='Gear Planner' and self.plannerPending then
         self.plannerPending=nil
         FS.modules.GearAdvisor.plannerItemCache=nil
@@ -59,7 +66,8 @@ local create=W.CreateWindow
 function W:CreateWindow()
     local f=create(self); if f.section then return f end
     f.search:SetScript('OnTextChanged',function()
-        self.page=1
+        if f.fsChangingView then return end
+        self.page=1; self.selected=nil
         if self:Data().view=='Gear Planner' and f:IsShown() then self:Refresh() else self:Render() end
     end)
     f.section=H:Button(f,'',16,-54,628,function()
@@ -69,7 +77,7 @@ function W:CreateWindow()
         for i,view in ipairs(W.views) do if view==W:Data().view then page=math.ceil(i/12); break end end
         menu:ShowPage(page); menu:Show()
     end)
-    f.categoryMenu=CreateFrame('Frame',nil,f,'BackdropTemplate'); H:Skin(f.categoryMenu); f.categoryMenu:SetBackdropColor(.02,.03,.04,1); f.categoryMenu:SetSize(628,350); f.categoryMenu:SetPoint('TOPLEFT',f.section,'BOTTOMLEFT',-42,-4); f.categoryMenu:SetFrameLevel(f:GetFrameLevel()+80); f.categoryMenu:EnableMouse(true); f.categoryMenu.buttons={}
+    f.categoryMenu=CreateFrame('Frame',nil,f,'BackdropTemplate'); H:Skin(f.categoryMenu); f.categoryMenu:SetBackdropColor(.02,.03,.04,1); f.categoryMenu:SetSize(628,350); f.categoryMenu:SetPoint('TOPLEFT',f.section,'BOTTOMLEFT',-120,-4); f.categoryMenu:SetFrameLevel(f:GetFrameLevel()+80); f.categoryMenu:EnableMouse(true); f.categoryMenu.buttons={}
     for _,view in ipairs(self.views) do local chosen=view; local button=H:Button(f.categoryMenu,chosen,0,0,298,function() f.categoryMenu:Hide(); W:Choose(chosen) end); f.categoryMenu.buttons[#f.categoryMenu.buttons+1]=button end
     local menu=f.categoryMenu
     menu.previous=H:Button(menu,'Previous tools',12,0,180,function() menu:ShowPage(menu.page-1) end)
@@ -107,25 +115,8 @@ function W:CreateWindow()
             FS.modules.GearAdvisor.plannerItemCache=nil
         end
     end)
-    f.previousSection=H:Button(f,'<',16,-54,34,function()
-        for i,v in ipairs(W.views) do
-            if v==W:Data().view then setView(W,W.views[(i-2)%#W.views+1]); break end
-        end
-        W:Refresh()
-    end)
-    f.section:SetWidth(586); f.section:ClearAllPoints(); f.section:SetPoint('TOPLEFT',58,-54)
-    local layout=f.LayoutText
-    function f:LayoutText()
-        layout(self)
-        local point={self.search:GetPoint()}; local top=point[5] or point[3]
-        self.section:ClearAllPoints(); self.section:SetPoint('TOPLEFT',58,top); H:FitButton(self.section,1,34)
-        self.previousSection:ClearAllPoints(); self.previousSection:SetPoint('TOPLEFT',16,top); H:FitButton(self.previousSection,1,34)
-        local frames={self.search,self.status,self.pageLabel,self.previous,self.next,self.close,self.input}
-        for _,b in ipairs(self.cells) do frames[#frames+1]=b end; for _,b in ipairs(self.actionButtons) do frames[#frames+1]=b end
-        for _,r in ipairs(frames) do local p={r:GetPoint()}; if type(p[5])=='number' then p[5]=p[5]-44 elseif type(p[3])=='number' then p[3]=p[3]-44 end; r:ClearAllPoints(); r:SetPoint(unpack(p)) end
-        self:SetHeight(self:GetHeight()+44)
-        self:SetScale(math.min(1,(UIParent:GetWidth()-32)/660,(UIParent:GetHeight()-32)/self:GetHeight()))
-    end
+    f.previousSection=H:Button(f,'All Tools',16,-54,112,function() FS:ShowWorkspacePage("allTools") end)
+    f.section:SetWidth(508); f.section:ClearAllPoints(); f.section:SetPoint('TOPLEFT',136,-54)
     return f
 end
 local function toggle(map,key) if map[key] then map[key]=nil else map[key]=true end end
@@ -827,8 +818,9 @@ function W:Build()
         self.status='Preview a support report for troubleshooting. The snapshots below show the last 20 layout events.'
     end
     self.rows=rows; self.activeOwner=owner
+    self.actionLabels=labels
     if self.window then
-        self.window.section:SetText('Tools: '..view..'  >')
+        self.window.section:SetText('Browse tools')
         for i,b in ipairs(self.window.actionButtons) do local label=labels[i] or ''; b:SetText(label); b:SetShown(label~='') end
         self.window.input:SetShown(view=='Profiles' or view=='Layout presets' or view=='Route Library' or (view=='Dungeon preparation' and not self.prepActivity) or view=='NPC rules' or view=='Important casts' or view=='Chat keywords' or view=='Guild notes')
         self.window.input:SetMaxLetters(({Profiles=32,['Layout presets']=32,['Route Library']=40,['Dungeon preparation']=32,['NPC rules']=10,['Important casts']=10,['Chat keywords']=64,['Guild notes']=256})[view] or 256)

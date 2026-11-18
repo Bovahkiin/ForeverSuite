@@ -47,6 +47,28 @@ function H:Button(f, value, x, y, width, callback)
     local t = b:CreateFontString(nil, "OVERLAY", "ForeverSuiteFontSmall"); t:SetPoint("CENTER"); t:SetWidth(width-12); t:SetHeight(24); b:SetFontString(t)
     b.fsLabel=t; FS:ApplyFont(t); if FS.Themes then FS.Themes:Font(t) end; b:SetText(value); b:SetScript("OnClick", function(...) return FS:SettingAction(callback,...) end); return b
 end
+function H:SetHelp(control,description)
+    control.fsHelp=description
+    if control.fsHelpHooked or not description then return end
+    -- FontStrings have no mouse scripts. Give text its own reusable hover
+    -- frame, anchored to the text so resizing and hiding still follow it.
+    local hover=control
+    if type(control.HookScript)~="function" then
+        hover=CreateFrame("Frame",nil,control:GetParent())
+        hover:SetAllPoints(control); hover:EnableMouse(true)
+        control.fsHelpFrame=hover
+        hooksecurefunc(control,"Show",function() hover:SetShown(control:IsShown()) end)
+        hooksecurefunc(control,"Hide",function() hover:Hide() end)
+        hooksecurefunc(control,"SetShown",function() hover:SetShown(control:IsShown()) end)
+        hover:SetShown(control:IsShown())
+    end
+    hover:HookScript("OnEnter",function(b)
+        if not control.fsHelp then return end
+        GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine(control.fsHelp,1,1,1,true); GameTooltip:Show()
+    end)
+    hover:HookScript("OnLeave",function() GameTooltip:Hide() end)
+    control.fsHelpHooked=true
+end
 -- Measure suite-owned text without changing native or secure frame geometry.
 function H:TextHeight(t,width,maximum)
     local _,size=t:GetFont(); size=size or 14

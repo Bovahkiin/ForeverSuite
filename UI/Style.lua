@@ -411,7 +411,7 @@ visitFrame=function(state,frame,depth)
         state.frames[index]=frame
         state.shown[index]=shown
     end
-    if depth>0 and frame.GetChildren then visitChildren(state,depth-1,frame:GetChildren()) end
+    if shown and depth>0 and frame.GetChildren then visitChildren(state,depth-1,frame:GetChildren()) end
 end
 local function updateStructure(state,kind)
     local previousCount=state.count

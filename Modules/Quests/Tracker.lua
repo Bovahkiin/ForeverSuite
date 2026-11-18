@@ -1,5 +1,8 @@
 local _,FS=...
 local Q,T,H=FS.modules.Quests,FS.Tools,FS.HUD
+local function distanceText(row)
+    return row.distance and (row.distance>=1000 and string.format("%.1fk",row.distance/1000) or math.floor(row.distance).."y") or ""
+end
 function Q:Track(row)
     if not row or not row.id or InCombatLockdown() then return end
     T:Call(C_QuestLog and C_QuestLog.AddQuestWatch,row.id)
@@ -77,6 +80,27 @@ function Q:UpdateTracker(useRows)
     if not useRows then self:Build() end
     local rows=self:TrackerRows(); local pages=math.max(1,math.ceil(#rows/3))
     self.trackerPage=math.max(1,math.min(self.trackerPage or 1,pages))
+    local signature={tostring(FS.fontGeneration or 0),tostring(self.trackerPage),tostring(#rows)}
+    for i=1,3 do
+        local row=rows[(self.trackerPage-1)*3+i]
+        if row then
+            signature[#signature+1]=table.concat({tostring(row.id or ""),row.title,tostring(row.complete),
+                tostring(row.id and self:Data().collapsed[row.id])},"|")
+            for _,detail in ipairs(row.details) do
+                signature[#signature+1]=table.concat({detail.text,tostring(detail.done),tostring(detail.have),tostring(detail.need)},"|")
+            end
+        end
+    end
+    signature=table.concat(signature,"\031")
+    if self.trackerSignature==signature then
+        for i,card in ipairs(f.cards) do
+            local row=rows[(self.trackerPage-1)*3+i]
+            card.row=row; card.heading.row=row
+            if row then local caption=distanceText(row); if card.distance:GetText()~=caption then card.distance:SetText(caption) end end
+        end
+        return
+    end
+    self.trackerSignature=signature
     local _,size=f.title:GetFont(); size=size or 14
     local width=math.max(300,size*22); f:SetWidth(width)
     local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
@@ -95,7 +119,7 @@ function Q:UpdateTracker(useRows)
             c:ClearAllPoints(); c:SetPoint("TOPLEFT",8,-y)
             c.complete:SetShown(row.complete and not folded); c.heading:SetText(row.title); c.fold:SetText(folded and "+" or "-"); c.map:SetShown(not folded)
             c.progress:SetShown(not folded); c.distance:SetShown(not folded)
-            c.distance:SetText(row.distance and (row.distance>=1000 and string.format("%.1fk",row.distance/1000) or math.floor(row.distance).."y") or "")
+            c.distance:SetText(distanceText(row))
             FS:SetMenuIcon(c.icon,row.complete and "Reputation" or "Quests")
             c.stripe:SetColorTexture(row.complete and .3 or .15,row.complete and .85 or .75,row.complete and .5 or .9,1)
             local progress=0

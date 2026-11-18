@@ -134,7 +134,7 @@ function G:PlannerRows(targetLevel,query)
     end
     for _,goal in pairs(extras.wishlist) do add(goal.item,goal.instance,goal.boss) end
     for id in pairs(equipped) do
-        if not candidates[id] then candidates[id]={sources={}} end
+        if not candidates[id] then candidates[id]={sources={},seen={}} end
     end
     local catalog=self:LoadGearCatalog()
     local _,_,classID=T:Call(UnitClass,'player')

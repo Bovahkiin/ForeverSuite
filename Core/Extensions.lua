@@ -489,10 +489,31 @@ function E:RecordStock()
     self:Trim(records,50)
     return true
 end
-local function observedProfessions()
-    if type(GetProfessions)~="function" or type(GetProfessionInfo)~="function" then return end
+local function foreverProfessions()
+    local T=FS.Tools
+    if not Enum or not Enum.Profession or not C_TradeSkillUI or not C_TradeSkillUI.GetProfessionSkillLineID
+        or not C_SkillInfo or not C_SkillInfo.GetSkillLineInfoByID then return end
+    local rows,seen={},{}
+    for _,name in ipairs({"FirstAid","Blacksmithing","Leatherworking","Alchemy","Herbalism","Cooking","Mining",
+        "Tailoring","Engineering","Enchanting","Fishing","Skinning"}) do
+        local profession=Enum.Profession[name]
+        local id=T:Number(profession) and T:Call(C_TradeSkillUI.GetProfessionSkillLineID,profession)
+        if T:Number(id) and id>0 and not seen[id] then
+            seen[id]=true
+            local skill=T:Call(C_SkillInfo.GetSkillLineInfoByID,id)
+            if type(skill)=="table" and T:Text(skill.name)~="" and T:Number(skill.rank)
+                and T:Number(skill.maxRank) and skill.rank>0 and skill.maxRank>=skill.rank then
+                rows[#rows+1]={name=skill.name,skill=skill.rank,maximum=skill.maxRank}
+            end
+        end
+    end
+    table.sort(rows,function(a,b) return a.name<b.name end)
+    return rows
+end
+function E:ObservedProfessions()
+    if type(GetProfessions)~="function" or type(GetProfessionInfo)~="function" then return foreverProfessions() end
     local values={pcall(GetProfessions)}
-    if not values[1] then return end
+    if not values[1] then return foreverProfessions() end
     local rows,seen={},{}
     for index=2,9 do
         local id=values[index]
@@ -516,7 +537,7 @@ function E:RecordCharacter()
     local record=type(records[key])=="table" and records[key] or {}
     if record.counts and record.bagTime==nil then record.bagTime=record.time end
     local stamp=time and time() or 0
-    local professions=observedProfessions()
+    local professions=self:ObservedProfessions()
     if professions then record.professions={items=professions,time=stamp} end
     local ok,gear=pcall(FS.modules.Gear.Snapshot,FS.modules.Gear)
     local gearRead=ok and type(gear)=="table" and not gear.incomplete and FS.Tools:Number(gear.equipped) and gear.equipped>0 and type(gear.items)=="table"

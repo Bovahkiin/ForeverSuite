@@ -3,10 +3,11 @@ function FS:CreateConfigViewport(f)
     local scroll=CreateFrame("ScrollFrame",nil,f); f.bodyScroll=scroll
     scroll:EnableMouseWheel(true); scroll:SetClipsChildren(true)
     local content=CreateFrame("Frame",nil,scroll); f.bodyContent=content; content:SetWidth(940); content:SetPoint("TOPLEFT",0,0); scroll:SetScrollChild(content)
-    f.bodyNodes={f.moduleSearch,f.clearModuleSearch,f.moduleFilterButton,f.emptyModules,f.previousModules,f.nextModules,f.modulePage,
-        f.general,f.minimap,f.welcome,f.help,f.typography,f.setup,f.appearance,f.tools,f.undo,f.addons,f.recovery,f.tour,f.workbench,f.disableAll,f.favorites,f.nextSteps}
+    f.bodyNodes={f.clearModuleSearch,f.moduleFilterButton,f.emptyModules,f.previousModules,f.nextModules,f.modulePage,
+        f.general,f.minimap,f.welcome,f.help,f.typography,f.setup,f.appearance,f.tools,f.undo,f.addons,f.recovery,f.tour,f.workbench,f.disableAll,f.favorites,f.nextSteps,f.included,f.modulesPage,f.characterOverview,f.layoutPresets,f.generalSettings,f.moduleSettings}
     for _,card in pairs(f.cards) do f.bodyNodes[#f.bodyNodes+1]=card.card end
     for _,node in ipairs(f.bodyNodes) do node:SetParent(content) end
+    f.minimap.label:SetParent(content); f.welcome.label:SetParent(content)
     scroll:SetScript("OnMouseWheel",function(_,delta) self:ScrollConfig((f.scrollOffset or 0)-delta*(f.scrollStep or 60)) end)
     local bar=CreateFrame("Slider",nil,f,"BackdropTemplate"); f.bodyScrollbar=bar; self.HUD:Skin(bar)
     bar:SetWidth(12); bar:SetOrientation("VERTICAL"); bar:SetMinMaxValues(0,1); bar:SetValueStep(1); bar:SetObeyStepOnDrag(true)
@@ -39,7 +40,9 @@ function FS:FitConfigViewport(bodyTop,contentBottom,footer,naturalHeight)
     if f.bodyScroll.UpdateScrollChildRect then f.bodyScroll:UpdateScrollChildRect() end
     for _,node in ipairs(f.bodyNodes) do
         local p={node:GetPoint()}; local x,y=p[4] or p[2],p[5] or p[3]
-        node:ClearAllPoints(); node:SetPoint(p[1],x,y+bodyTop)
+        if p[1] and type(x)=="number" and type(y)=="number" then
+            node:ClearAllPoints(); node:SetPoint(p[1],x,y+bodyTop)
+        end
     end
     f.scrollMaximum=math.max(0,f.bodyContent:GetHeight()-viewport)
     local bar=f.bodyScrollbar; bar:ClearAllPoints(); bar:SetPoint("TOPLEFT",922,-bodyTop-25); bar:SetHeight(math.max(1,viewport-50)); bar:SetMinMaxValues(0,f.scrollMaximum)

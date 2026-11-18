@@ -23,8 +23,10 @@ function FS:QueueStartup()
             self.startupPending=false; self.startupHandled=true; return
         end
         if installer:NeedsSetup() then
-            if not installer:Show() then return end
-        elseif self.db.patchLog.showOnLoad then self:ShowPatchLog() end
+            if self.db.setup.welcomePending and not self.db.setup.tourCompleted and not self.db.setup.tourDismissed then
+                if not self.Beginner:ShowWelcome() then return end
+            elseif not installer:Show() then return end
+        else self:ShowUpdateNotesOnLogin() end
         self.startupPending=false; self.startupHandled=true
     end)
 end

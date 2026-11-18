@@ -3,15 +3,21 @@ local T={frames=setmetatable({},{__mode="k"}),fonts=setmetatable({},{__mode="k"}
 T.names={"Celestial Forge","Titanium Signal","Obsidian Arcana","Verdant Relic","Glacial Prism","Royal Aether","Runestone","Astral Glass","Ember Bastion","Cartographer","Azeroth Heritage"}
 FS.defaults.appearance={theme="Legacy"}
 local path="Interface\\AddOns\\ForeverSuite\\Assets\\Themes\\"
+local assets={}
+local accents={{.12,.8,.94},{.25,.8,1},{.72,.42,1},{.4,.9,.5},{.48,.9,1},{.8,.58,1},{.95,.7,.32},{.4,.82,1},{1,.48,.18},{.35,.24,.12},{.89,.69,.38}}
 function T:Index(name)
     for i,value in ipairs(self.names) do if value==name then return i end end
 end
 function T:Current() return FS.db and FS.db.appearance and self:Index(FS.db.appearance.theme) end
 function T:Accent()
-    local colors={{.12,.8,.94},{.25,.8,1},{.72,.42,1},{.4,.9,.5},{.48,.9,1},{.8,.58,1},{.95,.7,.32},{.4,.82,1},{1,.48,.18},{.35,.24,.12},{.89,.69,.38}}
-    return unpack(colors[self:Current() or 1])
+    return unpack(accents[self:Current() or 1])
 end
-function T:Asset(index,kind) return path..string.format("%02d",index).."-"..kind..".tga" end
+function T:Asset(index,kind)
+    local theme=assets[index]
+    if not theme then theme={}; assets[index]=theme end
+    if not theme[kind] then theme[kind]=path..string.format("%02d",index).."-"..kind..".tga" end
+    return theme[kind]
+end
 function T:Normalize()
     FS:ApplyDefaults(FS.db.appearance,FS.defaults.appearance)
     if FS.db.appearance.theme~="Legacy" and not self:Index(FS.db.appearance.theme) then FS.db.appearance.theme="Legacy" end
@@ -55,9 +61,13 @@ function T:Register(frame,kind,previewIndex)
     end
     if state.parts then
         self:Size(frame,state)
-        for _,p in ipairs(state.parts) do
-            p:SetShown(index~=nil)
-            if index then p:SetTexture(self:Asset(index,state.kind)) end
+        local asset=index and self:Asset(index,state.kind)
+        if state.asset~=asset then
+            for _,p in ipairs(state.parts) do
+                p:SetShown(index~=nil)
+                if asset then p:SetTexture(asset) end
+            end
+            state.asset=asset
         end
     end
     if state.kind=="Button" and frame.GetNormalTexture then

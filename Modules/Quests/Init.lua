@@ -82,5 +82,5 @@ function Q:Tick()
     self:UpdateTracker(); self:UpdateQuestPins()
 end
 local base=Q.SettingsChanged
-function Q:SettingsChanged() base(self); if self.tracker then self.tracker:SetShown(FS:IsModuleEnabled(self.name) and self:Data().tracker) end; self:NativeTracker(); self:UpdateQuestPins() end
+function Q:SettingsChanged() self.trackerSignature=nil; base(self); if self.tracker then self.tracker:SetShown(FS:IsModuleEnabled(self.name) and self:Data().tracker) end; self:NativeTracker(); self:UpdateQuestPins() end
 Q.actions={{label="Quest log",run=function() T:Call(ToggleQuestLog) end}}

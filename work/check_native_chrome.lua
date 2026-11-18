@@ -101,10 +101,11 @@ f.previousOptions:Click(); assert(f.optionsPage==1 and f.coordinates:IsShown() a
 f:Hide()
 
 -- TEST: Control Center typography reflows cards profile controls navigation and footer without cumulative growth
-ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); local f=FS.window; local F=FS.Typography
+ResetTest(); local FS=ForeverSuite; FS:ShowWorkspacePage('profiles'); local f=FS.window; local F=FS.Typography
 local original=f:GetHeight(); local originalContent=f.bodyContent:GetHeight(); local profileHeight=f.profiles:GetHeight()
 FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; FS.db.typography.global.weight='Bold'; F:Apply()
 assert(f.cards.Bags.heading.font[2]==36 and f.bodyContent:GetHeight()>originalContent and f.profiles:GetHeight()>profileHeight)
+FS:ShowWorkspacePage('modules')
 for _,c in pairs(f.cards) do
  assert(c.bodyEnd+10+c.toggle:GetHeight()<=c.card:GetHeight()-10)
  assert(not c.hint:IsShown() and c.toggle:GetWidth()<=220 and c.toggle.fsLabel:GetWidth()<c.toggle:GetWidth())
@@ -113,10 +114,12 @@ end
 local p=f.profiles
 assert(-p.current.point[3]+p.current:GetHeight() < -p.name.point[3])
 for _,b in ipairs({p.name,p.save,p.choice,p.use}) do assert(-b.point[3]+b:GetHeight()<=p:GetHeight()-10) end
-assert(f.reset:GetHeight()>36 and f.previousModules:GetHeight()>36 and -f.typography.point[3]+f.typography:GetHeight()<f.bodyContent:GetHeight())
+assert(f.reset:GetHeight()>36 and f.previousModules:GetHeight()>36)
+FS:ShowWorkspacePage('general')
+assert(-f.typography.point[3]+f.typography:GetHeight()<f.bodyContent:GetHeight())
 local height=f:GetHeight(); FS:RefreshConfig(); F:Apply(); assert(f:GetHeight()==height)
 FS.db.layout.frames.ControlCenter={x=0,y=0,scale=1.2}; f:SetScale(1.2); FS:LayoutConfigText(); assert(f:GetScale()==1.2)
-FS.db.layout.frames.ControlCenter=nil; FS.db.typography.global.size=0; FS.db.typography.global.scale=1; FS.db.typography.global.weight='Default'; F:Apply(); assert(f:GetHeight()==original and p:GetHeight()==profileHeight)
+FS.db.layout.frames.ControlCenter=nil; FS.db.typography.global.size=0; FS.db.typography.global.scale=1; FS.db.typography.global.weight='Default'; F:Apply(); FS:ShowWorkspacePage('profiles'); assert(f:GetHeight()==original and p:GetHeight()==profileHeight)
 f:Hide()
 
 -- TEST: Large typography keeps generic settings tool lists and font editor controls separated and resets cleanly
@@ -129,9 +132,9 @@ F.scope='All modules'; F:Show(); local editor=F.window
 assert(-editor.optionButtons.shadow.point[3]+editor.optionButtons.shadow:GetHeight() < -editor.preview.point[3])
 assert(-editor.status.point[3]+editor.status:GetHeight() < -editor.close.point[3] and -editor.close.point[3]+editor.close:GetHeight()<editor:GetHeight())
 local L=FS.modules.Loot; local list=L:CreateWindow(); list:Show(); L.rows={{text=string.rep('Long loot title ',6),id=1}}; L:Render()
-for i=2,9 do assert(-list.cells[i].point[3]>=-list.cells[i-1].point[3]+list.cells[i-1]:GetHeight()) end
-assert(-list.cells[9].point[3]+list.cells[9]:GetHeight() < -list.previous.point[3])
-assert(-list.input.point[3]+list.input:GetHeight()<list:GetHeight())
+assert(list.visibleRows==1 and not list.cells[2]:IsShown())
+assert(-list.cells[1].point[3]+list.cells[1]:GetHeight() < -list.close.point[3])
+assert(not list.input:IsShown() and -list.close.point[3]+list.close:GetHeight()<list:GetHeight())
 FS.db.typography.global.size=0; FS.db.typography.global.scale=1; F:Apply(); assert(f:GetHeight()<height)
 list:Hide(); editor:Hide(); f:Hide()
 
@@ -387,20 +390,21 @@ assert(I:NeedsSetup() and FS.db.actionBars.scale==.9 and FS.db.actionBars.style=
 FS.db.setup.dismissed=true; FS.db.setup.completed=false; FS.modules.Profiles:Save('Existing setup')
 assert(not FS.modules.Profiles:Snapshot().setup); FS.modules.Profiles:Load('Existing setup'); assert(FS.db.setup.dismissed and not I:NeedsSetup())
 ResetTest(); I:Show(); I.window.later:Click(); assert(not I:NeedsSetup() and not FS.db.setup.completed)
-assert(I:Show() and I.step==1); I.window:Hide()
+assert(I:Show() and I.step==2); I.window:Hide()
 
--- TEST: Guided setup stages choices, shows welcome credits and returns from patch notes without losing the draft
+-- TEST: Guided setup stages choices and returns from update notes without losing the draft
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer; assert(I:Show()); local f=I.window
 assert(f.description:GetText():find(FS.version,1,true) and f.description:GetText():find('DeluxiZ',1,true) and f.patch:IsShown())
+f.choices[3]:Click()
 f.patch:Click(); assert(FS.aboutWindow:IsShown() and not f:IsShown() and FS.aboutWindow.close:GetText()=='Back to setup')
-FS.aboutWindow.close:Click(); assert(f:IsShown() and I.step==1 and not FS.installerReturn)
-FS:ShowPatchLog(); assert(FS.aboutWindow.close:GetText()=='Close' and not FS.installerReturn); FS.aboutWindow.close:Click(); I:Show()
-f.next:Click(); f.choices[4]:Click(); f.next:Click(); f.choices[4]:Click(); assert(I.draft.theme=='Verdant Relic' and FS.db.appearance.theme=='Legacy' and not f.patch:IsShown())
-assert(f.design.image.texture:find('04-Preview',1,true)); f.next:Click(); f.choices[1]:Click(); assert(I.draft.scale==.8 and FS.db.actionBars.scale==1)
-f.previous:Click(); assert(I.draft.theme=='Verdant Relic'); f.next:Click()
-assert(I.draft.modules.Quests and FS:IsModuleEnabled('Quests'))
+FS.aboutWindow.close:Click(); assert(f:IsShown() and I.step==2 and not FS.installerReturn and I.draft.theme=='Verdant Relic')
+f.next:Click(); f.choices[4]:Click(); assert(I.draft.layout=='Keep current'); f.next:Click(); f.choices[2]:Click()
+assert(I.draft.preference=='PvE' and FS.db.appearance.theme=='Legacy' and not f.patch:IsShown())
+f.next:Click(); f.customize:Click(); f.choices[1]:Click(); assert(I.draft.scale==.8 and FS.db.actionBars.scale==1)
+f.next:Click(); assert(I.step==6 and I.draft.theme=='Verdant Relic')
 FS.db.layout.frames.MainActionBar={x=77,y=123,scale=1}; local loot=FS:IsModuleEnabled('Loot')
-assert(I:Apply()); Drain(); assert(FS.db.appearance.theme=='Verdant Relic' and FS.db.actionBars.style=='Minimal' and FS.db.actionBars.scale==1 and FS:IsModuleEnabled('Quests'))
+f.next:Click(); Drain()
+assert(FS.db.appearance.theme=='Verdant Relic' and FS.db.actionBars.style=='Minimal' and FS.db.actionBars.scale==1 and FS:IsModuleEnabled('Quests'))
 assert(FS.db.layout.frames.MainActionBar.x==77 and FS.db.layout.frames.MainActionBar.y==123 and FS.db.layout.frames.MainActionBar.scale==1)
 assert(FS:IsModuleEnabled('Loot')==loot and FS.db.setup.completed and not I:NeedsSetup() and not f:IsShown())
 FS.db.layout.frames.MainActionBar=nil
@@ -410,7 +414,7 @@ ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); local f=I.wi
 TEST.combat=true; assert(not I:Apply() and not I:Show() and FS.db.actionBars.style=='Minimal'); TEST.combat=false
 FS.modules.Vendor.busy=true; assert(not I:Apply() and not FS.db.setup.completed); FS.modules.Vendor.busy=false
 FS.db.typography.global.size=24; FS.Typography:Apply()
-for step=1,5 do
+for _,step in ipairs({2,3,4,5,6}) do
     I.step=step; I:Refresh()
     assert(f:GetHeight()*f:GetScale()<=UIParent:GetHeight()-47 and f:GetWidth()*f:GetScale()<=UIParent:GetWidth()-47)
     local point={f.next:GetPoint()}; local bottom=point[5] or point[3]; assert(-bottom+f.next:GetHeight()+20<=f:GetHeight())
@@ -420,9 +424,12 @@ f:Hide(); FS.db.typography.global.size=0; FS.Typography:Apply()
 
 -- TEST: First login prioritizes setup over patch notes and completed setup resumes normal startup preferences
 ResetTest(); local FS=ForeverSuite; FS:CreateAboutWindow(); FS.aboutWindow:Hide()
+FS.db.setup.welcomePending=false
 FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(FS.Installer.window:IsShown() and not FS.aboutWindow:IsShown())
-FS.Installer:Dismiss(); FS.db.patchLog.showOnLoad=true
+FS.Installer:Dismiss(); FS.db.setup.completed=true; FS.db.patchLog.showOnLoad=true; FS.db.patchLog.lastSeenVersion='1.0.6'
 FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(FS.aboutWindow:IsShown() and not FS.Installer.window:IsShown())
+assert(FS.aboutWindow.title:GetText()=='Welcome to '..FS.version and FS.db.patchLog.lastSeenVersion==FS.version)
+FS.aboutWindow:Hide(); FS.startupHandled=nil; FS.events.scripts.OnEvent(FS.events,'PLAYER_LOGIN'); Drain(); assert(not FS.aboutWindow:IsShown())
 FS.aboutWindow.close:Click()
 
 -- TEST: Textured bar artwork matches the installer and restores icon geometry without touching secure buttons
@@ -549,8 +556,8 @@ assert(not table.concat(messages,'\n'):find('Platynator and ForeverSuite Namepla
 FS.Print=print; C_AddOns=old; FS.db.nameplates.enabled=enabled
 
 -- TEST: All eleven theme choices update panel button and waypoint previews without writing live profile choices
-ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); I.window.next:Click(); I.window.next:Click()
-assert(#FS.Themes.names==11 and #I.window.choices==#FS.Themes.names and I.step==2)
+ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:ShowThemes()
+assert(#FS.Themes.names==11 and #I.window.choices>=#FS.Themes.names and I.step==2)
 assert(I.window.themeSample:IsShown())
 assert(FS.Themes:Refresh())
 local liveIcon=FS.window.cards.Bags.icon

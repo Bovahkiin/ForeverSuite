@@ -3,16 +3,16 @@ FS.defaults = {
     schemaVersion = 3,
     language = "enUS",
     welcome = true,
-    patchLog = { showOnLoad = true },
+    patchLog = { showOnLoad = true, lastSeenVersion = "" },
     setup = { completed = false, dismissed = false },
     minimap = { show = true, angle = 225 },
-    window = { x = 0, y = 0 },
+    window = { x = 0, y = 0, pinnedTools = {bags=true, map=true, gear=true, mail=true} },
     modules = {},
     profiles = { current = "Default", saved = {} },
     bags = { enabled = true, replaceNative = true, scale = 0.85, width = 820, height = 500, viewMode = "categories", showRecent = true, customCategories = {}, sort = "category", category = "All", showEmpty = false, showCooldowns = true, showNewLoot = true, uiVersion = 1, openAtMerchant = true, x = 0, y = 0, categoryOverrides = {}, favorites = { [6948] = true } },
     gear = { enabled = true, showButton = true, warn = true, warningPercent = 25, x = 0, y = 0 },
     unitFrames = { enabled = true, scale = 1, x = 0, y = 200, player = { x = -430, y = 224 }, target = { x = 430, y = 224 }, focus = { x = 430, y = 330 }, pet = { x = -430, y = 150 }, showPet = true, party = { x = -660, y = 540 }, raid = { x = -500, y = 570 }, showFocus = true, showParty = true, showRaid = true },
-    actionBars = { enabled = true, menu = true, style = "Minimal", scale = 1, x = 0, y = 200 },
+    actionBars = { enabled = true, menu = true, style = "Minimal", scale = 1, x = 0, y = 200, mouseover = false, fade = 100 },
     nameplates = { enabled = true, scale = 1, enemies = true, friendlyPlayers = false, friendlyNPCs = false },
     character = { enabled = true },
     layout = { snap = true, frames = {} },
@@ -28,10 +28,15 @@ FS.defaults = {
 }
 
 function FS:InitializeDatabase()
-    if self.firstInstallation==nil then self.firstInstallation=type(ForeverSuiteDB)~="table" or next(ForeverSuiteDB)==nil end
+    local fresh=type(ForeverSuiteDB)~="table" or next(ForeverSuiteDB)==nil
+    local firstRun=self.firstInstallation==nil and fresh
+    if self.firstInstallation==nil then self.firstInstallation=fresh end
     if type(ForeverSuiteDB) ~= "table" then ForeverSuiteDB = {} end
     -- Only an explicit saved choice may skip onboarding; partial settings are not completion.
     if type(ForeverSuiteDB.setup)~="table" then ForeverSuiteDB.setup={completed=false,dismissed=false} end
+    if firstRun then
+        ForeverSuiteDB.setup.welcomePending=true
+    end
     local social=ForeverSuiteDB.social
     if type(social)=="table" then
         if type(ForeverSuiteDB.chat)~="table" then ForeverSuiteDB.chat={enabled=social.enabled,timestamps=social.timestamps} end

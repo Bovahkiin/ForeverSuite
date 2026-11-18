@@ -7,6 +7,6 @@ FS.locales.enUS = {
     WELCOME = "Show welcome message",
     RESET = "Reset settings",
     HELP = "Type /fs to configure modules, enable or disable them, and reload the UI.",
-    TOOLTIP = "Left click: settings. Right click: Bags & Stock. Drag: move around minimap.",
+    TOOLTIP = "Left click: settings. Right click: shortcuts. Drag: move around minimap.",
     RESET_DONE = "Settings reset.",
 }

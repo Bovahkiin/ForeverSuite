@@ -1,4 +1,44 @@
-# ForeverSuite 0.8.0 — delivery overview
+# ForeverSuite 2.0 roadmap
+
+## Highest priority
+
+| Feature | Scope |
+| --- | --- |
+| Community UI Presets | Build on profile import and export. Let players preview a shared setup, choose which settings to apply, and restore a backup. |
+| Setup Wizard | Expand Guided Setup into a complete first-run flow for layout, theme, text, modules, and supported addon conflicts. Preview choices and apply them together. |
+| DataHub | Create a local, versioned account database using SavedVariables. Migrate existing character stock and keep track of when each character was last updated. |
+| Alt Tracker | Use DataHub to show recorded character levels, professions, gear, and bags in one view, with realm filters and a last-updated date. |
+| Discord Feature Voting | Create a dedicated space for feature proposals, votes, and visible status updates. Use voting to inform roadmap decisions. |
+
+## Medium priority
+
+| Feature | Scope |
+| --- | --- |
+| Achievement Tracker | Track the Forever Legacy Challenges the client makes available, with progress and completion filters. |
+| Reputation Tracker | Track standings, rank progress, and watched factions. Show saved snapshots when viewing another character. |
+| Statistics Dashboard | Show recorded character and account activity, with date and character filters where data is available. |
+| Guild Tools expansion | Build on member favorites and private notes, with easier roster filtering and shared guild tools where appropriate. |
+
+## Long term
+
+| Feature | Scope |
+| --- | --- |
+| Plugin API | Document versioned extension points for addon developers. |
+| Online preset repository | Make shared presets discoverable online, with version information and the same preview and import flow used by the addon. |
+| Community themes marketplace | Let creators submit themes that players can browse and preview before installing. |
+| Guild profile sharing | Let members share selected profiles with their guild while preserving control over which settings are included. |
+
+## Build order
+
+1. Define the DataHub records and migration from the existing character stock, then build the first Alt Tracker view.
+2. Extend the current profile import flow for Community UI Presets and connect it to the Setup Wizard.
+3. Set up Discord Feature Voting alongside the addon work so players can weigh in on the next iterations.
+
+The items above are planned. The earlier delivery overview remains below as a record of shipped work.
+
+---
+
+## ForeverSuite 0.8.0 — delivery overview
 
 All 20 additions are implemented and offline tested. Improvements 2–10 are
 implemented/offline checked. Improvement 1 has optimizations and diagnostics,
@@ -6,14 +46,14 @@ but its live combat/target verification remains open.
 
 See DELIVERY_STATUS.md for each item's status and NEW_TOOLS.md for instructions.
 
-## Archived original proposal
+### Archived original proposal
 
 The following describes the original plan made for 0.7.38, before implementation.
 Build them in small releases after verifying the live-client baseline. Preserve
 secure game actions and existing settings. Each addition needs functional tests
 and a usable settings page, with the owning module's existing accent color.
 
-## 20 additions
+### 20 additions
 
 1. Profiles: validated text export/import with a preview before applying.
 2. Profiles: automatic backup before importing or replacing a profile.
@@ -36,7 +76,7 @@ and a usable settings page, with the owning module's existing accent color.
 19. Map: reorderable queue of saved waypoints, advancing on arrival.
 20. Leveling: session XP/hour and estimated time to level from observed XP gains.
 
-## 10 improvements
+### 10 improvements
 
 1. Verify combat transitions and target switching in the live client; resolve any
    remaining overlap or flicker before extending action bar behavior.

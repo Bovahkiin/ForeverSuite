@@ -1,11 +1,16 @@
 local _,FS=...
-local P={names={"Layout 1","Compact","Classic","Keep current"}}; FS.LayoutPresets=P
-P.labels={["Layout 1"]="Balanced (recommended)",Compact="Compact",Classic="Classic",["Keep current"]="Keep my layout"}
+local P={names={"Layout 1","Minimal","Advanced","PvP","Questing","Immersive","Compact","Classic","Keep current"}}; FS.LayoutPresets=P
+P.labels={["Layout 1"]="Standard",["Keep current"]="Keep my layout"}
 P.descriptions={
     ["Layout 1"]="Balanced: player and target above centered bars, a smaller pet frame below player, chat left, minimap and quests right.",
     Compact="Player and target close to the centered bars, with more open space around the character.",
     Classic="Player and target near the upper-left corner, with navigation and quests on the right.",
-    ["Keep current"]="Keep all current positions and sizes. No game layout is changed.",
+    Minimal="Smaller frames and bars for compact screens.",
+    Advanced="Separate positions for party, raid, focus, buffs and the quest tracker.",
+    PvP="Player, target and focus close to the action bars, with buff reminders nearby.",
+    Questing="Quest tracker, map and navigation grouped for leveling.",
+    Immersive="Small frames around the edges leave more space around your character.",
+    ["Keep current"]="Keep all current positions and sizes.",
 }
 local function copy(value)
     if type(value)~="table" then return value end
@@ -22,13 +27,30 @@ function P:Plan(name,w,h)
     at("Clock",.417,.66,1.4); at("Waypoint",0,.82,1.1); at("ExperienceBar",0,.982,1.4)
     at("GearButton",.285,.107); at("AddonButtons",.34,.89); at("MainMenu",.35,.018); at("BagsBar",.14,.019)
     at("DamageMeterSessionWindow1",-.405,.94); at("DamageMeter",-.405,.94)
-    if name=="Compact" then
+    if name=="Compact" or name=="Minimal" then
         at("Unit:player",-.10,.27,.85); at("Unit:target",.10,.27,.85); at("Unit:pet",-.115,.22,.65)
         at("Unit:focus",.10,.33,.75); at("QuestTracker",.41,.48,.85); at("Minimap",.43,.855,.85)
         at("Coordinates",.43,.746); at("Clock",.43,.717); at("Waypoint",0,.87)
+        if name=="Minimal" then
+            at("UnitGroup:party",-.43,.52,.68); at("UnitGroup:raid",-.40,.62,.68)
+            at("QuestTracker",.425,.47,.74); at("Minimap",.445,.875,.75)
+        end
     elseif name=="Classic" then
         at("Unit:player",-.36,.91); at("Unit:target",-.20,.91); at("Unit:pet",-.375,.85,.75)
         at("Unit:focus",-.20,.85,.85); at("UnitGroup:party",-.40,.67,.85)
+    elseif name=="Advanced" then
+        at("UnitGroup:party",-.37,.57,.95); at("UnitGroup:raid",-.28,.69,.95)
+        at("Unit:focus",.165,.50); at("BuffReminder",0,.53); at("QuestTracker",.41,.46)
+    elseif name=="PvP" then
+        at("Unit:player",-.14,.42); at("Unit:target",.14,.42); at("Unit:pet",-.15,.35,.75)
+        at("Unit:focus",.18,.54,.9); at("BuffReminder",0,.47); at("QuestTracker",.43,.46,.7)
+    elseif name=="Questing" then
+        at("QuestTracker",.39,.51,1.05); at("Minimap",.43,.84,.95)
+        at("Waypoint",.14,.72,1.2); at("Coordinates",.43,.71,1.2); at("Clock",.43,.67,1.15)
+    elseif name=="Immersive" then
+        at("Unit:player",-.32,.31,.7); at("Unit:target",.32,.31,.7); at("Unit:pet",-.32,.24,.6)
+        at("Unit:focus",.33,.39,.7); at("Minimap",.443,.881,.7); at("QuestTracker",.436,.48,.72)
+        at("Coordinates",.443,.77,.8); at("Clock",.443,.73,.8); at("Waypoint",0,.88,.8)
     end
     local bars={MultiBarRight={.489,.30},MultiBarLeft={.463,.30}}
     local native={}; for id,p in pairs(bars) do native[id]={x=p[1]*w,y=p[2]*h} end
@@ -119,7 +141,7 @@ function P:CreatePreview(parent)
     local items={{"Player","Unit:player",282,55,.25,.7,.4},{"Target","Unit:target",282,55,.8,.25,.25},{"Pet","Unit:pet",282,55,.25,.7,.4},
         {"Map","Minimap",256,256,.12,.72,.86},{"Quests","QuestTracker",300,380,.9,.7,.2},{"Chat","ChatFrame1",410,280,.45,.55,.65},
         {"Meter","DamageMeterSessionWindow1",405,140,.5,.55,.7},{"Menu","MainMenu",570,36,.7,.6,.3},{"Bags","BagsBar",320,40,.7,.6,.3},
-        {"XP","ExperienceBar",790,8,.12,.72,.86},{"Waypoint","Waypoint",250,48,.12,.72,.86},{"1 2 3 4 5 6 7 8 9 0","MainActionBar",560,44,.12,.72,.86},
+        {"XP","ExperienceBar",790,8,.12,.72,.86},{"Buffs","BuffReminder",246,36,.16,.72,.48},{"Waypoint","Waypoint",250,48,.12,.72,.86},{"1 2 3 4 5 6 7 8 9 0","MainActionBar",560,44,.12,.72,.86},
         {"Action bar 2","MultiBarBottomLeft",560,44,.12,.72,.86},{"Action bar 3","MultiBarBottomRight",560,44,.12,.72,.86}}
     for _,item in ipairs(items) do
         local b=CreateFrame("Frame",nil,f,"BackdropTemplate"); FS.HUD:Skin(b); b:EnableMouse(false); b:SetBackdropColor(item[5]*.3,item[6]*.3,item[7]*.3,1)

@@ -1,3 +1,19 @@
+# 1.0.7 - 2026-11-18
+
+- Reworks first-run Guided Setup into four steps for theme, layout, play style and review. See the update notes once after installing a new version.
+- New players can start the ForeverSuite Tour or go directly to Guided Setup.
+- The redesigned Control Center has dedicated Tools, Settings, Modules and Profiles tabs. All Tools explains each shortcut and lets you pin it directly to your home screen. Pins are saved with your profile.
+- Tool windows now use compact layouts, labeled fields, short summaries and useful empty states. Selection-only actions are disabled until an entry is selected. Additional explanations are available in tooltips.
+- Tools such as Rare sightings, Run Notes and the route tools open their own relevant preferences from All Tools.
+- Fixes Gear Planner failing to open when an equipped item also appears in the gear catalog. Equipped items now collect and deduplicate their quest, vendor and boss sources correctly.
+- Switching tools no longer refreshes the previous tool while clearing its fields. Periodic tool refreshes pause while typing, keeping route names and other focused inputs stable.
+- Fixes tool windows such as Gear Planner stopping during layout when attaching help to text. Text help uses a reusable hover frame compatible with the game client.
+- Defers native window styling until first use, skips hidden frame trees during background discovery, updates font discovery on events and reuses unchanged theme assets and quest tracker layouts.
+- Adds **What's Included?**, a **Modules** dashboard and **Character Overview** to Control Center. Search settings as you type, read contextual help, or reset settings one module at a time.
+- Right-click the ForeverSuite minimap button to open Config, Profiles, Themes, Layouts, Modules or Reload UI.
+- Adds **Minimal**, **Advanced**, **PvP**, **Questing** and **Immersive** layout presets. Standard is the existing Balanced layout.
+- Action Bars gains mouseover mode, 100%, 50% and 10% idle opacity, and click-to-bind shortcuts. The bars stay visible in combat.
+
 # 1.0.6 - 2026-11-17
 
 - New Blender-rendered interface icons for all eleven themes, including clearer main-menu icons and a tooltip that opens above the bar.

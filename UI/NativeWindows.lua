@@ -538,8 +538,10 @@ function N:Window(frame,definition)
         state.line=state.header:CreateTexture(nil,"ARTWORK"); state.line:SetColorTexture(.95,.68,.24,.65); state.line:SetHeight(1); state.line:SetPoint("BOTTOMLEFT",8,0); state.line:SetPoint("BOTTOMRIGHT",-8,0)
         state.icon=state.header:CreateTexture(nil,"OVERLAY"); state.icon:SetSize(26,26); state.icon:SetPoint("TOPLEFT",6,-2); FS:SetMenuIcon(state.icon,definition[3])
         FS.Layout:Register(definition[1],frame,definition[4])
-        frame:HookScript("OnShow",function() self:Refresh() end)
-        if definition[2]=="Professions" then frame:HookScript("OnSizeChanged",function() self:Refresh() end) end
+        if not self.deferredWindows or not self.deferredWindows[frame] then
+            frame:HookScript("OnShow",function() self:Refresh(frame) end)
+        end
+        if definition[2]=="Professions" then frame:HookScript("OnSizeChanged",function() self:Refresh(frame) end) end
     end
     state.enabled=enabled
     state.plate:SetShown(enabled); state.header:SetShown(enabled)
@@ -568,12 +570,12 @@ function N:Window(frame,definition)
         for _,suffix in ipairs({"MetalBorderTop","MetalBorderBottom","MetalBorderLeft","MetalBorderRight","MetalBorderTopLeft","MetalBorderTopRight","MetalBorderBottomLeft","MetalBorderBottomRight","WoodBorderTopLeft","WoodBorderTopRight","WoodBorderBottomLeft","WoodBorderBottomRight","WaterMark","StatsBG"}) do self:Art(_G["AchievementFrame"..suffix],enabled) end
     end
 end
-function N:Refresh()
+function N:Refresh(onlyFrame)
     if self.refreshing or not FS.initialized or not FS.db or InCombatLockdown() then return end
     self.refreshing=true
     for _,definition in ipairs(self.definitions) do
         local f=_G[definition[1]]
-        if f then
+        if f and (not onlyFrame or f==onlyFrame) then
             local parent=f.GetParent and f:GetParent(); local nested=false
             while parent do
                 if self.windows[parent] or (parent==WorldMapFrame and FS.Layout:IsExternallyManaged("WorldMapFrame")) then
@@ -582,7 +584,17 @@ function N:Refresh()
                 end
                 parent=parent.GetParent and parent:GetParent()
             end
-            if not nested then self:Window(f,definition) end
+            if not nested then
+                if f:IsShown() or self.windows[f] then
+                    self:Window(f,definition)
+                else
+                    self.deferredWindows=self.deferredWindows or setmetatable({},{__mode="k"})
+                    if not self.deferredWindows[f] then
+                        self.deferredWindows[f]=true
+                        f:HookScript("OnShow",function() self:Refresh(f) end)
+                    end
+                end
+            end
         end
     end
     self.refreshing=false

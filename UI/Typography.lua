@@ -174,6 +174,18 @@ function F:Show()
     FS:CloseOtherWindows(self.window); self.window:Show(); self:Apply()
 end
 F.events=CreateFrame("Frame"); FS:RegisterClientEvent(F.events,"PLAYER_REGEN_ENABLED")
-F.events:SetScript("OnEvent",function() if F.pending then F:Apply() end end)
-local elapsed=0
-F.events:SetScript("OnUpdate",function(_,dt) elapsed=elapsed+dt; if elapsed<.5 or not FS.db then return end; elapsed=0; if not InCombatLockdown() then F:Discover() end end)
+for _,event in ipairs({"ADDON_LOADED","PLAYER_ENTERING_WORLD"}) do FS:RegisterClientEvent(F.events,event) end
+F.events:SetScript("OnEvent",function(_,event)
+    if event=="PLAYER_REGEN_ENABLED" then
+        if F.pending then F:Apply() end
+        if F.discoveryPending and not InCombatLockdown() then F.discoveryPending=nil; F:Discover() end
+        return
+    end
+    if F.discoveryQueued then return end
+    F.discoveryQueued=true
+    C_Timer.After(0,function()
+        F.discoveryQueued=nil
+        if not FS.db then return end
+        if InCombatLockdown() then F.discoveryPending=true else F:Discover() end
+    end)
+end)

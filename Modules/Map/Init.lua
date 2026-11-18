@@ -71,9 +71,17 @@ function M:Position()
 end
 function M:SavePin(name)
     local id,x,y=self:Position(); if not id then self.status="Your position is unavailable in this area."; return end
-    name=T:Text(name):match("^%s*(.-)%s*$"); if name=="" then name=T:Call(GetSubZoneText) or "Location" end
+    name=T:Text(name):match("^%s*(.-)%s*$")
+    if name=="" then
+        name=T:Text(T:Call(GetSubZoneText))
+        if name=="" then name=T:Text(T:Call(GetZoneText)) end
+        if name=="" then name="Saved location" end
+    end
     if #self:Data().pins>=100 then self.status="Remove a saved pin before adding more (100 maximum)."; return end
-    table.insert(self:Data().pins,{map=id,x=x,y=y,name=name:sub(1,60)}); self:UpdatePins()
+    table.insert(self:Data().pins,{map=id,x=x,y=y,name=name:sub(1,60)})
+    self.selected={pin=#self:Data().pins}
+    if self.window then self.window.input:SetText("") end
+    self:UpdatePins()
 end
 function M:Waypoint(row)
     if not row or not row.pin then return end
@@ -89,7 +97,7 @@ function M:Build()
     self.status=id and string.format("Your location: %.1f, %.1f (map %d)",x*100,y*100,id) or "Coordinates are unavailable in this area."
     if id then
         local regions=T:Call(C_MapExplorationInfo and C_MapExplorationInfo.GetExploredMapTextures,id)
-        if regions then self.rows[#self.rows+1]={text="Exploration: "..#regions.." explored map regions"} end
+        if regions then self.status=self.status.." | "..#regions.." explored regions" end
     end
     for i,p in ipairs(self:Data().pins) do self.rows[#self.rows+1]={pin=i,text=p.name..string.format(" - %.1f, %.1f",p.x*100,p.y*100).." | map "..p.map} end
     local name,kind,difficulty,difficultyName,_,_,_,instanceID=T:Call(GetInstanceInfo)
@@ -253,4 +261,7 @@ function M:Tick()
 end
 local base=M.SettingsChanged
 function M:SettingsChanged() base(self); if self.coordinateFrame then self.coordinateFrame:SetShown(FS:IsModuleEnabled(self.name) and self:Data().coordinates) end; self:UpdatePins(); if self.UpdateNavigation then self:UpdateNavigation() end end
-M.actions={{label="Save pin",run=function(self,text) self:SavePin(text) end},{label="Waypoint",run=function(self) self:Waypoint(self.selected) end},{label="Remove",run=function(self) if self.selected and self.selected.pin then table.remove(self:Data().pins,self.selected.pin); self.selected=nil; self:UpdatePins() end end}}
+M.actions={{label="Save location",run=function(self,text) self:SavePin(text) end},
+    {label="Navigate to pin",run=function(self) self:Waypoint(self.selected) end},
+    {label="Remove pin",run=function(self) if self.selected and self.selected.pin then table.remove(self:Data().pins,self.selected.pin); self.selected=nil; self:UpdatePins() end end},
+    {label="Route Library",run=function() FS.modules.Workbench:Choose("Route Library") end}}

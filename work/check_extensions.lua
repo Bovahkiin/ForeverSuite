@@ -713,6 +713,48 @@ assert(not G.plannerItemCache and loads==1)
 FS.GearCatalog,G.catalogAttempted=nil,nil
 C_AddOns,UnitClass,UnitLevel,C_Item.GetItemInfo,C_Item.GetItemStats=oldAddOns,oldClass,oldLevel,oldInfo,oldStats
 
+-- TEST: Gear Planner merges catalog sources for equipped items including the Zalazane quest reward
+local FS,E,W=ExtensionFixture(); local G=FS.modules.GearAdvisor
+local oldInventory,oldInfo,oldStats,oldLevel=GetInventoryItemID,C_Item.GetItemInfo,C_Item.GetItemStats,UnitLevel
+local oldPreset=G:Data().preset
+GetInventoryItemID=function(_,slot) if slot==16 then return 4940 elseif slot==1 then return 999999 end end
+UnitLevel=function() return 11 end
+C_Item.GetItemInfo=function(value)
+    local id=tonumber(value) or tonumber(tostring(value):match('item:(%d+)'))
+    return 'Equipped item '..id,'item:'..id,2,10,1,nil,nil,nil,id==4940 and 'INVTYPE_WEAPON' or 'INVTYPE_HEAD'
+end
+C_Item.GetItemStats=function() return {ITEM_MOD_STRENGTH_SHORT=5} end
+G:Data().preset='Strength'; W.plannerLevel=nil
+FS.GearCatalog={build='equipped-source-test',
+    sources={{'Quest','Zalazane','',0,1},{'Quest','Zalazane','',0,1},
+        {'Vendor','Test merchant','',0,2},{'Boss','Test dungeon','Test boss',0,3}},
+    items={[4940]={0,-1,{1,2,3,4}}}}
+W:Choose('Gear Planner')
+assert(#W.rows==2 and W.window.heading:GetText()=='Gear Planner')
+local weapon,helm
+for _,item in ipairs(W.rows) do if item.id==4940 then weapon=item elseif item.id==999999 then helm=item end end
+assert(weapon and weapon.equipped and #weapon.sources==3)
+assert(helm and helm.equipped and #helm.sources==0)
+assert(weapon.searchText:find('Quest: Zalazane',1,true))
+assert(weapon.searchText:find('Vendor: Test merchant',1,true))
+assert(weapon.searchText:find('Boss: Test dungeon / Test boss',1,true))
+W.window.search:SetText('Zalazane'); W.window.search.scripts.OnTextChanged(W.window.search)
+assert(#W.rows==1 and W.rows[1].id==4940 and W.window.visibleRows==1)
+W.window.search:SetText(''); W:Choose('Settings'); W:Choose('Gear Planner')
+assert(#W.rows==2 and W.window.actionButtons[1]:GetText()=='Item details')
+-- Also exercise the shipped data rather than only the small source fixture.
+W:Choose('Settings'); LoadGearCatalogFixture(); W:Choose('Gear Planner')
+local found
+for attempt=1,100 do
+    for _,item in ipairs(W.rows) do if item.id==4940 then found=item end end
+    if found or not G.plannerRefresh then break end
+    Drain()
+end
+assert(found and found.equipped and found.searchText:find('Quest: Zalazane',1,true))
+W:Choose('Settings'); FS.GearCatalog=nil
+GetInventoryItemID,C_Item.GetItemInfo,C_Item.GetItemStats,UnitLevel=oldInventory,oldInfo,oldStats,oldLevel
+G:Data().preset=oldPreset
+
 -- TEST: Gear Wishlist deduplicates source goals and preserves manually acquired status
 local FS,E,W=ExtensionFixture()
 assert(E:AddWishlistItem('Test raid','First boss',42))
@@ -1325,7 +1367,7 @@ end
 UIParent:SetSize(w,h)
 
 -- TEST: Dashboard search matches module names setting labels and aliases with literal multiword terms
-ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:ClearModuleFilter(); local f=FS.window
+ResetTest(); local FS=ForeverSuite; FS:ShowWorkspacePage('modules'); local f=FS.window
 FS:SetModuleFilter('  NAMEPLATES  ','All'); assert(f.filteredCount==1 and f.filteredNames[1]=='Nameplates' and f.cards.Nameplates.card:IsShown())
 FS:SetModuleFilter('dismount','All'); assert(f.filteredCount==1 and f.filteredNames[1]=='QoL')
 FS:SetModuleFilter('dps','All'); assert(f.filteredCount==1 and f.filteredNames[1]=='Combat')
@@ -1334,7 +1376,7 @@ FS:SetModuleFilter('[no-such-module','All'); assert(f.filteredCount==0 and f.emp
 FS:ClearModuleFilter(); assert(f.filteredCount==f.cardCount and not f.emptyModules:IsShown())
 
 -- TEST: Dashboard state filters follow toggles and clearing returns to the previous unfiltered page
-ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:ClearModuleFilter(); local f=FS.window
+ResetTest(); local FS=ForeverSuite; FS:ShowWorkspacePage('modules'); local f=FS.window
 f.cardPage=3; FS:RefreshConfig(); f.moduleFilterButton:Click(); assert(f.moduleFilter=='Enabled')
 for _,name in ipairs(f.filteredNames) do assert(FS:IsModuleEnabled(name)) end
 FS:SetModuleEnabled('Gear',false); f.moduleFilterButton:Click(); assert(f.moduleFilter=='Disabled' and f.cards.Gear.card:IsShown())
@@ -1368,11 +1410,12 @@ c.card.scripts.OnLeave(c.card); assert(not c.hover:IsShown())
 FS.moduleCardColors.Gear=old; FS:SetModuleEnabled('Gear',true); assert(not c.icon.desaturated and c.toggle:GetText()==FS.Text.enabled)
 
 -- TEST: Dashboard search controls fit large typography and no-result filtering retains stable window geometry
-ResetTest(); local FS=ForeverSuite; FS:ShowConfig(); FS:ClearModuleFilter(); local f=FS.window; local F=FS.Typography
+ResetTest(); local FS=ForeverSuite; FS:ShowWorkspacePage('modules'); local f=FS.window; local F=FS.Typography
 FS.db.typography.global.size=24; FS.db.typography.global.scale=1.5; F:Apply(); FS:RefreshConfig()
 local height=f:GetHeight(); local searchY=-f.moduleSearch.point[3]
-assert(f.bodyTop+searchY>=-f.profiles.point[3]+f.profiles:GetHeight())
-assert(-f.cards.Bags.card.point[3]>=searchY+f.moduleSearch:GetHeight())
-assert(f.moduleSearch:GetWidth()==460 and f.moduleFilterButton:GetWidth()==260 and f.moduleSearch:GetHeight()>=36)
+assert(f.bodyTop>=searchY+f.moduleSearch:GetHeight())
+assert(-f.cards.Bags.card.point[3]>0 and f.moduleSearch:GetParent()==f)
+assert(f.moduleSearch:GetWidth()<=302 and f.moduleFilterButton:GetWidth()==248 and f.moduleSearch:GetHeight()>=36)
+assert(580+f.moduleSearch:GetWidth()+16<=940-f.close:GetWidth()-8)
 FS:SetModuleFilter('no-result-zzzz','All'); assert(f:GetHeight()==height and f.emptyModules:IsShown())
 FS:ClearModuleFilter(); FS.db.typography.global.size=0; FS.db.typography.global.scale=1; F:Apply(); FS:RefreshConfig()

@@ -1,5 +1,9 @@
 local _, FS = ...
 local WHITE = "Interface\\Buttons\\WHITE8X8"
+local tabs = {{"home","Tools"},{"settings","Settings"},{"modules","Modules"},{"profiles","Profiles"}}
+local function modulePage(page)
+    return page=="modules" or page=="settings"
+end
 FS.settingsTop=-526
 FS.moduleCardColors = {
     Bags={.12,.72,.86}, Vendor={.95,.68,.24}, Gear={.65,.45,.95},
@@ -60,6 +64,13 @@ function FS:ClearModuleFilter()
     f.filterUpdating=true; f.moduleSearch:SetText(""); f.filterUpdating=false
     self:SetModuleFilter("","All"); f.moduleSearch:ClearFocus()
 end
+function FS:ShowWorkspacePage(page)
+    local f=self:CreateConfigWindow()
+    if f.workspacePage~=page then f.cardPage=1; f.unfilteredPage=1 end
+    f.workspacePage=page
+    self:ClearModuleFilter()
+    if not f:IsShown() then self:ShowConfig() end
+end
 function FS:FilterModuleCards()
     local f=self.window; local names={}; local tokens={}
     for token in (f.moduleQuery or ""):gmatch("%S+") do tokens[#tokens+1]=token end
@@ -91,8 +102,9 @@ function FS:CreateConfigWindow()
     if self.window then return self.window end
     local frame = CreateFrame("Frame", "ForeverSuiteConfigWindow", UIParent, "BackdropTemplate")
     self.window = frame
-    frame:SetSize(940, 1000)
-    frame:SetScale(math.min(1, (UIParent:GetWidth() - 32) / 940, (UIParent:GetHeight() - 32) / 1000))
+    frame.workspacePage = "home"
+    frame:SetSize(940, 760)
+    frame:SetScale(math.min(1, (UIParent:GetWidth() - 32) / 940, (UIParent:GetHeight() - 32) / 760))
     frame:SetPoint("CENTER", UIParent, "CENTER", self.db.window.x, self.db.window.y)
     frame:SetFrameStrata("DIALOG"); frame:SetClampedToScreen(true); frame:SetMovable(true)
     frame:EnableMouse(true); frame:RegisterForDrag("LeftButton")
@@ -115,16 +127,34 @@ function FS:CreateConfigWindow()
     frame.close=button(frame,"X",32,function() frame:Hide() end); frame.close:SetPoint("TOPRIGHT",-8,-8)
     local logo = frame:CreateTexture(nil, "ARTWORK")
     frame.logo = logo
-    logo:SetTexture(self.logo); logo:SetSize(320, 80); logo:SetPoint("TOPLEFT", 24, -3)
-    frame.title = text(frame, "", 380, -22, 520, "ForeverSuiteFontLarge")
-    frame.intro = text(frame, "", 380, -53, 520)
+    logo:SetTexture(self.logo); logo:SetSize(182, 48); logo:SetPoint("TOPLEFT", 24, -10)
+    frame.author = text(frame, "Made by DeluxiZ", 218, -24, 172)
+    frame.title = text(frame, "Control Center", 402, -24, 178, "ForeverSuiteFontNormal")
+    frame.tabs={}
+    for _,entry in ipairs(tabs) do
+        local page=entry[1]
+        local tab=button(frame,entry[2],128,function() self:ShowWorkspacePage(page) end)
+        tab.indicator=tab:CreateTexture(nil,"OVERLAY")
+        tab.indicator:SetColorTexture(.24,.80,.90,1)
+        tab.indicator:SetHeight(2)
+        tab.indicator:SetPoint("BOTTOMLEFT",1,0)
+        tab.indicator:SetPoint("BOTTOMRIGHT",-1,0)
+        frame.tabs[page]=tab
+    end
     frame.profiles=self.modules.Profiles:CreateBar(frame)
     frame.moduleQuery=""; frame.moduleFilter="All"
     frame.moduleSearch=CreateFrame("EditBox",nil,frame,"BackdropTemplate"); FS.HUD:Skin(frame.moduleSearch); FS.Themes:Register(frame.moduleSearch,"Button")
     frame.moduleSearch:SetAutoFocus(false); frame.moduleSearch:SetMaxLetters(100); frame.moduleSearch:SetTextInsets(12,12,0,0); FS:ApplyFont(frame.moduleSearch,14)
     frame.moduleSearch:SetText("")
-    frame.searchHint=text(frame.moduleSearch,"Search modules or features...",12,-8,436); frame.searchHint:SetTextColor(.5,.65,.75)
-    frame.moduleSearch:SetScript("OnTextChanged",function(b) if not frame.filterUpdating then self:SetModuleFilter(b:GetText()) end end)
+    frame.searchHint=text(frame.moduleSearch,"Search tools and settings",12,-8,270); frame.searchHint:SetTextColor(.5,.65,.75)
+    frame.moduleSearch:SetScript("OnTextChanged",function(b)
+        if frame.filterUpdating then return end
+        local value=b:GetText()
+        if value:find("%S") and (frame.workspacePage=="home" or frame.workspacePage=="profiles" or frame.workspacePage=="general") then
+            frame.workspacePage="allTools"
+        end
+        self:SetModuleFilter(value)
+    end)
     frame.moduleSearch:SetScript("OnEscapePressed",function() self:ClearModuleFilter() end)
     frame.moduleSearch:SetScript("OnEnterPressed",function(b)
         b:ClearFocus()
@@ -221,7 +251,7 @@ function FS:CreateConfigWindow()
         self.db.minimap.show = value; self:UpdateMinimapButton()
     end)
     frame.welcome = self.Widgets:Checkbox(frame, -648, function(value) self.db.welcome = value end)
-    frame.help=text(frame, "Click a module card to open its settings. Disabled modules keep their settings.\nMove Frames lets you customize the layout.", 24, -682, 850)
+    frame.help=text(frame, "Manage the appearance and layout of your interface, or reopen Guided Setup.", 24, -682, 850)
     frame.typography=button(frame,"Text & Fonts",250,function() FS.Typography:Show() end); frame.typography:SetPoint("TOPLEFT",24,-740)
     frame.setup=button(frame,"Guided setup",290,function() FS.Installer:Show() end)
     frame.appearance=button(frame,"Appearance",250,function() FS.Installer:ShowThemes() end)
@@ -233,12 +263,18 @@ function FS:CreateConfigWindow()
     frame.workbench=button(frame,"More tools",250,function() FS.modules.Workbench:ShowWindow() end)
     frame.favorites=button(frame,"Favorite settings",290,function() FS.modules.Workbench:Choose("Favorites") end)
     frame.nextSteps=button(frame,"Next steps",250,function() FS.modules.Workbench:Choose("Next steps") end)
+    frame.included=button(frame,"What's Included?",290,function() FS.Beginner:ShowDirectory(false) end)
+    frame.modulesPage=button(frame,"Modules",290,function() FS.Beginner:ShowDirectory(true) end)
+    frame.characterOverview=button(frame,"Character Overview",250,function() FS.Beginner:ShowCharacterOverview() end)
+    frame.layoutPresets=button(frame,"Layout Presets",210,function() FS.Installer:ShowLayouts() end)
     frame.disableAll=button(frame,"Disable all modules",290,function() self:DisableAllModules() end)
     frame.disableAll:SetScript("OnEnter",function(b)
         GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine("Disable all modules")
         GameTooltip:AddLine("Includes every module page. Settings and profiles are kept. Undo last setting restores the previous module choices.",.8,.9,1,true); GameTooltip:Show()
     end)
     frame.disableAll:SetScript("OnLeave",function() GameTooltip:Hide() end)
+    frame.generalSettings=button(frame,"General settings",210,function() self:ShowWorkspacePage("general") end)
+    frame.moduleSettings=button(frame,"Back to Settings",210,function() self:ShowWorkspacePage("settings") end)
     frame.reset = button(frame, "", 160, function() self:ResetDatabase(); if frame.settings then self.modules.Bags:RefreshSettings(true, frame.settings) end; self.modules.Gear:Refresh() end)
     frame.reset:SetPoint("BOTTOMLEFT", 24, 16)
     frame.reload = button(frame, "Reload UI", 160, function() ReloadUI() end)
@@ -250,6 +286,7 @@ function FS:CreateConfigWindow()
     frame.move = button(frame, "Move Frames", 160, function() self.Layout:Start() end)
     frame.move:SetPoint("BOTTOM", 0, 16)
     self:CreateConfigViewport(frame)
+    self.Workspace:Build(frame)
     frame:SetScript("OnUpdate",function(_,elapsed)
         frame.moduleStateElapsed=(frame.moduleStateElapsed or 0)+elapsed
         if frame.moduleStateElapsed<.25 then return end; frame.moduleStateElapsed=0
@@ -278,36 +315,61 @@ function FS:LayoutConfigText()
         if label then label:SetWidth(w-12); label:SetHeight(h-6); if label.SetMaxLines then label:SetMaxLines(lines or 1) end end
         return h
     end
+    local page=f.workspacePage
+    local hasCards=modulePage(page)
+    local managing=page=="modules"
+    local general=page=="general"
     local closeWidth=math.max(32,(f.close.fsLabel and size(f.close.fsLabel) or 12)+16)
     fitButton(f.close,closeWidth)
-    local title=place(f.title,380,18,940-380-closeWidth-24,2)
-    local introTop=math.max(50,18+title+6)
-    local intro=place(f.intro,380,introTop,520,2)
-    local profileTop=math.max(88,introTop+intro+12)
-    f.headerFill:SetHeight(profileTop-4)
-    self.modules.Profiles:LayoutBar(profileTop)
-    local searchTop=profileTop+f.profiles:GetHeight()+16
-    local searchHeight=math.max(36,fitButton(f.clearModuleSearch,140),fitButton(f.moduleFilterButton,260,2),size(f.moduleSearch)+12)
-    f.moduleSearch:ClearAllPoints(); f.moduleSearch:SetPoint("TOPLEFT",24,-searchTop); f.moduleSearch:SetSize(460,searchHeight)
+    local title=place(f.title,396,24,174,2)
+    local author=place(f.author,219,24,165,3)
+    local searchHeight=math.max(34,size(f.moduleSearch)+12)
+    local searchWidth=math.min(302,940-580-closeWidth-24)
+    f.moduleSearch:ClearAllPoints(); f.moduleSearch:SetPoint("TOPLEFT",580,-16); f.moduleSearch:SetSize(searchWidth,searchHeight)
+    local headerBottom=math.max(72,24+math.max(title,author)+10,16+searchHeight+10,8+f.close:GetHeight()+10)
+    local tabBottom=headerBottom
+    for i,entry in ipairs(tabs) do
+        local tab=f.tabs[entry[1]]
+        tab:ClearAllPoints(); tab:SetPoint("TOPLEFT",24+(i-1)*136,-headerBottom)
+        tabBottom=math.max(tabBottom,headerBottom+fitButton(tab,128,2))
+        local selected=entry[1]==page or entry[1]=="home" and page=="allTools" or entry[1]=="settings" and general
+        tab.indicator:SetShown(selected)
+    end
+    local bodyTop=tabBottom+8
+    f.headerFill:SetHeight(bodyTop-2)
+    f.profiles:SetShown(page=="profiles")
+    for _, node in ipairs({f.general,f.minimap,f.minimap.label,f.welcome,f.welcome.label,f.help,f.typography,f.setup,
+        f.appearance,f.tools,f.undo,f.addons,f.recovery,f.tour,f.workbench,f.favorites,f.nextSteps,f.included,
+        f.modulesPage,f.characterOverview,f.layoutPresets,f.moduleSettings}) do node:SetShown(general) end
+    for _,node in ipairs({f.modulePage,f.previousModules,f.nextModules}) do node:SetShown(hasCards) end
+    f.moduleFilterButton:SetShown(managing)
+    f.clearModuleSearch:SetShown(hasCards)
+    f.generalSettings:SetShown(page=="settings")
+    f.disableAll:SetShown(managing)
+    local searchTop=bodyTop+14
+    fitButton(f.clearModuleSearch,140); fitButton(f.moduleFilterButton,248,2)
     f.clearModuleSearch:ClearAllPoints(); f.clearModuleSearch:SetPoint("TOPLEFT",496,-searchTop-(searchHeight-f.clearModuleSearch:GetHeight())/2)
     f.moduleFilterButton:ClearAllPoints(); f.moduleFilterButton:SetPoint("TOPLEFT",648,-searchTop-(searchHeight-f.moduleFilterButton:GetHeight())/2)
-    f.searchHint:ClearAllPoints(); f.searchHint:SetPoint("LEFT",f.moduleSearch,"LEFT",12,0); f.searchHint:SetWidth(436); f.searchHint:SetHeight(size(f.searchHint)+5)
+    f.searchHint:ClearAllPoints(); f.searchHint:SetPoint("LEFT",f.moduleSearch,"LEFT",12,0); f.searchHint:SetWidth(searchWidth-24); f.searchHint:SetHeight(size(f.searchHint)+5)
+    f.searchHint:SetText(size(f.searchHint)>22 and "Search" or "Search tools and settings")
     if f.searchHint.SetMaxLines then f.searchHint:SetMaxLines(1) end
-    local cardsTop=searchTop+searchHeight+16
+    f.generalSettings:ClearAllPoints(); f.generalSettings:SetPoint("TOPLEFT",24,-searchTop)
+    fitButton(f.generalSettings,225,2)
+    local cardsTop=searchTop+math.max(searchHeight,f.generalSettings:GetHeight(),f.moduleFilterButton:GetHeight())+14
     place(f.emptyModules,24,cardsTop+40,892,3)
     local cardHeight=80
     for _,c in pairs(f.cards) do
         local title=place(c.heading,68,12,345,2)
         local description=place(c.detail,68,16+title,345,2)
         local toggle=fitButton(c.toggle,math.min(220,math.max(116,(c.toggle.fsLabel and size(c.toggle.fsLabel) or 14)*8*.65+20)))
-        local hint=place(c.hint,68,0,220,1)
         c.bodyEnd=16+title+description
-        cardHeight=math.max(cardHeight,c.bodyEnd+10+math.max(toggle,hint)+10)
+        cardHeight=math.max(cardHeight,c.bodyEnd+(managing and toggle or size(c.hint))+20)
     end
     for _,c in pairs(f.cards) do
         c.card:SetSize(432,cardHeight); c.card:ClearAllPoints(); c.card:SetPoint("TOPLEFT",24+c.position%2*460,-cardsTop-math.floor(c.position/2)*(cardHeight+8))
         c.hint:ClearAllPoints(); c.hint:SetPoint("BOTTOMLEFT",68,12)
-        c.hint:Hide()
+        c.hint:SetWidth(225); c.hint:SetHeight(size(c.hint)+5); c.hint:SetShown(page=="settings")
+        c.toggle:SetShown(managing)
         c.toggle:ClearAllPoints(); c.toggle:SetPoint("BOTTOMRIGHT",-14,10)
     end
     local navTop=cardsTop+4*(cardHeight+8)+4
@@ -315,7 +377,12 @@ function FS:LayoutConfigText()
     f.previousModules:ClearAllPoints(); f.previousModules:SetPoint("TOPLEFT",24,-navTop)
     f.nextModules:ClearAllPoints(); f.nextModules:SetPoint("TOPRIGHT",-24,-navTop)
     place(f.modulePage,248,navTop+6,444,1); f.modulePage:SetJustifyH("CENTER")
-    local y=navTop+navHeight+24
+    local moduleBottom=navTop+navHeight+24
+    f.disableAll:ClearAllPoints(); f.disableAll:SetPoint("TOPLEFT",24,-moduleBottom)
+    if managing then moduleBottom=moduleBottom+fitButton(f.disableAll,290,2)+12 end
+    local y=searchTop
+    f.moduleSettings:ClearAllPoints(); f.moduleSettings:SetPoint("TOPLEFT",24,-y)
+    y=y+fitButton(f.moduleSettings,210,2)+18
     y=y+place(f.general,24,y,850,1)+12
     for _,b in ipairs({f.minimap,f.welcome}) do
         b:ClearAllPoints(); b:SetPoint("TOPLEFT",20,-y)
@@ -336,19 +403,24 @@ function FS:LayoutConfigText()
         b:ClearAllPoints(); b:SetPoint("TOPLEFT",({24,330,636})[i],-y)
     end
     y=y+math.max(f.recovery:GetHeight(),f.tour:GetHeight(),f.workbench:GetHeight())+10
-    fitButton(f.disableAll,290,2); f.disableAll:ClearAllPoints(); f.disableAll:SetPoint("TOPLEFT",24,-y)
-    fitButton(f.favorites,290,2); f.favorites:ClearAllPoints(); f.favorites:SetPoint("TOPLEFT",330,-y)
-    fitButton(f.nextSteps,250,2); f.nextSteps:ClearAllPoints(); f.nextSteps:SetPoint("TOPLEFT",636,-y)
-    y=y+math.max(f.disableAll:GetHeight(),f.favorites:GetHeight(),f.nextSteps:GetHeight())+12
+    local directoryHeight=0
+    for i,b in ipairs({f.included,f.modulesPage,f.characterOverview,f.layoutPresets}) do
+        directoryHeight=math.max(directoryHeight,fitButton(b,211,2))
+        b:ClearAllPoints(); b:SetPoint("TOPLEFT",24+(i-1)*226,-y)
+    end
+    y=y+directoryHeight+10
+    fitButton(f.favorites,290,2); f.favorites:ClearAllPoints(); f.favorites:SetPoint("TOPLEFT",24,-y)
+    fitButton(f.nextSteps,290,2); f.nextSteps:ClearAllPoints(); f.nextSteps:SetPoint("TOPLEFT",330,-y)
+    y=y+math.max(f.favorites:GetHeight(),f.nextSteps:GetHeight())+12
     local footer=28
     for _,b in ipairs({f.reset,f.patchLog,f.move,f.credits,f.reload}) do footer=math.max(footer,fitButton(b,160,2)) end
-    local height=math.max(800,y+footer+48)
-    self:FitConfigViewport(searchTop,y,footer,height)
+    for _,b in ipairs({f.reset,f.patchLog,f.credits,f.reload}) do b:SetShown(general) end
+    local workspaceBottom=self.Workspace:Layout(f,page)
+    local contentBottom=hasCards and moduleBottom or general and y or bodyTop+workspaceBottom
+    self:FitConfigViewport(bodyTop,contentBottom,footer,740)
 end
 function FS:RefreshConfig()
     local frame = self.window; if not frame then return end
-    frame.title:SetText("CONTROL CENTER  |  " .. self.version)
-    frame.intro:SetText("Choose a module to configure, enable or disable.")
     frame.minimap.label:SetText(self.L.MINIMAP); frame.minimap:SetChecked(self.db.minimap.show)
     frame.welcome.label:SetText(self.L.WELCOME); frame.welcome:SetChecked(self.db.welcome)
     frame.reset:SetText(self.L.RESET)
@@ -357,13 +429,13 @@ function FS:RefreshConfig()
     self:FilterModuleCards()
     for name, card in pairs(frame.cards) do
         if card.page~=frame.cardPage then card.hovered=false end
-        card.card:SetShown(card.page==frame.cardPage)
+        card.card:SetShown(modulePage(frame.workspacePage) and card.page==frame.cardPage)
         self:PaintModuleCard(name)
     end
     frame.previousModules:SetEnabled(frame.cardPage>1); frame.nextModules:SetEnabled(frame.cardPage<frame.filteredPages)
     frame.clearModuleSearch:SetEnabled(frame.moduleQuery~="" or frame.moduleFilter~="All")
     frame.searchHint:SetShown(frame.moduleQuery=="")
-    frame.emptyModules:SetShown(frame.filteredCount==0)
+    frame.emptyModules:SetShown(modulePage(frame.workspacePage) and frame.filteredCount==0)
     local labels={All="All modules",Enabled="Enabled only",Disabled="Disabled only"}; frame.moduleFilterButton:SetText(labels[frame.moduleFilter])
     if frame.moduleQuery~="" or frame.moduleFilter~="All" then frame.modulePage:SetText(frame.filteredCount.." matches | "..frame.cardPage.."/"..frame.filteredPages)
     else frame.modulePage:SetText("Modules "..frame.cardPage.." / "..frame.filteredPages) end
@@ -389,7 +461,9 @@ function FS:ConfigureModule(name)
     self:BindSettings(frame.settings,name,function() self.modules.Bags:RefreshSettings(true, frame.settings) end)
 end
 function FS:OpenModule(name)
-    if not self:IsModuleEnabled(name) then return end
+    if not self:IsModuleEnabled(name) or not self.modules[name].ShowWindow then return end
+    if InCombatLockdown() then self:Print("Leave combat to open this tool."); return end
+    GameTooltip:Hide()
     if self.window then self.window:Hide() end
     self.modules[name]:ShowWindow(false)
 end

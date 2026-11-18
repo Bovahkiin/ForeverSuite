@@ -1,4 +1,28 @@
 local _, FS = ...
+local shortcuts={
+    {"Config",function() FS:ShowConfig() end},
+    {"Profiles",function() FS:ShowWorkspacePage("profiles") end},
+    {"Themes",function() FS.Installer:ShowThemes() end},
+    {"Layouts",function() FS.Installer:ShowLayouts() end},
+    {"Modules",function() FS:ShowWorkspacePage("modules") end},
+    {"Reload UI",function()
+        if not FS.modules.Profiles:Allowed() then return end
+        FS.modules.Profiles:PersistCurrent(); ReloadUI()
+    end},
+}
+function FS:ShowMinimapShortcuts(owner)
+    GameTooltip:Hide()
+    if MenuUtil and MenuUtil.CreateContextMenu then
+        MenuUtil.CreateContextMenu(owner,function(_,menu)
+            for _,entry in ipairs(shortcuts) do menu:CreateButton(entry[1],entry[2]) end
+        end)
+    else
+        local f=self.Beginner:Window("minimapShortcuts","ForeverSuite")
+        local entries={}
+        for _,entry in ipairs(shortcuts) do entries[#entries+1]={text=entry[1],run=entry[2]} end
+        self.Beginner:Present(f,entries,"Open a ForeverSuite screen.")
+    end
+end
 function FS:UpdateMinimapButton()
     local button = self.minimapButton
     if not button then return end
@@ -23,7 +47,7 @@ function FS:CreateMinimapButton()
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("LeftButton")
     button:SetScript("OnClick", function(_, mouse)
-        if mouse == "RightButton" then FS.modules.Bags:ToggleWindow() else FS:ToggleConfig() end
+        if mouse == "RightButton" then FS:ShowMinimapShortcuts(button) else FS:ToggleConfig() end
     end)
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")

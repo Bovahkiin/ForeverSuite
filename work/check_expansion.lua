@@ -41,7 +41,7 @@ for _,name in ipairs({'Map','Quests','Loot','Buffs','Cooldowns','Combat','Profes
     FS:SetModuleEnabled(name,false); assert((not M.window or not M.window:IsShown()) and not FS:IsModuleEnabled(name))
     FS:SetModuleEnabled(name,true)
 end
-FS:ShowConfig(); local f=FS.window; assert(f.cardCount==24)
+FS:ShowWorkspacePage('modules'); local f=FS.window; assert(f.cardCount==24)
 f.nextModules:Click(); assert(f.cardPage==2 and f.cards.Quests.card:IsShown() and not f.cards.Bags.card:IsShown())
 f.nextModules:Click(); assert(f.cardPage==3 and f.cards.Bank.card:IsShown())
 f.previousModules:Click(); f.previousModules:Click(); assert(f.cardPage==1)
@@ -164,7 +164,7 @@ A:Event('AUCTION_HOUSE_SHOW')
 visible=false; assert(not A:FindItem() and calls==0); visible=true
 ready=false; assert(not A:FindItem() and calls==0); ready=true
 TEST.combat=true; assert(not A:FindItem() and calls==0); TEST.combat=false
-action:Click(); assert(calls==1 and query=='Copper Ore' and not A.window:IsShown())
+A:Render(); action:Click(); assert(calls==1 and query=='Copper Ore' and not A.window:IsShown())
 assert(A:Data().shopping[45]==10)
 A.open=false; AuctionHouseFrame,C_AuctionHouse,C_Item.GetItemInfo=oldFrame,oldAPI,oldInfo
 
@@ -1009,11 +1009,13 @@ G.selected=G.rows[1]; G.actions[1].run(G); assert(whisper=='Member'); S.selected
 FS:ConfigureModule('Chat'); local C=FS.modules.Chat; local before=FS.db.chat.fontSize; Click(C.settings.fontSize); assert(FS.db.chat.fontSize~=before and C.settings.fontSize:GetText():find(tostring(FS.db.chat.fontSize),1,true))
 C_FriendList,GetNumGuildMembers,GetGuildRosterInfo,GetGuildInfo,ChatFrame_SendTell=unpack(old)
 
--- TEST: Fixed profile controls remain visible on every module page and save update switch without a separate card
+-- TEST: Profiles stays in the top navigation and saves and switches through its own page
 ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles; FS:ShowConfig(); local f=FS.window; local bar=f.profiles
 assert(bar==P.bar and not f.cards.Profiles and f.cardCount==24)
-for page=1,3 do f.cardPage=page; FS:RefreshConfig(); assert(bar:IsShown()) end
-FS:ConfigureModule('Chat'); assert(not bar:IsShown() and FS.modules.Chat.settings:IsShown() and FS.modules.Chat.settings.point[1]=='CENTER' and FS.modules.Chat.settings.point[2]==UIParent)
+f.tabs.modules:Click()
+for page=1,3 do f.cardPage=page; FS:RefreshConfig(); assert(f.tabs.profiles:IsShown() and not bar:IsShown()) end
+f.tabs.profiles:Click(); assert(bar:IsShown())
+FS:ConfigureModule('Chat'); assert(not f:IsShown() and FS.modules.Chat.settings:IsShown() and FS.modules.Chat.settings.point[1]=='CENTER' and FS.modules.Chat.settings.point[2]==UIParent)
 FS.modules.Chat.settings.back:Click(); assert(bar:IsShown())
 assert(-bar.point[3]+bar:GetHeight()<176)
 FS.db.chat.fontSize=18; bar.name:SetText('Raid'); bar.save:Click(); assert(FS.db.profiles.current=='Raid' and FS.db.profiles.saved.Raid.chat.fontSize==18 and bar.name:GetText()=='')
@@ -1294,7 +1296,7 @@ F:Edit('family'); assert(f.preview.font[1]==FS.font and FS.db.typography.global.
 local before=FS.db.typography.global.weight; TEST.combat=true; F:Edit('weight'); assert(FS.db.typography.global.weight==before)
 FS.db.typography.global.family='Friz Quadrata'; F:Apply(); assert(F.pending and f.preview.font[1]==FS.font)
 FS:ApplyFont(f.preview); assert(f.preview.font[1]==FS.font)
-TEST.combat=false; F.events.scripts.OnEvent(F.events); assert(not F.pending and f.preview.font[1]=='Fonts\\FRIZQT__.TTF')
+TEST.combat=false; F.events.scripts.OnEvent(F.events,'PLAYER_REGEN_ENABLED'); assert(not F.pending and f.preview.font[1]=='Fonts\\FRIZQT__.TTF')
 FS:ShowConfig(); assert(not f:IsShown() and FS.window:IsShown())
 
 -- TEST: Nameplate design defaults migrate safely validate corrupted sizes offsets and choices and preserve profile snapshots
