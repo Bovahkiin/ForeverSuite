@@ -82,7 +82,7 @@ function G:ShowWindow()
     if not FS:IsModuleEnabled("Gear") then return end
     FS:CloseSettingsScreens()
     if FS.window then FS.window:Hide() end
-    for name, module in pairs(FS.modules) do
+    for name, module in FS:EachModule() do
         if name ~= "Gear" and module.window and not InCombatLockdown() then module.window:Hide() end
     end
     self:CreateWindow():Show(); self:Refresh()

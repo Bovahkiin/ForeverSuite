@@ -126,7 +126,7 @@ function E:SettingsIndex()
         local id=owner..':'..key; if seen[id] then return end; seen[id]=true
         rows[#rows+1]={id=owner..':'..key,owner=owner,key=key,ref=ref,option=option,label=label,text=caption(owner)..' | '..label..': '..tostring(ref[key])}
     end
-    for name,module in pairs(FS.modules) do
+    for name,module in FS:EachModule() do
         if name~='Workbench' then rows[#rows+1]={id=name..':settings',owner=name,key='',ref={},option={},label='Module settings',text=caption(name)..' | Open module settings'} end
         local ref=module.key and FS.db[module.key]
         if name=='Vendor' then ref=FS.db.vendor elseif name=='Bags' then ref=FS.db.bags elseif name=='Gear' then ref=FS.db.gear end

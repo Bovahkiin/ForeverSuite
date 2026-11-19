@@ -49,7 +49,7 @@ function P:Load(name)
     end
     FS.Layout.applying=false
     if FS.Themes then FS.Themes:Refresh() end
-    for _,module in pairs(FS.modules) do if module.SettingsChanged and module~=self then module:SettingsChanged() end end
+    for _,module in FS:EachModule() do if module.SettingsChanged and module~=self then module:SettingsChanged() end end
     FS.modules.Bags:Refresh(); FS:UpdateMinimapButton(); FS.Layout:ApplyAll(); FS:RefreshConfig(); self:RefreshSettings(); if FS.Typography then FS.Typography:Apply() end
     if FS.Compatibility then FS.Compatibility:Scan() end
     return true

@@ -1,17 +1,30 @@
 local addonName, FS = ...
 FS.name = addonName
-FS.version = "1.0.7"
+FS.version = "1.0.8"
 FS.icon = "Interface\\AddOns\\ForeverSuite\\Assets\\Icon-FS.tga"
 FS.logo = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-wordmark.tga"
 FS.emblem = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-transparent.tga"
 FS.locales = {}
 FS.modules = {}
+FS.moduleOrder = {}
 _G.ForeverSuite = FS
 
 function FS:RegisterModule(name, module)
     assert(type(name) == "string" and type(module) == "table", "Invalid module")
     assert(not self.modules[name], "Module already registered: " .. name)
     self.modules[name] = module
+    self.moduleOrder[#self.moduleOrder + 1] = name
+end
+
+-- Iterate modules in registration (.toc load) order. Unlike pairs(), the order
+-- is the same on every login, so initialization never depends on hash order.
+function FS:EachModule()
+    local order, index = self.moduleOrder, 0
+    return function()
+        index = index + 1
+        local name = order[index]
+        if name then return name, self.modules[name] end
+    end
 end
 
 function FS:IsModuleEnabled(name)
@@ -52,7 +65,7 @@ function FS:Initialize()
     self:SelectLocale()
     self:CreateMinimapButton()
     self.initialized = true
-    for _, module in pairs(self.modules) do
+    for _, module in self:EachModule() do
         if module.Initialize then module:Initialize() end
     end
     if self.WindowManager then self.WindowManager:Install(); self.WindowManager:UpdateExperience() end

@@ -57,7 +57,7 @@ function FS:InitializeDatabase()
     for _, name in ipairs({ "UnitFrames", "ActionBars", "Nameplates" }) do
         if self.modules[name] then self.modules[name]:NormalizeSettings() end
     end
-    for name,module in pairs(self.modules) do
+    for name,module in self:EachModule() do
         if name~="UnitFrames" and name~="ActionBars" and name~="Nameplates" and module.key and module.NormalizeSettings then module:NormalizeSettings() end
     end
     if self.db.minimap.angle ~= self.db.minimap.angle or math.abs(self.db.minimap.angle) == math.huge then
@@ -81,7 +81,7 @@ function FS:ResetDatabase()
     end
     self:RefreshConfig()
     self:UpdateMinimapButton()
-    for _,module in pairs(self.modules) do if module.SettingsChanged then module:SettingsChanged() end end
+    for _,module in self:EachModule() do if module.SettingsChanged then module:SettingsChanged() end end
     if self.Typography then self.Typography:Apply() end
     if self.Themes then self.Themes:Refresh() end
     self:Print(self.L.RESET_DONE)

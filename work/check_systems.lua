@@ -395,3 +395,12 @@ assert(tab:GetScript('OnMouseUp')==mouse and not tab:GetScript('PostClick') and 
 local current={model:GetPoint()}; assert(current[4]==point[4] and current[5]==point[5] and model:GetWidth()==500 and model:GetHeight()==600)
 N:Collections(root,false); N:Tree(root,false,root); assert(tab.Background:GetAlpha()==1 and not N.controls[tab].plate:IsShown())
 root:Hide(); MountJournal=old
+
+-- TEST: Modules iterate in a stable registration order that covers every registered module
+local FS=ForeverSuite; local first,count={},0
+for name,module in FS:EachModule() do first[#first+1]=name; assert(FS.modules[name]==module) end
+for _ in pairs(FS.modules) do count=count+1 end
+assert(#first==count and #FS.moduleOrder==count)
+local seen={}; for i,name in ipairs(first) do assert(not seen[name],name); seen[name]=true end
+local second={}; for name in FS:EachModule() do second[#second+1]=name end
+for i=1,#first do assert(first[i]==second[i]) end

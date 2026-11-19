@@ -632,7 +632,7 @@ function E:Undo()
     for key,value in pairs(snapshot) do
         if type(value)=="table" then for k,v in pairs(value) do FS.db[key][k]=copy(v) end else FS.db[key]=value end
     end
-    for _,module in pairs(FS.modules) do if module.SettingsChanged then module:SettingsChanged() end end
+    for _,module in FS:EachModule() do if module.SettingsChanged then module:SettingsChanged() end end
     for id in pairs(previousFrames) do
         if not FS.db.layout.frames[id] then FS.Layout:RestoreTarget(id) end
     end

@@ -30,7 +30,7 @@ function F:Owner(region)
         if frame==CharacterFrame then return "Character" end
         local name=frame.GetName and frame:GetName() or ""; if type(name)~="string" then name="" end
         if name:match("^ChatFrame%d") then return "Chat" end
-        for moduleName,module in pairs(FS.modules) do
+        for moduleName,module in FS:EachModule() do
             for _,key in ipairs(moduleRootKeys) do if module[key]==frame then frame.fsFontModule=moduleName; return moduleName end end
             if module.frames then for _,unit in pairs(module.frames) do if unit==frame then frame.fsFontModule=moduleName; return moduleName end end end
             if module.custom then for _,saved in pairs(module.custom) do if type(saved)=="table" and saved.canvas==frame then frame.fsFontModule=moduleName; return moduleName end end end
@@ -72,7 +72,7 @@ function F:Discover()
     discoverRoot(self,FS.window,"Core")
     discoverRoot(self,FS.aboutWindow,"Core")
     discoverRoot(self,self.window,"Core")
-    for name,module in pairs(FS.modules) do
+    for name,module in FS:EachModule() do
         for _,key in ipairs(moduleRootKeys) do discoverRoot(self,module[key],name) end
         if module.frames then for _,frame in pairs(module.frames) do discoverRoot(self,frame,name) end end
         if module.custom then
@@ -91,7 +91,7 @@ function F:Apply()
     if FS.LayoutConfigText then FS:LayoutConfigText() end
     if FS.Layout and FS.Layout.overlay then FS.Layout:UpdateToolbar() end
     if FS.aboutWindow and FS.aboutWindow.LayoutText then FS.aboutWindow:LayoutText() end
-    for _,module in pairs(FS.modules) do
+    for _,module in FS:EachModule() do
         if module.settings and module.settings.LayoutText then module.settings:LayoutText() end
         if module.window and module.window.LayoutText then module.window:LayoutText() end
     end
@@ -100,7 +100,7 @@ function F:Apply()
     if FS.modules.Quests and FS.modules.Quests.tracker then FS.modules.Quests:UpdateTracker() end
     if FS.window then
         if FS.window.settings and FS.window.settings.fsSettingsName then FS:ThemeSettings(FS.window.settings,FS.window.settings.fsSettingsName) end
-        for name,module in pairs(FS.modules) do if module.settings and module.settings.fsSettingsName then FS:ThemeSettings(module.settings,name) end end
+        for name,module in FS:EachModule() do if module.settings and module.settings.fsSettingsName then FS:ThemeSettings(module.settings,name) end end
     end
     if FS.NativeWindows then FS.NativeWindows:Refresh() end
     if FS.Installer and FS.Installer.window and FS.Installer.window:IsShown() then FS.Installer:Refresh() end

@@ -474,11 +474,11 @@ function FS:ShowConfig()
     local frame = self:CreateConfigWindow()
     if self.Layout then self.Layout:Register("ControlCenter",frame,"Control Center") end
     self:FontTree(frame)
-    for _, module in pairs(self.modules) do if module.ToggleMovers then module:ToggleMovers(false) end end
-    for _, module in pairs(self.modules) do if module.window and not InCombatLockdown() then module.window:Hide() end end
+    for _, module in self:EachModule() do if module.ToggleMovers then module:ToggleMovers(false) end end
+    for _, module in self:EachModule() do if module.window and not InCombatLockdown() then module.window:Hide() end end
     if frame.settings then frame.settings:Hide() end
     if frame.gearSettings then frame.gearSettings:Hide() end
-    for _, module in pairs(self.modules) do if module.settings then module.settings:Hide() end end
+    for _, module in self:EachModule() do if module.settings then module.settings:Hide() end end
     if self.modules.Vendor.saleReview then self.modules.Vendor.saleReview:Hide() end
     self:RefreshConfig(); frame:Show()
 end

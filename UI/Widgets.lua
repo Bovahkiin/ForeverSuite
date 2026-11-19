@@ -31,7 +31,7 @@ function FS:CloseSettingsScreens(keep)
             if frame and frame ~= keep then frame:Hide() end
         end
     end
-    for _,module in pairs(self.modules) do
+    for _,module in self:EachModule() do
         if module.settings and module.settings ~= keep then module.settings:Hide() end
     end
     if self.window then
@@ -56,7 +56,7 @@ function FS:CloseOtherWindows(keep,returnToCenter)
     local equipmentPair=CharacterFrame and (keep==CharacterFrame or (keep==bags.window and CharacterFrame:IsShown()))
     if returnToCenter then self.aboutReturn=self.window and self.window:IsShown() or false end
     for _,frame in pairs({self.window,self.aboutWindow,self.Typography and self.Typography.window,self.Compatibility and self.Compatibility.window}) do if frame and frame~=keep and frame:IsShown() then frame:Hide() end end
-    for _,module in pairs(self.modules) do
+    for _,module in self:EachModule() do
         for _,key in ipairs({"window","saleReview"}) do local frame=module[key]; local paired=(bankPair and (frame==bank.window or frame==bags.window)) or (equipmentPair and frame==bags.window); if frame and frame~=keep and not paired and frame:IsShown() and not InCombatLockdown() then frame:Hide() end end
     end
     if CharacterFrame and CharacterFrame~=keep and not equipmentPair and CharacterFrame:IsShown() and not InCombatLockdown() then
