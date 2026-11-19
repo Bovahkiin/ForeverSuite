@@ -2,263 +2,154 @@
 
 ![ForeverSuite — a modular UI for WoW Forever](.previews/00-cover.png)
 
-**A customizable, modular interface for WoW Forever.**
+**Your everyday interface and tools, together in one Control Center.**
 
-ForeverSuite brings your everyday interface tools together in one Control Center.
-Choose a visual theme, configure the modules you use, and save your setup in a
-profile. Made by **DeluxiZ**.
+Choose a theme, arrange your interface and pin the tools you use most.
+Enable the modules you want and save your setup in a profile.
+Made by **DeluxiZ** for **WoW Forever**.
 
-[Join the ForeverSuite Discord](https://discord.gg/wmBcax2bvJ) for support, bug reports, and suggestions.
+[Download the latest release](https://github.com/Bovahkiin/ForeverSuite/releases/latest) ·
+[CurseForge](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz) ·
+[Discord support & community](https://discord.gg/wmBcax2bvJ)
 
-**Current release:** 1.0.7 · **Client:** WoW Forever · **Interface:** 16001
+## Install
 
-## Getting started
+- **WowUp:** select your WoW Forever installation and search for **ForeverSuite**.
+  You can also use **Install from URL** with this repository's address.
+- **CurseForge:** download the WoW Forever file from the
+  [ForeverSuite project](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz/files/all).
+- **Manual:** download `ForeverSuite-<version>-forever.zip` from
+  [GitHub Releases](https://github.com/Bovahkiin/ForeverSuite/releases/latest).
+  Extract these three folders side by side into your AddOns folder:
 
-- On first login, start the ForeverSuite Tour or go straight to Guided Setup.
-  Choose a theme, layout and play style. Review the choices
-  and select **Apply & finish** to save them to your current profile. For a
-  faster start, pick **Use recommended settings**.
-- On the **Tools** tab, open **Browse all tools** for descriptions and click
-  **Pin** to keep a shortcut on your home screen.
-- On the **Settings** tab, select a module for its main options. **More options** opens the full
-  settings. Both screens have **Back to Control Center**.
-- In **General settings**, open **Quick tour** for tips on tools, moving frames and profiles.
-  **Help with layout** can bring saved frames back on screen or undo a change.
-- Type a task in the Control Center search field and press Enter, or open
-  **Find a setting** and search as you type. Try `text size`, `restore waypoint`,
-  `feed pet` or `move bags`.
-- Use **Modules** to enable or disable features, **Profiles** to save or switch
-  your setup, or **Character Overview** in All Tools to check your character.
-- Right-click the minimap button for profiles, themes, layouts and other shortcuts.
+  ```text
+  World of Warcraft/_forever_/Interface/AddOns/
+  ├── ForeverSuite/
+  ├── ForeverSuite_GearData/
+  └── ForeverSuite_ProfessionData/
+  ```
 
-## Features
+Enable all three in the game's AddOns list. `ForeverSuite.toc` should sit directly
+inside `ForeverSuite/`. Use the attached release ZIP for manual installation.
+The two data addons load when their tools need them.
 
-- **Guided setup:** five starter themes, three starting layouts, four play-style
-  choices, an optional text preview and a short tour. All eleven themes and
-  additional layouts remain available from Control Center and the minimap menu.
-- **Consistent customization:** module colors, font family, size and outline
-  settings, plus movable and resizable supported frames with a centered grid.
-- **Action bars and unit frames:** mouseover and idle opacity, quick keybind mode,
-  configurable bar appearances, player and target frames, an optional pet frame,
-  levels, portraits and cast bars.
-- **Nameplates:** a layout designer, health and cast information, saved NPC rules,
-  and emphasis for selected important spells.
-- **Bags and vendors:** inventory categories, favorites, recent items, stock tools,
-  configurable junk selling and repairs, item checklists, and manual buyback.
-- **Map and quests:** a themed map interface, coordinates, saved pins, a quest
-  tracker, automatic quest waypoints, a smooth direction arrow, minimap ant trails,
-  and a waypoint queue.
-- **Chat, social and guild:** separate modules, chat appearance options, keyword
-  highlights, optional chat copying, private guild notes, favorites, and optional
-  recent-group history.
-- **Professions:** open a profession in WoW, then use **Professions → View** in
-  ForeverSuite. **Skill-ups** ranks learned recipes by their current color,
-  available materials and recorded material cost. **Market** estimates cost
-  and margin before auction fees using saved per-item prices. **Recipe book**
-  also lists unlearned recipes visible to the game. Select a recipe to plan
-  quantities and send missing materials to the shopping list.
-- **Level routes:** use **Professions → View → Level routes** to plan a custom
-  skill range up to 300 for 12 professions. Training steps show observed
-  trainers where available. Crafting routes estimate the minimum direct
-  ingredients and flag recipes with an unconfirmed source.
-  [Profession data and coverage](ForeverSuite_ProfessionData/DATA_SOURCES.md)
-- **More everyday tools:** loot and leveling session summaries, cooldown and buff
-  tools, auction information, and equipment durability tracking.
-- **Profiles and settings tools:** profile import/export, automatic backups,
-  character assignments, settings search, favorites, and undo for reversible
-  settings changes.
-- **1.0 planning tools:** Layout Studio, selective profile import, crafting plans,
-  character stock records, shared waypoint routes and profession area guides.
-  The Dungeon & Raid Journal links observed drops to the Gear Wishlist, preparation
-  checklists and private boss notes.
-- **Gear Planner:** open **Gear Advisor → Gear planner** to compare known items
-  per slot for your current level or levels 20, 30, 40, 50 and 60. Search by
-  slot, item or source and track an item in Gear Wishlist. Recommendations use
-  your Gear Advisor weights and combine the built-in WoW Forever equipment
-  catalog with your equipped gear, observed drops and wishlist.
-  [Catalog sources and coverage](ForeverSuite_GearData/DATA_SOURCES.md)
-- **Faster Control Center:** search modules by name, feature or setting, filter
-  enabled/disabled modules, and open a unique result with Enter. Clear or Escape
-  resets the filters and returns to the module page you were browsing.
+## Make it yours
 
-## Choosing addon systems
+1. On first login, choose **Start ForeverSuite Tour** or **Skip ForeverSuite Tour**.
+   Guided Setup lets you choose your theme, layout and play style before applying them.
+2. Type **`/fs`** to open the Control Center. **Tools** is your home for pinned shortcuts.
+3. Open **Browse all tools** to see what each tool does, open it or change its
+   settings. Use **Pin** to keep it on your home screen.
+4. Use **Settings** for customization, **Modules** to enable or disable features,
+   and **Profiles** to save or switch your setup.
 
-Open **Addon systems** in the Control Center or use `/fs addons`. When supported
-competing addons are detected, ForeverSuite asks which system to use and remembers
-the choice per character. Choose later leaves existing behavior unchanged.
+Search tools and settings from the top bar. **Move Frames** lets you reposition
+supported elements; native action-bar placement uses the game's Edit Mode.
+Right-click the minimap button for quick access to profiles, themes and layouts.
 
-- Waypoint adapters: RestedXP, Zygor and TomTom. Only their arrow options change;
-  guide addons keep running. Unsupported API versions show an explanation.
-- Nameplates: Plater, Platynator, Kui, Threat Plates, Tidy Plates and Neat Plates.
-  **Apply and reload UI** changes supported addon enablement for this character,
-  preserves dependencies/settings, and reloads. Unknown addons need an adapter.
-- Choices stay separate from UI profiles and reversible settings undo.
+## What's included
 
-## Seamless world map
+| Area | Tools and customization |
+| --- | --- |
+| Interface | Visual themes, layout presets, fonts, movable frames and a guided first-run setup. |
+| Combat UI | Action bars with mouseover and idle opacity, quick keybind mode, unit frames, nameplates, buffs and cooldown tools. |
+| Inventory | Bags, item favorites, recorded character stock, junk selling, repairs, shopping lists and mail tools. |
+| Maps & quests | Quest tracker, saved pins, waypoint queues, Route Library and gathering-run reports. |
+| Equipment | Gear Advisor, Gear Planner, Gear Wishlist, durability tracking and Character Overview. |
+| Dungeons & raids | Dungeon & Raid Journal, recorded loot, preparation checklists and private run notes. |
+| Professions | Recipe browsing, crafting plans, material lists, skill-up suggestions, level routes and trainer references. |
+| Social & profiles | Chat tools, private guild notes, optional group history, profile import/export, backups and settings undo. |
 
-Install and enable [OpenMap](https://github.com/openmap-world/openmap) for WoW
-Forever to zoom and pan across supported zones with the normal world-map key.
-Choose OpenMap's seamless view from its map menu. With that view active,
-ForeverSuite shows your saved pins and numbered route stops across supported
-zones and **My zone** brings the view back to your character. OpenMap manages
-the map window's position and size. The regular world map is available through
-OpenMap or by playing with ForeverSuite alone.
+Gear Planner combines the built-in equipment catalog with equipped items,
+recorded drops and your wishlist. Its recommendations use your Gear Advisor
+weights. Check item requirements and special effects when comparing equipment.
 
-## Previews
+Profession routes and trainer references combine bundled data with information
+recorded in game. See the [gear catalog coverage](ForeverSuite_GearData/DATA_SOURCES.md)
+and [profession data coverage](ForeverSuite_ProfessionData/DATA_SOURCES.md) for details.
 
-### In-game interface
+## Current previews
 
-![ForeverSuite configured in WoW Forever](.previews/01-in-game-interface.png)
+These are real screenshots of **ForeverSuite 1.0.7**, cropped to the addon windows.
+The interface contents have not been generated or retouched. Appearance and
+available entries depend on your theme, character and enabled modules.
 
-An in-game screenshot supplied by the author. Module choices, appearance and
-frame placement are configurable; this is one example layout.
+### Control Center
+
+Keep frequently used tools on your home screen, with separate buttons to open
+each tool or its settings.
+
+![Control Center with pinned tools and Tools, Settings, Modules and Profiles tabs](.previews/01-control-center.png)
 
 <details>
-<summary>See the original ten themes</summary>
+<summary>All Tools — descriptions, direct access and pinning</summary>
 
-![Panel, button and waypoint artwork for the original ten themes](.previews/02-theme-artwork.png)
-
-These samples show the actual theme textures used by the addon. This comparison
-is an artwork sheet, not a gameplay screenshot or a promised window layout.
+![All Tools with descriptions and Open, Settings and Pin controls](.previews/02-all-tools.png)
 
 </details>
 
-### Azeroth Heritage
+<details>
+<summary>Gear Planner — equipment by slot, level and source</summary>
 
-Dark slate panels, aged brass trim, burgundy buttons and a gold-and-blue
-waypoint arrow inspired by the classic WoW Forever interface.
+![Gear Planner showing equipment choices and level, item details and wishlist controls](.previews/03-gear-planner.png)
 
-![Azeroth Heritage panel, button and waypoint arrow artwork](.previews/03-azeroth-heritage.png)
+</details>
 
-## Installation
-
-Maintaining this repository? See [GitHub update instructions](GITHUB_UPDATES.md)
-for GitHub Desktop and the **Build ForeverSuite Release** workflow.
-
-1. Download the attached **ForeverSuite ZIP** from this repository's **Releases**
-   page.
-2. Extract all three folders side by side into your WoW Forever AddOns folder.
-
-   ```text
-   World of Warcraft/_forever_/Interface/AddOns/ForeverSuite/
-   World of Warcraft/_forever_/Interface/AddOns/ForeverSuite_GearData/
-   World of Warcraft/_forever_/Interface/AddOns/ForeverSuite_ProfessionData/
-   ```
-
-3. Check that `ForeverSuite.toc` is directly inside that folder. Avoid an extra
-   nested `ForeverSuite/ForeverSuite` folder.
-4. Enable ForeverSuite and both data addons in the game's AddOns list, then
-   log in. The catalogs load when you open Gear Planner or Level routes.
-   If the game was open during a manual update, type `/reload` after copying.
-
-Download the release ZIP attached by the author rather than GitHub's automatically
-generated source archive.
-
-## Getting started
-
-The first-use setup lets you preview an appearance before applying it. You can
-skip setup and return later with `/fs setup`.
-
-Open `/fs` to access the Control Center. Click a module card to open its settings,
-or use its Enabled button to toggle the module. Profiles remain accessible across
-the Control Center's module pages.
-
-Use the search field above the cards to find a module or feature. The filter
-button cycles through all modules, enabled modules and disabled modules. Muted
-icons identify disabled modules; their settings remain available on the card.
-
-Use **Move Frames** to reposition supported elements and drag their resize grips
-to change scale. Select a handle to center it, place it below the player, or
-restore that frame. Native action-bar placement remains in the game's Edit Mode.
-Leave combat before making layout changes.
-
-Open **More tools** for profile transfers, settings search, favorites,
-alerts, notes, checklists, session information, and waypoint queues.
-
-## Commands
+## Useful commands
 
 | Command | Action |
 | --- | --- |
-| `/fs` | Open the Control Center |
-| `/fs setup` | Reopen guided setup |
-| `/fs help` | Open layout recovery |
-| `/fs tour` | Start the three-tip tour |
-| `/fs tools` | Open More tools |
-| `/fs undo` | Undo the last supported settings change |
-| `/fs status` | Show client and compatibility information |
-| `/fs errors` | Show blocked addon actions recorded during this session |
-| `/fs audit` | Open maintenance and layout diagnostics |
+| `/fs` | Open the Control Center. |
+| `/fs setup` | Reopen Guided Setup. |
+| `/fs tour` | Start the ForeverSuite Tour. |
+| `/fs help` | Open layout recovery. |
+| `/fs addons` | Choose supported addon systems. |
+| `/fs tools` | Open the tool browser at its last selected tool. |
+| `/fs undo` | Undo the last supported settings change. |
+| `/fs status` | Show client and compatibility information. |
+| `/fs errors` | Show blocked addon actions recorded during this session. |
+| `/fs audit` | Open maintenance and layout diagnostics. |
 
-## Waypoint navigation
+## Compatibility & local data
 
-Enable navigation in the Map module and select the automatic quest options you
-prefer. Quest navigation depends on location information exposed by the client.
+ForeverSuite targets **WoW Forever**. Available features depend on the APIs exposed
+by that client. Use **`/fs addons`** to choose between supported navigation or
+nameplate systems when using other interface addons.
 
-- Left-click the waypoint arrow to open the map.
-- Right-click the arrow to stop navigation.
-- To resume a quest waypoint, enable **Follow clicked quest** and click **Map**
-  beside that quest in the ForeverSuite quest tracker.
+For a seamless world map, ForeverSuite can work with
+[OpenMap](https://github.com/openmap-world/openmap). Select OpenMap's seamless view
+from its map menu. Saved pins and route stops appear across supported zones.
+Waypoint arrows and ant trails provide direct guidance rather than terrain-aware routing.
 
-Ant trails point directly toward the destination. They do not calculate routes
-along roads or around terrain.
+Chat capture and recent-group history are optional. Guild notes are private addon
+notes. Profile exports omit private guild notes and recorded histories. Settings
+undo applies to supported preferences; game actions such as sales remain final.
 
-## Local data
+## Support, bug reports & suggestions
 
-Chat capture and recent-group tracking are optional. Chat copying keeps up to 200
-messages for the current session. Guild notes are private addon notes; they do
-not edit public or officer notes.
+Please use the [ForeverSuite Discord](https://discord.gg/wmBcax2bvJ).
+Open a support ticket for help or a bug report, or share your ideas in the
+suggestions channel.
 
-Profile exports omit private guild notes, recent-group history, and recorded
-histories. Undo applies to supported settings changes, not purchases, sales,
-messages, or other game actions.
-
-## Compatibility and testing
-
-ForeverSuite targets **WoW Forever**. Compatibility with Retail or other Classic
-clients is not established. Some features require client APIs that may be
-unavailable or restricted; those features skip unreadable data.
-
-The current development checks cover **377 offline scenarios**, Lua startup,
-runtime textures, and targeted map regressions. Offline checks do not reproduce
-every aspect of the game. In version 0.8.5, the author has confirmed that layout
-restoration survives reload and that combat and logout no longer produce the
-previously reported blocked-action warnings in their setup. This confirmation
-covers that setup; broader client, class and addon-combination testing continues.
-
-## Reporting issues
-
-Open an issue in this repository and include:
+For a bug report, include:
 
 - Your ForeverSuite version and the output of `/fs status`.
-- What you expected, what happened, and steps to reproduce it.
-- A screenshot or the complete error text, where available.
-- Relevant output from `/fs errors` for blocked-action warnings.
-- Whether it also happens with other interface addons disabled.
+- What happened and the steps needed to reproduce it.
+- A screenshot or the complete error message, if available.
+- The output of `/fs errors` if the problem involves a blocked addon action.
+- Other UI addons you are using and whether the issue also occurs with them disabled.
 
-Please remove personal information from screenshots and logs before posting.
+Remove private information from screenshots and logs before sharing them.
 
-## Documentation
+## Project information
 
-- [Changelog](CHANGELOG.md)
-- [Tools and settings guide](NEW_TOOLS.md)
-- [Feature delivery status](DELIVERY_STATUS.md)
-- [In-game test checklist](IN_GAME_TEST.md)
+- [Changelog](CHANGELOG.md) — changes in each release.
+- [Roadmap](ROADMAP.md) — future plans.
+- [In-game test checklist](IN_GAME_TEST.md) — checks for testers.
+- [GitHub update instructions](GITHUB_UPDATES.md) — publishing information for maintainers.
 
-## License
+Created by **DeluxiZ**, with AI-assisted development and Blender-rendered theme
+assets. Licensed under the [MIT License](LICENSE). Third-party credits and asset
+licenses are listed in [COPYRIGHT.txt](COPYRIGHT.txt).
 
-ForeverSuite is licensed under the [MIT License](LICENSE).
-Copyright © 2026 DeluxiZ.
-
-Third-party components, fonts and assets retain their respective copyright and
-licensing terms. See [COPYRIGHT.txt](COPYRIGHT.txt).
-
-## Credits
-
-Created by **DeluxiZ**, with AI-assisted development and original Blender-rendered
-theme assets.
-
-Copyright © 2026 DeluxiZ. See [COPYRIGHT.txt](COPYRIGHT.txt).
-
-ForeverSuite is a community project and is not affiliated with Blizzard
-Entertainment. Third-party assets and fonts retain their respective licensing
-terms.
+ForeverSuite is a community project and is not affiliated with Blizzard Entertainment.
