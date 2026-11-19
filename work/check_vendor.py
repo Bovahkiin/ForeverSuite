@@ -145,6 +145,8 @@ end
 function M:SetID(id) self.id = id end
 function M:SetPoint(...) self.point = {...} end
 function M:SetText(t) self.text = t; if self.fontString then self.fontString:SetText(t) end end
+function M:SetTextColor(...) self.textColor={...} end
+function M:GetTextColor() return unpack(self.textColor or {1,1,1,1}) end
 function M:GetText() return self.text or '' end
 function M:GetNormalTexture() return self.normalRegion end
 function M:GetPushedTexture() return self.pushedRegion end
@@ -195,7 +197,7 @@ function M:AddMessage(text) self.lines[#self.lines+1] = text end
 function M:SetOwner(owner,anchor,x,y) self.owner=owner; self.tooltipAnchor={anchor,x,y} end
 for _,k in ipairs({'ClearAllPoints','SetAllPoints','SetFrameStrata','SetClampedToScreen','SetMovable',
     'RegisterForDrag','RegisterForClicks','SetBackdrop','StartMoving','StopMovingOrSizing','SetJustifyH','EnableMouseWheel',
-    'SetJustifyV','SetWordWrap','SetHighlightTexture','SetTextColor','SetAutoFocus','SetColorTexture',
+    'SetJustifyV','SetWordWrap','SetHighlightTexture','SetAutoFocus','SetColorTexture',
     'SetFontString','SetFontObject','SetTextInsets','SetMaxLetters','SetBackdropColor','SetBackdropBorderColor','SetLooping','SetFromAlpha','SetToAlpha','SetDuration','SetHyperlink'}) do M[k] = function() end end
 function M:SetFontString(region) self.fontString=region end
 function M:GetFontString() return self.fontString end
@@ -1610,3 +1612,16 @@ for i in range(1,theme_count+1):
             if kind=='Preview': assert im.getpixel((512,900))[3]==0
             else: assert im.getpixel((0,0))[3]==0
 print(f'PASS: all {theme_count} themes include valid panel, button, arrow and preview textures')
+
+minimap_frames=sorted(Path('Assets/Minimap').glob('*.tga'))
+assert len(minimap_frames)==theme_count+2
+frames=set()
+for asset in minimap_frames:
+    assert asset.read_bytes()[2]==2
+    with Image.open(asset) as im:
+        assert im.mode=='RGBA' and im.size==(256,256)
+        assert im.getpixel((128,128))[3]==0 and im.getpixel((0,0))[3]==0
+        assert im.getchannel('A').getextrema()==(0,255)
+        frames.add(im.tobytes())
+assert len(frames)==len(minimap_frames)
+print('PASS: 13 distinct minimap frames use small uncompressed RGBA textures with transparent map centers')

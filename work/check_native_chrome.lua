@@ -91,9 +91,9 @@ f:Hide(); AchievementFrame=old; FS:SetModuleEnabled('ActionBars',true)
 -- TEST: Map settings paginate all options inside panel with separate navigation hint and open controls
 ResetTest(); local FS=ForeverSuite; local M=FS.modules.Map; FS:ConfigureModule('Map'); local f=M.settings
 assert(f.optionPages==2 and f.optionsPage==1 and not f.previousOptions:IsEnabled() and f.nextOptions:IsEnabled())
-assert(f.navFont:IsShown() and not f.arrival:IsShown() and not f.trail:IsShown())
+assert(f.minimapStyle:IsShown() and f.navSize:IsShown() and not f.navFont:IsShown() and not f.arrival:IsShown() and not f.trail:IsShown())
 for _,o in ipairs(M.options) do local b=f[o.key]; if b:IsShown() then assert(-b.point[3]+b:GetHeight()<318) end end
-f.nextOptions:Click(); assert(f.optionsPage==2 and not f.navFont:IsShown() and f.arrival:IsShown() and f.trailOpacity:IsShown() and not f.nextOptions:IsEnabled())
+f.nextOptions:Click(); assert(f.optionsPage==2 and not f.minimapStyle:IsShown() and f.navFont:IsShown() and f.arrival:IsShown() and f.trailOpacity:IsShown() and not f.nextOptions:IsEnabled())
 local before=FS.db.map.trail; f.trail:Click(); assert(FS.db.map.trail~=before and f.optionsPage==2)
 for _,o in ipairs(M.options) do local b=f[o.key]; if b:IsShown() then assert(-b.point[3]+b:GetHeight()<318) end end
 assert(-f.open.point[3]+f.open:GetHeight()<=f:GetHeight())
@@ -638,3 +638,167 @@ local rotation; f.themeArrow.SetRotation=function(self,value) rotation=value end
 M:AnimateNavigation(.016); assert(math.abs(rotation-(M.navAngle-math.pi/2))<.0001)
 d.facing=false; M:AnimateNavigation(.016); assert(not f.themeArrow:IsShown())
 d:restore(); FS.Themes:Set('Legacy')
+-- TEST: Every minimap theme has a distinct frame and Dark Fantasy restores mask and shape on exit
+ResetTest(); local FS=ForeverSuite; local S,M=FS.Style,FS.modules.Map
+local oldMap,oldShape=Minimap,GetMinimapShape
+local f=CreateFrame('Frame',nil,UIParent); f:SetSize(210,180)
+f.mask='custom-original-mask'; local masks=0
+f.GetMaskTexture=function(self) return self.mask end
+f.SetMaskTexture=function(self,mask) self.mask=mask; masks=masks+1 end
+Minimap=f; GetMinimapShape=function() return 'ROUND' end; S.minimapShapeHook=nil
+S.minimap=nil; S.mapRim=nil; S:Minimap()
+local found={}
+for i,name in ipairs(FS.Themes.names) do
+ FS.db.appearance.theme=name; S:Minimap()
+ assert(S.mapRim.fsAsset:find(string.format('%02d-Round.tga',i),1,true))
+ found[S.mapRim.fsAsset]=true
+ assert(GetMinimapShape()=='ROUND' and f.mask=='custom-original-mask')
+end
+local count=0; for _ in pairs(found) do count=count+1 end; assert(count==11 and masks==0)
+FS.db.map.minimapStyle='Dark Fantasy'; M:SettingsChanged()
+assert(S:IsSquareMinimap() and GetMinimapShape()=='SQUARE')
+assert(f.mask=='Interface\\Buttons\\WHITE8X8' and masks==1)
+assert(S.mapRim.fsAsset:find('Dark-Fantasy.tga',1,true) and S.minimap.fsMinimapFantasyFill:IsShown())
+local before=#TEST.frames
+local texture=S.mapRim.SetTexture; local writes=0
+S.mapRim.SetTexture=function(self,...) writes=writes+1; return texture(self,...) end
+for i=1,30 do S:Minimap() end
+assert(#TEST.frames==before and masks==1 and writes==0)
+S.mapRim.SetTexture=texture
+FS.db.map.minimapStyle='Theme'; M:SettingsChanged()
+assert(f.mask=='custom-original-mask' and masks==2 and not S:IsSquareMinimap() and GetMinimapShape()=='ROUND')
+FS.db.map.minimapStyle='Dark Fantasy'; M:SettingsChanged(); FS:SetModuleEnabled('Map',false)
+assert(f.mask=='custom-original-mask' and not S.mapRim:IsShown() and GetMinimapShape()=='ROUND')
+S.minimap:Hide(); S.mapRim:Hide(); S.minimap=nil; S.mapRim=nil
+Minimap=oldMap; GetMinimapShape=oldShape; S.minimapShapeHook=true
+FS.db.map.minimapStyle='Theme'; FS.db.appearance.theme='Legacy'; FS:SetModuleEnabled('Map',true)
+
+-- TEST: Forever minimap without a mask getter survives repeated style changes and native rotation resets
+ResetTest(); local FS=ForeverSuite; local S,M=FS.Style,FS.modules.Map
+local oldMap,oldCluster,oldTextures,oldForever=Minimap,MinimapCluster,C_Texture,FS.client.isForever
+local round='ui-hud-minimap-frame-generic-mask'; local square='Interface\\Buttons\\WHITE8X8'
+local f=CreateFrame('Frame',nil,UIParent); f:SetSize(198,198); f.mask=round
+assert(f.GetMaskTexture==nil)
+local writes=0
+f.SetMaskTexture=function(self,mask)
+ assert(mask==round or mask==square or mask=='external-mask', 'Unavailable legacy mask hides Forever terrain')
+ self.mask=mask; writes=writes+1
+end
+Minimap=f; FS.client.isForever=true
+C_Texture={GetAtlasInfo=function(name) assert(name==round); return {width=198,height=198} end}
+MinimapCluster=CreateFrame('Frame',nil,UIParent)
+MinimapCluster.UpdateMinimapConfig=function() f:SetMaskTexture(round) end
+S.minimap=nil; S.mapRim=nil; S:Minimap()
+for i=1,33 do
+ FS.db.appearance.theme=FS.Themes.names[(i-1)%#FS.Themes.names+1]
+ FS.db.map.minimapStyle='Dark Fantasy'; M:SettingsChanged()
+ assert(f.mask==square and S:IsSquareMinimap())
+ FS.db.map.minimapStyle='Theme'; M:SettingsChanged()
+ assert(f.mask==round and not S:IsSquareMinimap())
+ FS.db.map.minimapStyle='Dark Fantasy'; M:SettingsChanged()
+ MinimapCluster:UpdateMinimapConfig()
+ assert(f.mask==square and S:IsSquareMinimap())
+ FS.db.map.minimapStyle='Theme'; M:SettingsChanged()
+ assert(f.mask==round and not S:IsSquareMinimap() and f:GetAlpha()==1)
+end
+local before=writes
+for i=1,30 do S:Minimap() end
+assert(writes==before)
+f:SetMaskTexture('external-mask')
+FS.db.map.minimapStyle='Dark Fantasy'; S:Minimap()
+FS:SetModuleEnabled('Map',false)
+assert(f.mask=='external-mask' and not S:IsSquareMinimap())
+FS:SetModuleEnabled('Map',true)
+FS.db.map.minimapStyle='Dark Fantasy'; S:Minimap()
+TEST.combat=true; MinimapCluster:UpdateMinimapConfig()
+assert(f.mask==round)
+TEST.combat=false; M.events.scripts.OnEvent(M.events,'PLAYER_REGEN_ENABLED')
+assert(f.mask==square)
+FS.db.map.minimapStyle='Theme'; S:Minimap(); assert(f.mask==round)
+S.minimap:Hide(); S.mapRim:Hide(); S.minimap=nil; S.mapRim=nil
+Minimap,MinimapCluster,C_Texture=oldMap,oldCluster,oldTextures; FS.client.isForever=oldForever
+FS.db.appearance.theme='Legacy'; S:Minimap()
+
+-- TEST: Minimap style changes defer in combat and square launcher stays on the frame edge
+ResetTest(); local FS=ForeverSuite; local S,M=FS.Style,FS.modules.Map
+local old=Minimap; local f=CreateFrame('Frame',nil,UIParent); f:SetSize(200,200)
+f.mask='original'; f.GetMaskTexture=function(self) return self.mask end; f.SetMaskTexture=function(self,value) self.mask=value end
+Minimap=f; S.minimap=nil; S.mapRim=nil; S:Minimap()
+FS.db.map.minimapStyle='Dark Fantasy'; TEST.combat=true; M:SettingsChanged()
+assert(f.mask=='original' and not S:IsSquareMinimap())
+TEST.combat=false; M.events.scripts.OnEvent(M.events,'PLAYER_REGEN_ENABLED')
+assert(S:IsSquareMinimap() and f.mask=='Interface\\Buttons\\WHITE8X8')
+local button=FS.minimapButton; FS.minimapButton=CreateFrame('Button',nil,f)
+FS.db.minimap.angle=45; FS:UpdateMinimapButton()
+assert(math.abs(FS.minimapButton.point[4]-108)<.001 and math.abs(FS.minimapButton.point[5]-108)<.001)
+FS.minimapButton:Hide(); FS.minimapButton=button
+FS.db.map.minimapStyle='Theme'; S:Minimap(); S.minimap:Hide(); S.mapRim:Hide()
+S.minimap=nil; S.mapRim=nil; Minimap=old; FS.db.minimap.angle=225; S:Minimap()
+
+-- TEST: Guild styling flattens member rows preserves chat and class colors and restores native tabs
+ResetTest(); local FS=ForeverSuite; local N=FS.NativeWindows; local old=CommunitiesFrame
+local f=CreateFrame('Frame','CommunitiesFrame',UIParent); CommunitiesFrame=f
+f.CommunitiesList=CreateFrame('Frame',nil,f); f.CommunitiesList.TopFiligree=f.CommunitiesList:CreateTexture()
+f.CommunitiesList.TopFiligree:SetAlpha(.7)
+f.Chat=CreateFrame('Frame',nil,f); f.Chat.Messages=CreateFrame('ScrollingMessageFrame',nil,f.Chat)
+f.Chat.Messages:SetFont('native',12,''); f.Chat.Messages:AddMessage('Private test chat')
+f.MemberList=CreateFrame('Frame',nil,f)
+local member=CreateFrame('Button',nil,f.MemberList); member.NameFrame=CreateFrame('Frame',nil,member)
+member.NameFrame.Name=member.NameFrame:CreateFontString(); member.NameFrame.Name:SetText('Member')
+member.NameFrame.Name:SetTextColor(.2,.8,.3,1)
+member.ClassIcon=member:CreateTexture(); member.ClassIcon:SetTexture('Interface\\Icons\\ClassIcon')
+local clicks=0; member:SetScript('OnClick',function() clicks=clicks+1 end)
+local tab=CreateFrame('CheckButton',nil,f); f.ChatTab=tab; tab:SetSize(28,26); tab:SetPoint('RIGHT',f,'LEFT',3,4)
+tab.Icon=tab:CreateTexture(); tab.Icon:SetAlpha(.8); tab:SetScript('OnClick',function() clicks=clicks+1 end)
+N:Refresh(f)
+assert(f.CommunitiesList.TopFiligree:GetAlpha()==0 and N.guildRows[member].fill:IsShown())
+assert(not N.controls[member] and member.ClassIcon:GetAlpha()==1)
+assert(member.NameFrame.Name:GetTextColor()==.2 and f.Chat.Messages.font[1]==FS.font)
+assert(f.Chat.Messages.lines[1]=='Private test chat' and tab:GetWidth()==34 and tab.fsGuildIcon:IsShown())
+member:Click(); tab:Click(); assert(clicks==2)
+FS.db.guild.styleWindow=false; N:Refresh(f)
+assert(f.CommunitiesList.TopFiligree:GetAlpha()==.7 and tab:GetWidth()==28 and tab:GetHeight()==26)
+assert(tab.Icon:GetAlpha()==.8 and not tab.fsGuildIcon:IsShown() and not N.guildRows[member].fill:IsShown())
+FS.db.guild.styleWindow=true; f:Hide(); CommunitiesFrame=old
+
+-- TEST: Guild pooled member refreshes coalesce and hidden guild windows do no background work
+ResetTest(); local FS=ForeverSuite; local N=FS.NativeWindows; local old=CommunitiesFrame
+local f=CreateFrame('Frame','CommunitiesFrame',UIParent); CommunitiesFrame=f
+f.MemberList=CreateFrame('Frame',nil,f)
+local created
+f.SetDisplayMode=function(self)
+ created=CreateFrame('Button',nil,self.MemberList); created.NameFrame=CreateFrame('Frame',nil,created)
+ created.NameFrame.Name=created.NameFrame:CreateFontString(); created.NameFrame.Name:SetText('New member')
+end
+N:Refresh(f); Drain(); f:SetDisplayMode()
+local pending=#TEST.timers
+for i=1,30 do N.guildEvents.scripts.OnEvent(N.guildEvents,'GUILD_ROSTER_UPDATE') end
+assert(#TEST.timers==pending and N.guildPending[f])
+Drain(); assert(N.guildRows[created] and not N.controls[created] and not N.guildPending[f])
+f:Hide(); pending=#TEST.timers
+for i=1,30 do N.guildEvents.scripts.OnEvent(N.guildEvents,'GUILD_ROSTER_UPDATE') end
+assert(#TEST.timers==pending and not N.guildEvents:GetScript('OnUpdate'))
+CommunitiesFrame=old
+
+-- TEST: Failed native styling releases its guard and the opening window never stays invisible
+ResetTest(); local FS=ForeverSuite; local N,W=FS.NativeWindows,FS.WindowManager
+local frame=CreateFrame('Frame',nil,UIParent); frame:SetAlpha(.7)
+local refresh=N.RefreshWindows
+N.RefreshWindows=function() error('Simulated native skin failure') end
+assert(W:PrepareOpen(frame,function() N:Refresh() end) and frame:GetAlpha()==0)
+assert(not pcall(Drain) and frame:GetAlpha()==.7 and not N.refreshing and not W.openingFrames[frame])
+N.RefreshWindows=refresh; frame:Hide(); N:Refresh()
+
+-- TEST: Styled native windows close the previous guild immediately and reveal only after their show handlers finish
+ResetTest(); local FS=ForeverSuite; local W,N=FS.WindowManager,FS.NativeWindows
+local oldGuild,oldContacts=CommunitiesFrame,ContactsFrame
+CommunitiesFrame=CreateFrame('Frame','CommunitiesFrame',UIParent)
+ContactsFrame=CreateFrame('Frame','ContactsFrame',UIParent); ContactsFrame:Hide(); ContactsFrame:SetAlpha(.65)
+local f=ContactsFrame
+f:SetScript('OnShow',function(self)
+ self.Background=self:CreateTexture(); self.Background:SetTexture('native-window-background')
+end)
+W:Install(); N:Refresh()
+f:Show(); assert(f:GetAlpha()==0 and not CommunitiesFrame:IsShown())
+Drain(); assert(f:GetAlpha()==.65 and f.Background:GetAlpha()==0 and not W.openingFrames[f])
+f:Hide(); CommunitiesFrame:Hide(); CommunitiesFrame,ContactsFrame=oldGuild,oldContacts

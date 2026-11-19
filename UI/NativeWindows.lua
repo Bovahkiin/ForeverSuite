@@ -325,7 +325,10 @@ function N:Tree(frame,enabled,root,depth,deco,role)
         elseif art:find("downarrow",1,true) or art:find("dropdown",1,true) then glyph="v"
         elseif name:find("helpbutton",1,true) or name:find("tutorialbutton",1,true) then glyph="?" end
     end
-    if kind=="Button" or kind=="CheckButton" then self:Control(frame,enabled,glyph)
+    if kind=="Button" or kind=="CheckButton" then
+        if self.GuildRow and (root==CommunitiesFrame or root==GuildFrame) and frame.NameFrame and frame.NameFrame.Name then
+            self:GuildRow(frame,enabled)
+        else self:Control(frame,enabled,glyph) end
     elseif kind=="EditBox" then
         local p=S:Plate(frame); p:ClearAllPoints(); p:SetAllPoints(frame); p.gold:Hide(); p.cyan:Hide(); p:SetShown(enabled); self:Font(frame,enabled)
     end
@@ -565,14 +568,13 @@ function N:Window(frame,definition)
         end
     end
     if definition[1]=="WorldMapFrame" then self:MapChrome(frame,enabled); self:MapText(frame,enabled) end
+    if definition[2]=="Guild" and self.Guild then self:Guild(frame,enabled) end
     if definition[1]=="AchievementFrame" then
         self:Achievements(frame,enabled)
         for _,suffix in ipairs({"MetalBorderTop","MetalBorderBottom","MetalBorderLeft","MetalBorderRight","MetalBorderTopLeft","MetalBorderTopRight","MetalBorderBottomLeft","MetalBorderBottomRight","WoodBorderTopLeft","WoodBorderTopRight","WoodBorderBottomLeft","WoodBorderBottomRight","WaterMark","StatsBG"}) do self:Art(_G["AchievementFrame"..suffix],enabled) end
     end
 end
-function N:Refresh(onlyFrame)
-    if self.refreshing or not FS.initialized or not FS.db or InCombatLockdown() then return end
-    self.refreshing=true
+function N:RefreshWindows(onlyFrame)
     for _,definition in ipairs(self.definitions) do
         local f=_G[definition[1]]
         if f and (not onlyFrame or f==onlyFrame) then
@@ -597,7 +599,13 @@ function N:Refresh(onlyFrame)
             end
         end
     end
+end
+function N:Refresh(onlyFrame)
+    if self.refreshing or not FS.initialized or not FS.db or InCombatLockdown() then return end
+    self.refreshing=true
+    local ok,err=pcall(self.RefreshWindows,self,onlyFrame)
     self.refreshing=false
+    if not ok then error(err,0) end
 end
 local events=CreateFrame("Frame")
 FS:RegisterClientEvent(events,"ADDON_LOADED")

@@ -1,6 +1,17 @@
 local _,FS=...
 local W={native={},xpNative={},openingFrames={}}; FS.WindowManager=W
 local names={"SpellBookFrame","PlayerSpellsFrame","QuestLogFrame","ProfessionsBookFrame","ProfessionsFrame","TradeSkillFrame","CraftFrame","FriendsFrame","ContactsFrame","AchievementFrame","CollectionsJournal","WardrobeFrame","CommunitiesFrame","GuildFrame","EncounterJournal","WorldMapFrame"}
+function W:UsesSuiteStyle(name)
+    if not FS.NativeWindows or not FS.initialized or not FS.db or (FS.db.extras and FS.db.extras.nativeWindows==false) then return false end
+    if FS.Layout:IsExternallyManaged(name) then return false end
+    for _,definition in ipairs(FS.NativeWindows.definitions) do
+        if definition[1]==name then
+            local module=FS.modules[definition[2]]
+            return FS:IsModuleEnabled(definition[2]) and (not definition[5] or module:Data()[definition[5]])
+        end
+    end
+    return false
+end
 function W:PrepareOpen(frame,finish)
     if InCombatLockdown() or self.openingFrames[frame] or (frame.IsForbidden and frame:IsForbidden()) then return false end
     local alpha=frame:GetAlpha()
@@ -51,11 +62,11 @@ function W:Install()
         if frame and not nested and not self.native[frame] and not (frame.IsForbidden and frame:IsForbidden()) then
             local state={name=name}; self.native[frame]=state
             frame:HookScript("OnShow",function(f)
-                if (name=="SpellBookFrame" or name=="PlayerSpellsFrame") and FS:IsModuleEnabled("ActionBars")
-                    and (not FS.db.extras or FS.db.extras.nativeWindows~=false)
+                if self:UsesSuiteStyle(name) and not InCombatLockdown() then self:NativeShown(f,name) end
+                if self:UsesSuiteStyle(name)
                     and self:PrepareOpen(f,function()
                         self:NativeShown(f,name)
-                        FS.NativeWindows:Refresh()
+                        FS.NativeWindows:Refresh(f)
                         FS.Layout:Apply(name)
                     end) then return end
                 self:QueueNativeShown(f,name)

@@ -1,3 +1,12 @@
+# 1.0.8 - 2026-11-19
+
+- Minimap frames now follow all eleven ForeverSuite themes, with individual Blender-rendered borders and matching header accents.
+- Adds an optional Dark Fantasy minimap style with a square map, iron-and-bronze frame and dark red accents. Choose it in Map settings. Switching back restores the original map mask and launcher shape.
+- Fixes terrain disappearing after switching back from Dark Fantasy on WoW Forever. Restores the client's round mask atlas and reapplies square mode after native rotation updates, without repeatedly resetting an unchanged mask.
+- Improves Guild & Communities with consistent panels, simpler member rows, themed navigation icons and fewer decorative layers. Class colors, chat content and native actions are preserved.
+- Prepares supported native windows before revealing them and closes the previous window immediately, preventing the original Guild window from flashing behind another screen.
+- Refreshes the README, banner and actual in-game previews. Support, bug reports and suggestions now point to Discord.
+
 # 1.0.7 - 2026-11-18
 
 - Reworks first-run Guided Setup into four steps for theme, layout, play style and review. See the update notes once after installing a new version.

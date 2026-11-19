@@ -53,7 +53,7 @@ local explicit = {
     UnitFrames = {"showPet", "showFocus", "showParty", "showRaid"},
     ActionBars = {"mouseover", "fade", "menu"},
     Nameplates = {"enemies", "friendlyPlayers", "friendlyNPCs"},
-    Map = {"navigation", "coordinates", "autoQuest", "trail"},
+    Map = {"navigation", "minimapStyle", "coordinates", "autoQuest"},
     GearAdvisor = {"preset", "role", "tooltips", "minimum"},
 }
 

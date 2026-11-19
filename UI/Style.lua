@@ -73,7 +73,7 @@ function S:Units()
     end
 end
 function S:Minimap()
-    if not Minimap then return end
+    if not Minimap or InCombatLockdown() then return end
     local enabled=FS:IsModuleEnabled("Map")
     if not self.minimap then
         local f=CreateFrame("Frame",nil,Minimap,"BackdropTemplate"); f.ignoreInLayout=true; self.minimap=f; f.fsFontModule="Map"; H:Skin(f); f:EnableMouse(false)
@@ -95,11 +95,7 @@ function S:Minimap()
     if MinimapCluster then
         for _,key in ipairs({"BorderTop","ZoneTextButton"}) do local r=MinimapCluster[key]; if r then self:NativeRegion(r,enabled) end end
     end
-    if not self.mapRim then
-        local r=Minimap:CreateTexture(nil,"OVERLAY"); r.ignoreInLayout=true; self.mapRim=r
-        r:SetTexture("Interface\\AddOns\\ForeverSuite\\Assets\\Minimap-Rim.tga"); r:SetPoint("TOPLEFT",Minimap,"TOPLEFT",-3,3); r:SetPoint("BOTTOMRIGHT",Minimap,"BOTTOMRIGHT",3,-3)
-    end
-    self.mapRim:SetShown(enabled)
+    self:ApplyMinimapFrame(enabled)
 end
 function S:CoordinateDuplicates(hidden)
     self.coordinateDuplicates=self.coordinateDuplicates or {}

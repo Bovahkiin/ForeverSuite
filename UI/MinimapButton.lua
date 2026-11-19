@@ -30,6 +30,7 @@ function FS:UpdateMinimapButton()
     if collector and collector.collected[button] then button:SetShown(self.db.minimap.show); return end
     local angle = math.rad(self.db.minimap.angle)
     local radius = math.max(Minimap:GetWidth(), Minimap:GetHeight()) / 2 + 8
+    if FS.Style and FS.Style:IsSquareMinimap() then radius=radius/math.max(math.abs(math.cos(angle)),math.abs(math.sin(angle))) end
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
     if self.db.minimap.show then button:Show() else button:Hide() end

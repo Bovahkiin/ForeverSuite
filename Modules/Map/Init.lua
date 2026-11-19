@@ -1,7 +1,7 @@
 local _,FS=...
 local T=FS.Tools
-local M=T:Module("Map","map","Map","Coordinates, saved location pins, explored regions and dungeon or raid lockouts. Save a pin at your current location.",{coordinates=true,pins={},worldControls=true,worldPins=true,worldRoute=true},{"ZONE_CHANGED_NEW_AREA","MAP_EXPLORATION_UPDATED","UPDATE_INSTANCE_INFO","PLAYER_ENTERING_WORLD"})
-M.options={{key="coordinates",label="Show coordinates"}}
+local M=T:Module("Map","map","Map","Coordinates, saved location pins, explored regions and dungeon or raid lockouts. Save a pin at your current location.",{coordinates=true,pins={},worldControls=true,worldPins=true,worldRoute=true,minimapStyle="Theme"},{"ZONE_CHANGED_NEW_AREA","MAP_EXPLORATION_UPDATED","UPDATE_INSTANCE_INFO","PLAYER_ENTERING_WORLD"})
+M.options={{key="coordinates",label="Show coordinates"},{key="minimapStyle",label="Minimap style",values={"Theme","Dark Fantasy"},help="Theme follows your ForeverSuite theme. Dark Fantasy uses a square, Diablo-inspired iron frame."}}
 M.pinFrames={}; M.routeFrames={}
 function M:GetOpenMapAPI()
     local api=OpenMapAPI
@@ -250,6 +250,7 @@ function M:Tick()
         f.text:ClearAllPoints(); f.text:SetPoint("TOPLEFT",f,"TOPLEFT",6,-3); f.text:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-6,3)
         f.text:SetJustifyH("CENTER"); f.text:SetJustifyV("MIDDLE")
         FS.Layout:Register("Coordinates",f,"Map Coordinates")
+        if FS.Style then FS.Style:MinimapPanel(f,FS.Style:IsSquareMinimap()) end
     end
     if Minimap and not InCombatLockdown() and not FS.db.layout.frames.Coordinates then
         self.coordinateFrame:SetScale(Minimap:GetEffectiveScale()/UIParent:GetEffectiveScale())
@@ -260,7 +261,7 @@ function M:Tick()
     if self.UpdateNavigation then self:UpdateNavigation() end
 end
 local base=M.SettingsChanged
-function M:SettingsChanged() base(self); if self.coordinateFrame then self.coordinateFrame:SetShown(FS:IsModuleEnabled(self.name) and self:Data().coordinates) end; self:UpdatePins(); if self.UpdateNavigation then self:UpdateNavigation() end end
+function M:SettingsChanged() base(self); if self.coordinateFrame then self.coordinateFrame:SetShown(FS:IsModuleEnabled(self.name) and self:Data().coordinates) end; self:UpdatePins(); if self.UpdateNavigation then self:UpdateNavigation() end; if FS.Style and not InCombatLockdown() then FS.Style:Minimap() end end
 M.actions={{label="Save location",run=function(self,text) self:SavePin(text) end},
     {label="Navigate to pin",run=function(self) self:Waypoint(self.selected) end},
     {label="Remove pin",run=function(self) if self.selected and self.selected.pin then table.remove(self:Data().pins,self.selected.pin); self.selected=nil; self:UpdatePins() end end},

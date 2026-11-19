@@ -799,7 +799,7 @@ local old=Minimap; Minimap=CreateFrame('Frame',nil,UIParent); Minimap:SetSize(19
 MinimapCluster={BorderTop=CreateFrame('Frame',nil,UIParent),ZoneTextButton=CreateFrame('Button',nil,UIParent)}
 MinimapCompassTexture=Minimap:CreateTexture(nil,'OVERLAY'); MinimapCompassTexture:SetAlpha(.8)
 S.minimap=nil; S.mapRim=nil; S:Minimap()
-assert(S.mapRim.texture=='Interface\\AddOns\\ForeverSuite\\Assets\\Minimap-Rim.tga' and S.mapRim.point[2]==Minimap)
+assert(S.mapRim.texture=='Interface\\AddOns\\ForeverSuite\\Assets\\Minimap\\00-Round.tga' and S.mapRim.point[2]==Minimap)
 assert(MinimapCompassTexture:GetAlpha()==0 and MinimapCluster.BorderTop:GetAlpha()==0 and MinimapCluster.ZoneTextButton:GetAlpha()==0)
 FS:SetModuleEnabled('Map',false); S:Minimap(); assert(MinimapCompassTexture:GetAlpha()==.8 and MinimapCluster.BorderTop:GetAlpha()==1)
 S.minimap:Hide(); S.mapRim:Hide(); S.minimap=nil; S.mapRim=nil; Minimap=old; MinimapCluster=nil; MinimapCompassTexture=nil; FS:SetModuleEnabled('Map',true)
@@ -1230,7 +1230,7 @@ TEST.combat=false; M:NavigationEvent('PLAYER_REGEN_ENABLED'); assert(not M.relea
 d:restore()
 
 -- TEST: Waypoint settings validate migrate save in profiles and share stable Move Frames position and resize
-local FS,M,d=NavigationFixture(); assert(#M.options==22); FS:ConfigureModule('Map'); assert(M.settings.navColor and M.settings.navStyle and M.settings.trail and M.settings.worldControls)
+local FS,M,d=NavigationFixture(); assert(#M.options==23); FS:ConfigureModule('Map'); assert(M.settings.navColor and M.settings.navStyle and M.settings.trail and M.settings.worldControls and M.settings.minimapStyle)
 FS.db.map.navColor='invalid'; FS.db.map.arrival=10000; FS.db.map.navHideCombat='bad'; M:SettingsChanged()
 assert(FS.db.map.navColor=='Cyan' and FS.db.map.arrival==20 and FS.db.map.navHideCombat==false)
 M:NavigationEvent('QUEST_ACCEPTED',11); local f=M.navigator
