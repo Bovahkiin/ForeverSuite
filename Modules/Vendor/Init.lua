@@ -1,5 +1,5 @@
 local _, FS = ...
-local V = { providers = {}, trackedButtons = {}, generation = 0 }
+local V = { key = "vendor", providers = {}, trackedButtons = {}, generation = 0 }
 FS:RegisterModule("Vendor", V)
 V.modes = { "manual", "auto", "custom" }
 V.modeNames = { manual = "Manual", auto = "Auto Junk", custom = "Custom Rules" }

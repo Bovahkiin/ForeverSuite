@@ -1,5 +1,5 @@
 local _, FS = ...
-local G = { slotNames = { "Head", "Neck", "Shoulders", "Shirt", "Chest", "Waist", "Legs", "Feet", "Wrists", "Hands", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Back", "Main hand", "Off hand", "Ranged", "Tabard" } }
+local G = { key = "gear", slotNames = { "Head", "Neck", "Shoulders", "Shirt", "Chest", "Waist", "Legs", "Feet", "Wrists", "Hands", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Back", "Main hand", "Off hand", "Ranged", "Tabard" } }
 FS:RegisterModule("Gear", G)
 function G:NormalizeSettings()
     local db, V = FS.db.gear, FS.modules.Vendor

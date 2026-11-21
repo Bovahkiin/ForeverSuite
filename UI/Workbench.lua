@@ -129,13 +129,12 @@ function E:SettingsIndex()
     for name,module in FS:EachModule() do
         if name~='Workbench' then rows[#rows+1]={id=name..':settings',owner=name,key='',ref={},option={},label='Module settings',text=caption(name)..' | Open module settings'} end
         local ref=module.key and FS.db[module.key]
-        if name=='Vendor' then ref=FS.db.vendor elseif name=='Bags' then ref=FS.db.bags elseif name=='Gear' then ref=FS.db.gear end
         if ref and name~='Workbench' then
             for _,o in ipairs(module.options or {}) do add(name,o.key,o.label,ref,o) end
             for _,group in ipairs(module.designGroups or {}) do for _,o in ipairs(group.options) do add(name,o.key,o.label,ref,o) end end
             local explicit={Vendor={{'includeGray','Sell gray junk'},{'autoRepair','Repair automatically'},{'protectRare','Protect rare items'},{'report','Sale reports'}},Bags={{'showCooldowns','Show item cooldowns'},{'showNewLoot','Show NEW markers'},{'showEmpty','Show empty slots'},{'replaceNative','Replace native bags'}},Gear={{'showButton','Show gear button'},{'warn','Low durability warning'}},UnitFrames={{'showPet','Show pet frame'},{'showFocus','Show focus frame'},{'showParty','Show party frames'},{'showRaid','Show raid frames'}},ActionBars={{'menu','Top-left main menu'}}}
             for _,o in ipairs(explicit[name] or {}) do add(name,o[1],o[2],ref,{key=o[1],label=o[2]}) end
-            local defaults=FS.defaults[module.key or name:sub(1,1):lower()..name:sub(2)] or {}
+            local defaults=FS.defaults[module.key] or {}
             for key,value in pairs(defaults) do if type(value)~='table' and key~='uiVersion' then local label=key:gsub('(%l)(%u)','%1 %2'); label=label:sub(1,1):upper()..label:sub(2); add(name,key,label,ref,{key=key}) end end
         end
     end

@@ -50,15 +50,20 @@ function FS:InitializeDatabase()
     self.db.bags.uiVersion = 1
     self.db.language = "enUS"
     self.db.schemaVersion = 3
-    if self.modules.Bags then self.modules.Bags:NormalizeSettings() end
-    if self.modules.Vendor then self.modules.Vendor:NormalizeSettings() end
-    if self.modules.Gear then self.modules.Gear:NormalizeSettings() end
-    if self.Layout then self.Layout:Normalize() end
-    for _, name in ipairs({ "UnitFrames", "ActionBars", "Nameplates" }) do
-        if self.modules[name] then self.modules[name]:NormalizeSettings() end
+    -- Some modules must be normalized before others, so run those first and
+    -- skip them in the general pass below.
+    local normalized = {}
+    local function normalize(name)
+        local module = self.modules[name]
+        if module and not normalized[name] then normalized[name] = true; module:NormalizeSettings() end
     end
-    for name,module in self:EachModule() do
-        if name~="UnitFrames" and name~="ActionBars" and name~="Nameplates" and module.key and module.NormalizeSettings then module:NormalizeSettings() end
+    normalize("Bags"); normalize("Vendor"); normalize("Gear")
+    if self.Layout then self.Layout:Normalize() end
+    for _, name in ipairs({ "UnitFrames", "ActionBars", "Nameplates" }) do normalize(name) end
+    for name, module in self:EachModule() do
+        if module.key and module.NormalizeSettings and not normalized[name] then
+            normalized[name] = true; module:NormalizeSettings()
+        end
     end
     if self.db.minimap.angle ~= self.db.minimap.angle or math.abs(self.db.minimap.angle) == math.huge then
         self.db.minimap.angle = 225

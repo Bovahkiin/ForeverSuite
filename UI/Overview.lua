@@ -58,7 +58,7 @@ local resetTables={UnitFrames={player=true,target=true,pet=true,focus=true,party
 local resetExtras={Chat={"keywordsEnabled","captureChat"},Social={"trackGroups"},Guild={"showPrivateNotes"}}
 local function moduleKey(name)
     local module=FS.modules[name]
-    return module and (module.key or ({Bags="bags",Vendor="vendor",Gear="gear"})[name])
+    return module and module.key
 end
 function B:CanResetModule(name)
     local key=moduleKey(name)

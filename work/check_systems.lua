@@ -404,3 +404,39 @@ assert(#first==count and #FS.moduleOrder==count)
 local seen={}; for i,name in ipairs(first) do assert(not seen[name],name); seen[name]=true end
 local second={}; for name in FS:EachModule() do second[#second+1]=name end
 for i=1,#first do assert(first[i]==second[i]) end
+
+-- TEST: Every module keeps its enabled state under its own settings key, including Bags, Vendor and Gear
+ResetTest(); local FS=ForeverSuite; FS:ShowConfig()
+local expected={Bags='bags',Vendor='vendor',Gear='gear',UnitFrames='unitFrames',ActionBars='actionBars',Nameplates='nameplates',Character='character'}
+for name,key in pairs(expected) do assert(FS.modules[name].key==key,name) end
+for _,name in ipairs({'Bags','Vendor','Gear'}) do
+    local key=expected[name]
+    FS:SetModuleEnabled(name,false); assert(FS.db[key].enabled==false and not FS:IsModuleEnabled(name),name)
+    FS:SetModuleEnabled(name,true); assert(FS.db[key].enabled==true and FS:IsModuleEnabled(name),name)
+end
+for name,module in FS:EachModule() do
+    local data=module.key and FS.db[module.key]
+    if data then
+        local saved=data.enabled
+        data.enabled=false; assert(FS:IsModuleEnabled(name)==false,name)
+        data.enabled=true; assert(FS:IsModuleEnabled(name)==true,name)
+        data.enabled=saved
+    end
+end
+local shared,old=FS.db.modules,FS.db.modules.Profiles
+shared.Profiles=false; assert(FS:IsModuleEnabled('Profiles')==false)
+shared.Profiles=nil; assert(FS:IsModuleEnabled('Profiles')==true)
+shared.Profiles=old
+
+-- TEST: Settings are normalized exactly once per module when the database loads
+local FS=ForeverSuite; local calls,originals={},{}
+for name,module in FS:EachModule() do
+    if module.key and module.NormalizeSettings then
+        local original=module.NormalizeSettings; originals[name]=original
+        module.NormalizeSettings=function(self,...) calls[name]=(calls[name] or 0)+1; return original(self,...) end
+    end
+end
+FS:InitializeDatabase()
+for name,original in pairs(originals) do FS.modules[name].NormalizeSettings=original end
+assert(calls.Bags==1 and calls.Vendor==1 and calls.Gear==1)
+for name,count in pairs(calls) do assert(count==1,name) end

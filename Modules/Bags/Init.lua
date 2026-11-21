@@ -1,5 +1,5 @@
 local _, FS = ...
-local B = { page = 1, search = "",
+local B = { key = "bags", page = 1, search = "",
     categories = { "All", "Favorites", "Gear", "Consumables", "Ammo", "Materials", "Bags", "Gems", "Enhancements", "Recipes", "Quest Items", "Keys", "Pets", "Mounts", "Glyphs", "Currency", "Professions", "Housing", "Holiday", "Junk", "Other", "Stock" },
     assignable = { "Gear", "Consumables", "Ammo", "Materials", "Bags", "Gems", "Enhancements", "Recipes", "Quest Items", "Keys", "Pets", "Mounts", "Glyphs", "Currency", "Professions", "Housing", "Holiday", "Other" },
     sorts = { "category", "name", "value", "bag" } }

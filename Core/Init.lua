@@ -27,25 +27,20 @@ function FS:EachModule()
     end
 end
 
+-- A module with a settings key keeps its enabled flag in that table
+-- (db[module.key].enabled). Modules without one use the shared db.modules list.
 function FS:IsModuleEnabled(name)
-    if name == "Vendor" then return self.db.vendor.enabled end
-    if name == "Bags" then return self.db.bags.enabled end
-    if name == "Gear" then return self.db.gear.enabled end
-    local keys = { UnitFrames = "unitFrames", ActionBars = "actionBars", Nameplates = "nameplates", Character = "character" }
-    if keys[name] then return self.db[keys[name]].enabled end
-    local module=self.modules[name]
-    if module and module.key and self.db[module.key] then return self.db[module.key].enabled~=false end
+    local module = self.modules[name]
+    local data = module and module.key and self.db[module.key]
+    if data then return data.enabled ~= false end
     return self.db.modules[name] ~= false
 end
 
 function FS:SetModuleEnabled(name, enabled)
     local module = self.modules[name]
     if not module then return end
-    if name == "Vendor" then
-        self.db.vendor.enabled = enabled == true
-    elseif name == "Bags" then self.db.bags.enabled = enabled == true
-    elseif name == "Gear" then self.db.gear.enabled = enabled == true
-    elseif module.key and self.db[module.key] then self.db[module.key].enabled = enabled == true
+    local data = module.key and self.db[module.key]
+    if data then data.enabled = enabled == true
     else self.db.modules[name] = enabled == true end
     -- Reflect the saved choice before module work can defer or raise an error.
     if self.PaintModuleCard then self:PaintModuleCard(name) end
