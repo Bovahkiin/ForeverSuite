@@ -475,11 +475,10 @@ function E:CharacterKey()
     return type(name)=="string" and name..'-'..realm or nil
 end
 function E:StockRecords()
-    if type(ForeverSuiteStock)~="table" then ForeverSuiteStock={} end
-    return ForeverSuiteStock
+    return FS.Hub:Characters()
 end
 function E:RecordStock()
-    if not self:Allowed() then return false end
+    if not self:Allowed() or not FS.Hub:Writable() then return false end
     local key=self:CharacterKey()
     if not key or not C_Container or not C_Container.GetContainerNumSlots or not C_Container.GetContainerItemInfo then return false end
     local ok,_,counts,unknown=pcall(FS.modules.Vendor.Snapshot,FS.modules.Vendor)
@@ -487,7 +486,8 @@ function E:RecordStock()
     local records=self:StockRecords()
     local record=type(records[key])=="table" and records[key] or {}
     local stamp=time and time() or 0
-    record.counts=counts; record.bagTime=stamp; record.time=stamp
+    FS.Hub:Identify(record,key)
+    record.bags={counts=counts,time=stamp}; record.time=stamp
     records[key]=record
     self:Trim(records,50)
     return true
@@ -533,12 +533,13 @@ function E:ObservedProfessions()
 end
 function E:RecordCharacter()
     if not self:Allowed() then return false,"Leave combat or finish the current vendor action before recording." end
+    if not FS.Hub:Writable() then return false,"Character data is read-only because it was saved by a newer ForeverSuite version. Update the addon to record characters." end
     local key=self:CharacterKey()
     if not key then return false,"The current character is unavailable." end
     local bags=self:RecordStock()
     local records=self:StockRecords()
     local record=type(records[key])=="table" and records[key] or {}
-    if record.counts and record.bagTime==nil then record.bagTime=record.time end
+    FS.Hub:Identify(record,key)
     local stamp=time and time() or 0
     local professions=self:ObservedProfessions()
     if professions then record.professions={items=professions,time=stamp} end
@@ -570,8 +571,8 @@ function E:ObservedStock(id,sameRealmOnly)
     local realm=current:match("^[^-]+%-(.+)$")
     for key,record in pairs(self:StockRecords()) do
         if type(key)=="string" and key~=current and (not sameRealmOnly or (realm and key:match("^[^-]+%-(.+)$")==realm))
-            and type(record)=="table" and type(record.counts)=="table" then
-            local count=record.counts[id]
+            and type(record)=="table" and type(record.bags)=="table" and type(record.bags.counts)=="table" then
+            local count=record.bags.counts[id]
             if FS.Tools:Number(count) and count>0 then total=total+count end
         end
     end

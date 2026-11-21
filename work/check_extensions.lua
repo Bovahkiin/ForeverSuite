@@ -141,8 +141,8 @@ W:Perform(3,''); assert(not FS.db.extras.contexts.Farming)
 -- TEST: Character stock keeps its last complete record and stays outside profile exports
 local FS,E,W=ExtensionFixture()
 local V=FS.modules.Vendor
-local oldStock,oldName,oldRealm,oldSnapshot=ForeverSuiteStock,UnitName,GetNormalizedRealmName,V.Snapshot
-ForeverSuiteStock={}
+local oldStock,oldName,oldRealm,oldSnapshot=ForeverSuiteHub,UnitName,GetNormalizedRealmName,V.Snapshot
+ForeverSuiteHub={characters={}}
 local name,unknown='Crafter',0
 UnitName=function() return name end; GetNormalizedRealmName=function() return 'Realm' end
 V.Snapshot=function() return {},{[42]=7},unknown end
@@ -150,7 +150,7 @@ W:Choose('Character stock'); W:Perform(1,''); W:Build()
 assert(#W.rows==1 and W.rows[1].id=='Crafter-Realm')
 assert(E:ObservedStock(42)==0)
 unknown=1
-assert(not E:RecordStock() and E:StockRecords()['Crafter-Realm'].counts[42]==7)
+assert(not E:RecordStock() and E:StockRecords()['Crafter-Realm'].bags.counts[42]==7)
 name='Other'
 assert(E:ObservedStock(42)==7)
 local exported=assert(FS.modules.Profiles:PreviewImport(FS.modules.Profiles:Export()))
@@ -159,15 +159,15 @@ W.selected=W.rows[1]; W:Perform(2,'')
 assert(E.dialog:IsShown() and E.dialog.readOnly and E.dialog.edit:GetText():find('x7',1,true))
 E.dialog:Hide()
 W:Perform(3,''); assert(E:ObservedStock(42)==0)
-ForeverSuiteStock,UnitName,GetNormalizedRealmName,V.Snapshot=oldStock,oldName,oldRealm,oldSnapshot
+ForeverSuiteHub,UnitName,GetNormalizedRealmName,V.Snapshot=oldStock,oldName,oldRealm,oldSnapshot
 
 -- TEST: Character records update readable sections independently
 local FS,E,W=ExtensionFixture()
 local V,G=FS.modules.Vendor,FS.modules.Gear
-local oldStock,oldBag,oldGear,oldTime=ForeverSuiteStock,V.Snapshot,G.Snapshot,time
+local oldStock,oldBag,oldGear,oldTime=ForeverSuiteHub,V.Snapshot,G.Snapshot,time
 local oldProfessions,oldInfo=GetProfessions,GetProfessionInfo
 local stamp,unknown,readable=1000,0,true
-ForeverSuiteStock={}
+ForeverSuiteHub={characters={}}
 time=function() return stamp end
 V.Snapshot=function() return {},{[42]=7},unknown end
 G.Snapshot=function()
@@ -181,16 +181,16 @@ GetProfessionInfo=function(id)
 end
 assert(E:RecordCharacter())
 local record=E:StockRecords()[E:CharacterKey()]
-assert(record.bagTime==1000 and record.gear.time==1000 and record.professions.time==1000)
+assert(record.bags.time==1000 and record.gear.time==1000 and record.professions.time==1000)
 assert(#record.professions.items==2 and record.gear.items[1].id==11)
 stamp,unknown,readable=2000,1,false
 assert(not E:RecordCharacter() and record.time==1000)
 unknown=0
-assert(E:RecordCharacter() and record.bagTime==2000 and record.time==2000)
+assert(E:RecordCharacter() and record.bags.time==2000 and record.time==2000)
 assert(record.gear.time==1000 and record.professions.time==1000)
 local report=W:CharacterRecordText(record)
 assert(report:find('Test Helm',1,true) and report:find('Mining',1,true) and report:find('40 / 75',1,true))
-ForeverSuiteStock,V.Snapshot,G.Snapshot,time=oldStock,oldBag,oldGear,oldTime
+ForeverSuiteHub,V.Snapshot,G.Snapshot,time=oldStock,oldBag,oldGear,oldTime
 GetProfessions,GetProfessionInfo=oldProfessions,oldInfo
 
 -- TEST: Trainer preview lists available ranks and reads Forever service order without training

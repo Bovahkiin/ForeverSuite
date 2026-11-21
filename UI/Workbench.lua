@@ -460,10 +460,11 @@ function W:CharacterRecordText(record)
         end
     else lines[#lines+1]='Professions | No readable record' end
     lines[#lines+1]=''
-    if type(record.counts)=='table' then
-        lines[#lines+1]='Bags | '..recordedAt(record.bagTime or record.time)
+    local bags=record.bags
+    if type(bags)=='table' and type(bags.counts)=='table' then
+        lines[#lines+1]='Bags | '..recordedAt(bags.time or record.time)
         local items={}
-        for id,count in pairs(record.counts) do
+        for id,count in pairs(bags.counts) do
             if T:Number(id) and T:Number(count) then
                 local name=T:Text(T:Call(C_Item and C_Item.GetItemInfo,id))
                 items[#items+1]=(name~='' and name or 'Item '..id)..' x'..count

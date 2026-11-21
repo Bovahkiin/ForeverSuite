@@ -5,7 +5,7 @@
 ## Author: DeluxiZ
 ## X-License: MIT
 ## Version: 1.0.8
-## SavedVariables: ForeverSuiteDB, ForeverSuiteStock
+## SavedVariables: ForeverSuiteDB, ForeverSuiteStock, ForeverSuiteHub
 ## OptionalDeps: OpenMap
 
 Core/Init.lua
@@ -13,6 +13,7 @@ Localization/enUS.lua
 Core/Utils.lua
 Core/Client.lua
 Core/Database.lua
+Core/DataHub.lua
 Core/Config.lua
 Core/Profiles.lua
 UI/Fonts.lua

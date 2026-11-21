@@ -519,3 +519,64 @@ table.remove(FS.runtimeErrors); if #FS.runtimeErrors==0 then FS.runtimeErrors=ni
 local newer={schemaVersion=5}; assert(FS:MigrateData(newer,nil,'probeStore')=='newer' and newer.schemaVersion==5)
 FS.migrationStores.probeStore=nil
 assert(FS.migrationStores.probeStore==nil and next(FS.migrations)==nil and FS.schemaVersion==3)
+
+-- TEST: DataHub starts empty, imports the old character stock once and leaves it untouched
+local FS,H=ForeverSuite,ForeverSuite.Hub
+local savedHub,savedStock=ForeverSuiteHub,ForeverSuiteStock
+ForeverSuiteHub=nil; ForeverSuiteStock=nil
+H:Initialize()
+assert(ForeverSuiteHub.schemaVersion==1 and next(ForeverSuiteHub.characters)==nil and H:Writable())
+assert(ForeverSuiteHub.legacy.imported==true and ForeverSuiteHub.legacy.count==0)
+ForeverSuiteHub=nil
+ForeverSuiteStock={
+    ['Crafter-Realm']={counts={[42]=7},bagTime=900,time=1000,professions={items={{name='Mining',skill=40,maximum=75}},time=950},gear={items={},level=22,lowest=60,time=980}},
+    ['Alt-Azjol-Nerub']={time=500},
+    Broken='text',[5]={time=1},
+}
+H:Initialize()
+local chars=ForeverSuiteHub.characters
+local crafter=chars['Crafter-Realm']
+assert(crafter.name=='Crafter' and crafter.realm=='Realm' and crafter.time==1000)
+assert(crafter.bags.counts[42]==7 and crafter.bags.time==900 and crafter.professions.time==950 and crafter.gear.level==22)
+assert(chars['Alt-Azjol-Nerub'].name=='Alt' and chars['Alt-Azjol-Nerub'].realm=='Azjol-Nerub' and chars['Alt-Azjol-Nerub'].bags==nil)
+assert(chars.Broken==nil and chars[5]==nil and ForeverSuiteHub.legacy.count==2)
+crafter.bags.counts[42]=99
+assert(ForeverSuiteStock['Crafter-Realm'].counts[42]==7 and ForeverSuiteStock['Crafter-Realm'].bagTime==900)
+ForeverSuiteStock['New-Realm']={time=5}; H:Initialize()
+assert(chars['New-Realm']==nil and ForeverSuiteHub.legacy.count==2 and ForeverSuiteHub.schemaVersion==1)
+ForeverSuiteHub=nil; ForeverSuiteStock={['Old-Realm']={counts={[1]=1},time=300}}; H:Initialize()
+assert(ForeverSuiteHub.characters['Old-Realm'].bags.time==300)
+ForeverSuiteHub,ForeverSuiteStock,H.locked=savedHub,savedStock,nil
+
+-- TEST: DataHub repairs damaged saved data, holds back newer data and keeps a backup when it upgrades
+local FS,H=ForeverSuite,ForeverSuite.Hub
+local savedHub,savedStock,savedErrors=ForeverSuiteHub,ForeverSuiteStock,FS.runtimeErrors
+ForeverSuiteStock=nil
+ForeverSuiteHub='damaged'; H:Initialize()
+assert(type(ForeverSuiteHub)=='table' and ForeverSuiteHub.schemaVersion==1 and H:Writable())
+ForeverSuiteHub={schemaVersion=1,characters='damaged',legacy={imported=true}}; H:Initialize()
+assert(type(ForeverSuiteHub.characters)=='table')
+ForeverSuiteHub={characters={['A-B']={time=1}}}; H:Initialize()
+assert(ForeverSuiteHub.schemaVersion==1 and ForeverSuiteHub.characters['A-B'].time==1)
+ForeverSuiteHub={schemaVersion=9,characters={['A-B']={time=1}}}; ForeverSuiteStock={['C-D']={time=2}}
+H:Initialize()
+assert(H:Writable()==false and ForeverSuiteHub.schemaVersion==9 and ForeverSuiteHub.characters['C-D']==nil and ForeverSuiteHub.legacy==nil)
+assert(FS.Extensions:RecordStock()==false and ForeverSuiteHub.characters['A-B'].time==1)
+ForeverSuiteStock=nil
+FS.runtimeErrors=nil
+H.schemaVersion=2; FS:RegisterMigration(2,'probe',function(d) d.probe=true; error('hub probe') end,'hub')
+ForeverSuiteHub={schemaVersion=1,characters={['A-B']={time=1}}}; H:Initialize()
+assert(H:Writable()==false and ForeverSuiteHub.schemaVersion==1 and ForeverSuiteHub.probe==nil and ForeverSuiteHub.characters['A-B'].time==1)
+assert(FS.migrationFailure.store=='hub' and #FS.runtimeErrors==1 and FS.runtimeErrors[1]:find('Character data upgrade to version 2',1,true))
+FS.migrationFailure=nil
+FS.migrationStores.hub.migrations[2].run=function(d) d.upgraded=true end
+ForeverSuiteHub={schemaVersion=1,characters={['A-B']={time=1}}}; H:Initialize()
+assert(H:Writable() and ForeverSuiteHub.schemaVersion==2 and ForeverSuiteHub.upgraded==true)
+assert(ForeverSuiteHub.backup.from==1 and ForeverSuiteHub.backup.target==2 and ForeverSuiteHub.backup.data.schemaVersion==1 and ForeverSuiteHub.backup.data.upgraded==nil)
+H.schemaVersion=3; FS:RegisterMigration(3,'again',function(d) d.again=true end,'hub')
+H:Initialize()
+assert(ForeverSuiteHub.schemaVersion==3 and ForeverSuiteHub.backup.from==2 and ForeverSuiteHub.backup.data.backup==nil)
+FS.migrationStores.hub.migrations[2]=nil; FS.migrationStores.hub.migrations[3]=nil
+H.schemaVersion=1; H.locked=nil; FS.runtimeErrors=savedErrors
+ForeverSuiteHub,ForeverSuiteStock=savedHub,savedStock
+assert(next(FS.migrationStores.hub.migrations)==nil and next(FS.migrations)==nil)

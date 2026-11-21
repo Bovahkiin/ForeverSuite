@@ -216,20 +216,20 @@ C_TradeSkillUI.GetRecipeSchematic=function() return {reagentSlotSchematics={
 P.actions[2].run(P,'4'); P.actions[3].run(P)
 assert(shopping[7]==12 and not shopping[8] and not shopping[9] and not shopping[10])
 assert(P.status:find('manual review',1,true))
-local savedStock,savedName,savedRealm=ForeverSuiteStock,UnitName,GetNormalizedRealmName
+local savedStock,savedName,savedRealm=ForeverSuiteHub,UnitName,GetNormalizedRealmName
 UnitName=function() return 'Crafter' end; GetNormalizedRealmName=function() return 'Same Realm' end
-ForeverSuiteStock={
-    ['Crafter-Same Realm']={counts={[7]=100}},
-    ['Alt-Same Realm']={counts={[7]=4}},
-    ['Alt-Other Realm']={counts={[7]=50}},
-}
+ForeverSuiteHub={characters={
+    ['Crafter-Same Realm']={bags={counts={[7]=100}}},
+    ['Alt-Same Realm']={bags={counts={[7]=4}}},
+    ['Alt-Other Realm']={bags={counts={[7]=50}}},
+}}
 shopping[7]=nil
 P.actions[3].run(P); assert(shopping[7]==12)
 P:Data().countAltStock=true
 P.actions[3].run(P); assert(shopping[7]==12)
 shopping[7]=nil
 P.actions[3].run(P); assert(shopping[7]==8 and P.status:find('transfer materials',1,true))
-ForeverSuiteStock,UnitName,GetNormalizedRealmName=savedStock,savedName,savedRealm
+ForeverSuiteHub,UnitName,GetNormalizedRealmName=savedStock,savedName,savedRealm
 P:Event('TRADE_SKILL_CLOSE'); assert(not P.materials and not P.planRecipe)
 C_TradeSkillUI=nil; C_Item.GetItemCount=nil
 

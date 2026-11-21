@@ -57,6 +57,7 @@ function FS:Initialize()
     self:RefreshClient()
     self:InitializeDatabase()
     if self.Extensions then self.Extensions:Normalize() end
+    if self.Hub then self.Hub:Initialize() end
     self:SelectLocale()
     self:CreateMinimapButton()
     self.initialized = true
