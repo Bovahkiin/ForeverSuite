@@ -406,6 +406,9 @@ function P:ReviewSaved(name)
 end
 function P:ReviewSections(incoming,unchanged)
     local baseline=self:Snapshot()
+    local migrated=FS:MigrateData(incoming)
+    if migrated=="newer" then return nil,"This profile was saved by a newer ForeverSuite version. Update the addon to use it." end
+    if migrated==false then return nil,"This profile could not be upgraded to the current settings format." end
     incoming.schemaVersion=nil
     local sections={}
     for key,value in pairs(incoming) do

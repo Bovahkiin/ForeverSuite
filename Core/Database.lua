@@ -1,6 +1,89 @@
 local _, FS = ...
+
+-- Saved-data schema ----------------------------------------------------------
+-- FS.schemaVersion is the version this build writes. Data saved before
+-- versioned migrations existed counts as version 3 (BASELINE_SCHEMA).
+-- To change the shape of saved data: raise FS.schemaVersion by one and register
+-- a migration for that number with FS:RegisterMigration. Each migration runs
+-- once, in order, on the raw saved table before defaults are applied. If one
+-- fails, the data is restored, the old version stays stamped and the failure is
+-- listed by /fs errors.
+FS.schemaVersion = 3
+FS.migrations = {}
+local BASELINE_SCHEMA = 3
+local MAX_BACKUPS = 5
+local NOT_IN_BACKUP = { profiles = true, patchLog = true, setup = true, compatibility = true }
+
+local function deepCopy(value)
+    if type(value) ~= "table" then return value end
+    local out = {}
+    for key, item in pairs(value) do out[key] = deepCopy(item) end
+    return out
+end
+
+function FS:RegisterMigration(version, name, run)
+    assert(type(version) == "number" and version % 1 == 0 and version > BASELINE_SCHEMA, "Migration version must be a whole number above " .. BASELINE_SCHEMA)
+    assert(type(run) == "function", "Migration needs a function: " .. tostring(version))
+    assert(not self.migrations[version], "Migration already registered: " .. version)
+    self.migrations[version] = { name = name or ("version " .. version), run = run }
+end
+
+-- Upgrades one saved-settings table (the database, a profile or an import) to
+-- `target`. Returns true plus the list of versions that ran, "newer" plus the
+-- stored version when the data comes from a newer build (left untouched), or
+-- false plus a failure description after restoring the data.
+function FS:MigrateData(data, target)
+    target = target or self.schemaVersion
+    local stored = tonumber(data.schemaVersion)
+    if stored and stored > target then return "newer", stored end
+    local from = math.max(stored or BASELINE_SCHEMA, BASELINE_SCHEMA)
+    local pending = {}
+    for version = from + 1, target do
+        if self.migrations[version] then pending[#pending + 1] = version end
+    end
+    if #pending > 0 then
+        local before = deepCopy(data)
+        for _, version in ipairs(pending) do
+            local migration = self.migrations[version]
+            local ok, err = pcall(migration.run, data)
+            if not ok then
+                for key in pairs(data) do data[key] = nil end
+                for key, value in pairs(before) do data[key] = value end
+                return false, { version = version, name = migration.name, message = tostring(err) }
+            end
+        end
+        -- Keep the pre-upgrade data as a profile backup so it can be restored.
+        local profiles = data.profiles
+        if type(profiles) == "table" then
+            if type(profiles.backups) ~= "table" then profiles.backups = {} end
+            local snapshot = {}
+            for key, value in pairs(before) do
+                if not NOT_IN_BACKUP[key] then snapshot[key] = value end
+            end
+            table.insert(profiles.backups, 1, {
+                name = type(profiles.current) == "string" and profiles.current or "Default",
+                data = snapshot,
+                reason = "Before settings upgrade (version " .. from .. " to " .. target .. ")",
+                time = time and time() or 0,
+            })
+            while #profiles.backups > MAX_BACKUPS do table.remove(profiles.backups) end
+        end
+    end
+    data.schemaVersion = target
+    return true, pending
+end
+
+function FS:ReportMigrationFailure(info)
+    self.migrationFailure = info
+    local line = "Settings upgrade to version " .. info.version .. " (" .. tostring(info.name) .. ") failed and was rolled back: " .. info.message
+    self.runtimeErrors = self.runtimeErrors or {}
+    if #self.runtimeErrors >= 10 then table.remove(self.runtimeErrors, 1) end
+    self.runtimeErrors[#self.runtimeErrors + 1] = line
+    self:Print(line)
+end
+
 FS.defaults = {
-    schemaVersion = 3,
+    schemaVersion = FS.schemaVersion,
     language = "enUS",
     welcome = true,
     patchLog = { showOnLoad = true, lastSeenVersion = "" },
@@ -42,6 +125,16 @@ function FS:InitializeDatabase()
         if type(ForeverSuiteDB.chat)~="table" then ForeverSuiteDB.chat={enabled=social.enabled,timestamps=social.timestamps} end
         if type(ForeverSuiteDB.guild)~="table" then ForeverSuiteDB.guild={enabled=social.enabled,onlineOnly=social.onlineOnly} end
     end
+    -- The two repairs above are older than versioned migrations and detect their
+    -- own need; versioned migrations start after them.
+    if not fresh then
+        local result, info = self:MigrateData(ForeverSuiteDB)
+        if result == false then self:ReportMigrationFailure(info)
+        elseif result == "newer" then
+            self.newerData = info
+            self:Print("Your saved settings come from a newer ForeverSuite (data version " .. info .. ") and were left unchanged. Update the addon to keep using them safely.")
+        end
+    end
     local simplifyBags = type(ForeverSuiteDB.bags) == "table" and ForeverSuiteDB.bags.uiVersion ~= 1
     self:ApplyDefaults(ForeverSuiteDB, self.defaults)
     self.db = ForeverSuiteDB
@@ -49,7 +142,6 @@ function FS:InitializeDatabase()
     if simplifyBags then self.db.bags.showEmpty = false end
     self.db.bags.uiVersion = 1
     self.db.language = "enUS"
-    self.db.schemaVersion = 3
     -- Some modules must be normalized before others, so run those first and
     -- skip them in the general pass below.
     local normalized = {}

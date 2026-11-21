@@ -440,3 +440,55 @@ FS:InitializeDatabase()
 for name,original in pairs(originals) do FS.modules[name].NormalizeSettings=original end
 assert(calls.Bags==1 and calls.Vendor==1 and calls.Gear==1)
 for name,count in pairs(calls) do assert(count==1,name) end
+
+-- TEST: Saved-data migrations run once in order, restore data on failure and leave newer data untouched
+local FS=ForeverSuite
+assert(FS.schemaVersion==3 and FS.db.schemaVersion==3 and next(FS.migrations)==nil and FS.defaults.schemaVersion==3)
+local order={}
+FS:RegisterMigration(4,'first',function(d) order[#order+1]=4; d.added=1 end)
+FS:RegisterMigration(5,'second',function(d) order[#order+1]=5; d.added=d.added+1 end)
+assert(not pcall(FS.RegisterMigration,FS,3,'baseline',function() end))
+assert(not pcall(FS.RegisterMigration,FS,4,'duplicate',function() end))
+assert(not pcall(FS.RegisterMigration,FS,6,'not a function'))
+local data={schemaVersion=3,profiles={current='Main',saved={},backups={}},keep={a=1}}
+local ok,ran=FS:MigrateData(data,5)
+assert(ok==true and #ran==2 and data.schemaVersion==5 and data.added==2 and order[1]==4 and order[2]==5)
+local backup=data.profiles.backups[1]
+assert(backup.name=='Main' and backup.data.schemaVersion==3 and backup.data.added==nil and backup.data.keep.a==1 and backup.data.profiles==nil)
+order={}; ok,ran=FS:MigrateData(data,5)
+assert(ok==true and #ran==0 and #order==0 and #data.profiles.backups==1)
+local legacy={keep=1}; FS:MigrateData(legacy,4); assert(legacy.schemaVersion==4 and legacy.added==1)
+local gap={schemaVersion=4,added=1}; assert(FS:MigrateData(gap,7)==true and gap.schemaVersion==7 and gap.added==2)
+FS.migrations[5].run=function(d) d.added=99; error('boom') end
+local broken={schemaVersion=3,keep={a=1}}
+local failed,info=FS:MigrateData(broken,5)
+assert(failed==false and info.version==5 and info.name=='second' and info.message:find('boom',1,true))
+assert(broken.schemaVersion==3 and broken.added==nil and broken.keep.a==1)
+local newer={schemaVersion=9,keep=1}; local result,stored=FS:MigrateData(newer,5)
+assert(result=='newer' and stored==9 and newer.schemaVersion==9 and newer.added==nil)
+local P=FS.modules.Profiles; FS.schemaVersion=5
+local sections,message=P:ReviewSections({schemaVersion=9,gear={}},'same')
+assert(sections==nil and message:find('newer ForeverSuite',1,true))
+FS.migrations[5].run=function() error('boom') end
+sections,message=P:ReviewSections({schemaVersion=3,gear={}},'same')
+assert(sections==nil and message:find('could not be upgraded',1,true))
+FS.schemaVersion=3
+for key in pairs(FS.migrations) do FS.migrations[key]=nil end
+
+-- TEST: Loading the database upgrades older saved data, keeps a backup and reports a failed upgrade
+local FS=ForeverSuite
+local count=#(ForeverSuiteDB.profiles.backups or {}); local errorsBefore=#(FS.runtimeErrors or {})
+FS.schemaVersion=4; FS:RegisterMigration(4,'probe',function(d) d.probe=true end)
+ForeverSuiteDB.schemaVersion=3; FS:InitializeDatabase()
+assert(FS.db.schemaVersion==4 and FS.db.probe==true and #FS.db.profiles.backups==count+1)
+assert(FS.db.profiles.backups[1].data.schemaVersion==3 and FS.db.profiles.backups[1].data.probe==nil)
+FS:InitializeDatabase(); assert(#FS.db.profiles.backups==count+1)
+FS.db.probe=nil; table.remove(FS.db.profiles.backups,1)
+FS.migrations[4].run=function(d) d.probe=true; error('failed probe') end
+FS.db.schemaVersion=3; FS:InitializeDatabase()
+assert(FS.db.schemaVersion==3 and FS.db.probe==nil and FS.migrationFailure.version==4 and #FS.db.profiles.backups==count)
+assert(#FS.runtimeErrors==errorsBefore+1 and FS.runtimeErrors[#FS.runtimeErrors]:find('failed probe',1,true))
+FS.db.schemaVersion=9; FS:InitializeDatabase(); assert(FS.db.schemaVersion==9 and FS.newerData==9)
+FS.migrations[4]=nil; FS.schemaVersion=3; FS.db.schemaVersion=3; FS.migrationFailure=nil; FS.newerData=nil
+table.remove(FS.runtimeErrors); if #FS.runtimeErrors==0 then FS.runtimeErrors=nil end
+FS:InitializeDatabase(); assert(FS.db.schemaVersion==3 and #FS.db.profiles.backups==count)
