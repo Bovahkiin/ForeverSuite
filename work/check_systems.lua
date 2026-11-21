@@ -580,3 +580,64 @@ FS.migrationStores.hub.migrations[2]=nil; FS.migrationStores.hub.migrations[3]=n
 H.schemaVersion=1; H.locked=nil; FS.runtimeErrors=savedErrors
 ForeverSuiteHub,ForeverSuiteStock=savedHub,savedStock
 assert(next(FS.migrationStores.hub.migrations)==nil and next(FS.migrations)==nil)
+
+-- TEST: DataHub records level, class, faction and last seen without counting as a character-stock record
+local FS,H=ForeverSuite,ForeverSuite.Hub
+local oldHub,oldName,oldRealm,oldLevel,oldClass,oldFaction,oldTime=ForeverSuiteHub,UnitName,GetNormalizedRealmName,UnitLevel,UnitClass,UnitFactionGroup,time
+ForeverSuiteHub={characters={}}
+local stamp=1000
+UnitName=function() return 'Mage' end; GetNormalizedRealmName=function() return 'Realm' end
+UnitLevel=function() return 12 end; UnitClass=function() return 'Mage','MAGE' end; UnitFactionGroup=function() return 'Alliance','Alliance' end
+time=function() return stamp end
+assert(H:RecordIdentity()==true)
+local record=H:Characters()['Mage-Realm']
+assert(record.name=='Mage' and record.realm=='Realm' and record.level==12 and record.class=='MAGE' and record.faction=='Alliance' and record.lastSeen==1000)
+assert(record.time==nil and H:HasRecords()==false)
+record.bags={counts={[1]=2},time=500}; record.time=500
+stamp=2000; UnitLevel=function() return 13 end
+assert(H:RecordIdentity()==true and record.level==13 and record.lastSeen==2000 and record.time==500 and record.bags.counts[1]==2 and H:HasRecords()==true)
+assert(H:RecordIdentity(14)==true and record.level==14)
+assert(H:RecordIdentity(3)==true and record.level==13)
+UnitLevel=function() return nil end; UnitClass=function() return 'Mage','mage' end; UnitFactionGroup=function() return '' end
+assert(H:RecordIdentity()==true and record.level==13 and record.class=='MAGE' and record.faction=='Alliance')
+UnitLevel=function() return 0 end; assert(H:RecordIdentity()==true and record.level==13)
+UnitName=function() return nil end; assert(H:RecordIdentity()==false)
+UnitName=function() return 'Mage' end; H.locked=true; stamp=3000
+assert(H:RecordIdentity()==false and record.lastSeen==2000)
+H.locked=nil
+ForeverSuiteHub,UnitName,GetNormalizedRealmName,UnitLevel,UnitClass,UnitFactionGroup,time=oldHub,oldName,oldRealm,oldLevel,oldClass,oldFaction,oldTime
+
+-- TEST: DataHub keeps the most recently seen or recorded characters when it trims
+local FS,H=ForeverSuite,ForeverSuite.Hub
+local saved=ForeverSuiteHub; ForeverSuiteHub={characters={}}
+local chars=H:Characters()
+for i=1,50 do chars['Old'..i..'-Realm']={time=i} end
+chars['Seen-Realm']={lastSeen=1000}; chars['Recorded-Realm']={time=2000,lastSeen=10}; chars['Stale-Realm']={}
+H:Trim()
+local count=0; for _ in pairs(chars) do count=count+1 end
+assert(count==50 and chars['Seen-Realm'] and chars['Recorded-Realm'] and chars['Old3-Realm'])
+assert(chars['Stale-Realm']==nil and chars['Old1-Realm']==nil and chars['Old2-Realm']==nil)
+H:Trim(); count=0; for _ in pairs(chars) do count=count+1 end; assert(count==50)
+ForeverSuiteHub=saved
+
+-- TEST: Login, level-up and logout refresh the current character and a failing client call never breaks them
+local FS,H=ForeverSuite,ForeverSuite.Hub
+local oldHub,oldName,oldRealm,oldLevel,oldClass,oldFaction,oldTime=ForeverSuiteHub,UnitName,GetNormalizedRealmName,UnitLevel,UnitClass,UnitFactionGroup,time
+ForeverSuiteHub={characters={}}
+local stamp=1000
+UnitName=function() return 'Mage' end; GetNormalizedRealmName=function() return 'Realm' end
+UnitLevel=function() return 12 end; UnitClass=function() return 'Mage','MAGE' end; UnitFactionGroup=function() return 'Horde','Horde' end
+time=function() return stamp end
+local function fire(event,...) FS.events.scripts.OnEvent(FS.events,event,...) end
+fire('PLAYER_ENTERING_WORLD')
+local record=H:Characters()['Mage-Realm']
+assert(record.level==12 and record.class=='MAGE' and record.faction=='Horde' and record.lastSeen==1000 and record.time==nil)
+stamp=2000; fire('PLAYER_LEVEL_UP',13)
+assert(record.level==13 and record.lastSeen==2000)
+stamp=3000; fire('PLAYER_LOGOUT')
+assert(record.lastSeen==3000 and FS.Hub:Writable())
+UnitClass=function() error('client call failed') end; stamp=4000
+fire('PLAYER_ENTERING_WORLD'); fire('PLAYER_LEVEL_UP',14)
+assert(record.lastSeen==4000 and record.class=='MAGE' and record.level==14)
+H.locked=true; stamp=5000; fire('PLAYER_ENTERING_WORLD'); assert(record.lastSeen==4000); H.locked=nil
+ForeverSuiteHub,UnitName,GetNormalizedRealmName,UnitLevel,UnitClass,UnitFactionGroup,time=oldHub,oldName,oldRealm,oldLevel,oldClass,oldFaction,oldTime

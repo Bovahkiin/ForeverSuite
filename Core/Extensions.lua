@@ -489,7 +489,7 @@ function E:RecordStock()
     FS.Hub:Identify(record,key)
     record.bags={counts=counts,time=stamp}; record.time=stamp
     records[key]=record
-    self:Trim(records,50)
+    FS.Hub:Trim()
     return true
 end
 local function foreverProfessions()
@@ -560,7 +560,7 @@ function E:RecordCharacter()
     if professions then recorded[#recorded+1]="professions" end
     if gearRead then recorded[#recorded+1]="gear" end
     if #recorded==0 then return false,"No readable sections. Previous records were kept." end
-    record.time=stamp; records[key]=record; self:Trim(records,50)
+    record.time=stamp; records[key]=record; FS.Hub:Trim()
     local partial=#recorded<3 and " Previous records were kept for unreadable sections." or ""
     return true,"Updated "..table.concat(recorded,", ").."."..partial
 end

@@ -516,7 +516,7 @@ function W:NextStepRows()
     elseif next(d.routes) then
         add(5,'routes','[Navigation] Choose a saved route',{view='Route Library'})
     end
-    if next(E:StockRecords()) then
+    if FS.Hub:HasRecords() then
         add(6,'alts','[Character stock] Review bags, gear and professions',{view='Character stock'})
     end
     table.sort(rows,function(a,b)

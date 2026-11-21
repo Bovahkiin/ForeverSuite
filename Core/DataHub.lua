@@ -12,13 +12,17 @@ local _, FS = ...
 --     schemaVersion = 1,
 --     legacy = { imported = true, count = n, time = t },
 --     characters = { ["Name-Realm"] = {
---         name, realm, time,                  -- time: last update of any section
+--         name, realm,
+--         level, class, faction, lastSeen,    -- refreshed automatically (RecordIdentity)
+--         time,                               -- last update of any recorded section
 --         bags = { counts = { [itemId] = n }, time },
 --         gear = { items, level, lowest, time },
 --         professions = { items, time },
 --     } },
 -- }
-local H = { schemaVersion = 1 }
+-- Optional fields can be added to a character without raising the version; a
+-- version bump is only needed when existing data has to be rewritten.
+local H = { schemaVersion = 1, limit = 50 }
 FS.Hub = H
 
 local function copy(value)
@@ -59,6 +63,64 @@ function H:Identify(record, key)
     record.name = name or tostring(key)
     record.realm = realm
     return record
+end
+
+-- Keeps the characters seen or recorded most recently. A character that was only
+-- seen (no recorded sections) still counts as recent through lastSeen.
+function H:Trim()
+    local map, count = self:Characters(), 0
+    for _ in pairs(map) do
+        count = count + 1
+        if count > self.limit then break end
+    end
+    if count <= self.limit then return end
+    local ranked = {}
+    for key, record in pairs(map) do
+        local seen = 0
+        if type(record) == "table" then seen = math.max(tonumber(record.lastSeen) or 0, tonumber(record.time) or 0) end
+        ranked[#ranked + 1] = { key = key, seen = seen }
+    end
+    table.sort(ranked, function(a, b)
+        if a.seen ~= b.seen then return a.seen > b.seen end
+        return tostring(a.key) < tostring(b.key)
+    end)
+    for index = self.limit + 1, #ranked do map[ranked[index].key] = nil end
+end
+
+-- True when at least one character has recorded sections (bags, gear or
+-- professions), as opposed to only being seen.
+function H:HasRecords()
+    for _, record in pairs(self:Characters()) do
+        if type(record) == "table" and tonumber(record.time) then return true end
+    end
+    return false
+end
+
+-- Refreshes level, class, faction and last-seen time for the logged-in character.
+-- Cheap enough to run at login, on level-up and at logout. Unreadable values
+-- never overwrite what is already stored. `levelHint` is the new level reported by
+-- PLAYER_LEVEL_UP, which UnitLevel can lag behind.
+function H:RecordIdentity(levelHint)
+    if self.locked then return false end
+    local E, T = FS.Extensions, FS.Tools
+    local key = E and E:CharacterKey()
+    if not key then return false end
+    local level = T:Call(UnitLevel, "player")
+    local _, classFile = T:Call(UnitClass, "player")
+    local faction = T:Call(UnitFactionGroup, "player")
+    if T:Number(levelHint) and (not T:Number(level) or levelHint > level) then level = levelHint end
+    local records = self:Characters()
+    local record = type(records[key]) == "table" and records[key] or {}
+    self:Identify(record, key)
+    if T:Number(level) and level >= 1 and level <= 200 and level % 1 == 0 then record.level = level end
+    classFile = T:Text(classFile)
+    if classFile:match("^%u+$") then record.class = classFile end
+    faction = T:Text(faction)
+    if #faction <= 20 and faction:match("^%a+$") then record.faction = faction end
+    record.lastSeen = time and time() or record.lastSeen
+    records[key] = record
+    self:Trim()
+    return true
 end
 
 local function convertLegacy(key, old)

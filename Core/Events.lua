@@ -6,6 +6,7 @@ FS:RegisterClientEvent(events,"PLAYER_LOGIN")
 FS:RegisterClientEvent(events,"PLAYER_ENTERING_WORLD")
 FS:RegisterClientEvent(events,"PLAYER_REGEN_ENABLED")
 FS:RegisterClientEvent(events,"PLAYER_LOGOUT")
+FS:RegisterClientEvent(events,"PLAYER_LEVEL_UP")
 FS:RegisterClientEvent(events,"ADDON_ACTION_BLOCKED")
 FS:RegisterClientEvent(events,"ADDON_ACTION_FORBIDDEN")
 -- Login may already have fired when an addon is enabled or loaded on demand.
@@ -35,6 +36,7 @@ events:SetScript("OnEvent", function(self, event, name, action)
     if event=="PLAYER_LOGOUT" then
         FS.startupPending=false
         if FS.Extensions then FS.Extensions:FinishGathering('Logged out') end
+        if FS.initialized and FS.Hub then pcall(FS.Hub.RecordIdentity,FS.Hub) end
         if FS.initialized and FS.modules.Profiles then FS.modules.Profiles:PersistCurrent() end
         return
     end
@@ -52,7 +54,10 @@ events:SetScript("OnEvent", function(self, event, name, action)
         self:UnregisterEvent("ADDON_LOADED")
         if IsLoggedIn and IsLoggedIn() then FS:QueueStartup() end
     elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+        if FS.initialized and FS.Hub then pcall(FS.Hub.RecordIdentity,FS.Hub) end
         FS:QueueStartup()
+    elseif event == "PLAYER_LEVEL_UP" then
+        if FS.initialized and FS.Hub then pcall(FS.Hub.RecordIdentity,FS.Hub,name) end
     elseif event == "PLAYER_REGEN_ENABLED" and FS.startupPending then
         FS:QueueStartup()
     end
