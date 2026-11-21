@@ -492,3 +492,30 @@ FS.db.schemaVersion=9; FS:InitializeDatabase(); assert(FS.db.schemaVersion==9 an
 FS.migrations[4]=nil; FS.schemaVersion=3; FS.db.schemaVersion=3; FS.migrationFailure=nil; FS.newerData=nil
 table.remove(FS.runtimeErrors); if #FS.runtimeErrors==0 then FS.runtimeErrors=nil end
 FS:InitializeDatabase(); assert(FS.db.schemaVersion==3 and #FS.db.profiles.backups==count)
+
+-- TEST: A separate saved table registers its own migration store with its own version and backup hook
+local FS=ForeverSuite
+assert(FS.migrationStores.db and FS.migrations==FS.migrationStores.db.migrations and next(FS.migrations)==nil)
+local owner,calls={schemaVersion=2},{}
+local migrations=FS:RegisterMigrationStore('probeStore',owner,'schemaVersion',1,'Probe data',function(data,before,from,target)
+    calls[#calls+1]={from=from,target=target,old=before.value,new=data.value}
+end)
+assert(not pcall(FS.RegisterMigrationStore,FS,'probeStore',owner,'schemaVersion',1))
+assert(not pcall(FS.RegisterMigration,FS,1,'baseline',function() end,'probeStore'))
+assert(not pcall(FS.RegisterMigration,FS,2,'unknown store',function() end,'missingStore'))
+FS:RegisterMigration(2,'double',function(d) d.value=d.value*2 end,'probeStore')
+assert(next(FS.migrations)==nil and migrations[2].name=='double')
+local data={schemaVersion=1,value=21}
+local ok,ran=FS:MigrateData(data,nil,'probeStore')
+assert(ok==true and ran[1]==2 and data.schemaVersion==2 and data.value==42)
+assert(#calls==1 and calls[1].from==1 and calls[1].target==2 and calls[1].old==21 and calls[1].new==42)
+local again,none=FS:MigrateData(data,nil,'probeStore'); assert(again==true and #none==0 and #calls==1)
+migrations[2].run=function(d) d.value=0; error('probe failure') end
+local broken={schemaVersion=1,value=21}; local result,info=FS:MigrateData(broken,nil,'probeStore')
+assert(result==false and info.store=='probeStore' and info.label=='Probe data' and info.version==2)
+assert(broken.value==21 and broken.schemaVersion==1 and #calls==1)
+FS:ReportMigrationFailure(info); assert(FS.runtimeErrors[#FS.runtimeErrors]:find('Probe data upgrade to version 2',1,true))
+table.remove(FS.runtimeErrors); if #FS.runtimeErrors==0 then FS.runtimeErrors=nil end; FS.migrationFailure=nil
+local newer={schemaVersion=5}; assert(FS:MigrateData(newer,nil,'probeStore')=='newer' and newer.schemaVersion==5)
+FS.migrationStores.probeStore=nil
+assert(FS.migrationStores.probeStore==nil and next(FS.migrations)==nil and FS.schemaVersion==3)

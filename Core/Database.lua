@@ -1,16 +1,18 @@
 local _, FS = ...
 
 -- Saved-data schema ----------------------------------------------------------
--- FS.schemaVersion is the version this build writes. Data saved before
--- versioned migrations existed counts as version 3 (BASELINE_SCHEMA).
--- To change the shape of saved data: raise FS.schemaVersion by one and register
+-- A "store" is one saved table with its own version number. ForeverSuiteDB is
+-- the store named "db"; other saved tables (for example the DataHub) register
+-- their own with FS:RegisterMigrationStore. FS.schemaVersion is the version this
+-- build writes to the database. Data saved before versioned migrations existed
+-- counts as the store's baseline version (3 for the database).
+-- To change the shape of a store's data: raise its version by one and register
 -- a migration for that number with FS:RegisterMigration. Each migration runs
 -- once, in order, on the raw saved table before defaults are applied. If one
 -- fails, the data is restored, the old version stays stamped and the failure is
 -- listed by /fs errors.
 FS.schemaVersion = 3
-FS.migrations = {}
-local BASELINE_SCHEMA = 3
+FS.migrationStores = {}
 local MAX_BACKUPS = 5
 local NOT_IN_BACKUP = { profiles = true, patchLog = true, setup = true, compatibility = true }
 
@@ -21,53 +23,78 @@ local function deepCopy(value)
     return out
 end
 
-function FS:RegisterMigration(version, name, run)
-    assert(type(version) == "number" and version % 1 == 0 and version > BASELINE_SCHEMA, "Migration version must be a whole number above " .. BASELINE_SCHEMA)
-    assert(type(run) == "function", "Migration needs a function: " .. tostring(version))
-    assert(not self.migrations[version], "Migration already registered: " .. version)
-    self.migrations[version] = { name = name or ("version " .. version), run = run }
+-- Registers a store and returns its migration list. `owner[field]` holds the
+-- version this build writes. `backup(data, before, from, target)` is optional and
+-- runs after a successful upgrade to keep the pre-upgrade data somewhere safe.
+function FS:RegisterMigrationStore(name, owner, field, baseline, label, backup)
+    assert(type(name) == "string" and not self.migrationStores[name], "Migration store already registered: " .. tostring(name))
+    assert(type(owner) == "table" and type(field) == "string" and type(baseline) == "number", "Invalid migration store: " .. name)
+    local store = { name = name, owner = owner, field = field, baseline = baseline, label = label or name, backup = backup, migrations = {} }
+    self.migrationStores[name] = store
+    return store.migrations
 end
 
--- Upgrades one saved-settings table (the database, a profile or an import) to
--- `target`. Returns true plus the list of versions that ran, "newer" plus the
--- stored version when the data comes from a newer build (left untouched), or
--- false plus a failure description after restoring the data.
-function FS:MigrateData(data, target)
-    target = target or self.schemaVersion
+local function storeFor(self, name)
+    local store = self.migrationStores[name or "db"]
+    assert(store, "Unknown migration store: " .. tostring(name))
+    return store
+end
+
+function FS:RegisterMigration(version, name, run, storeName)
+    local store = storeFor(self, storeName)
+    assert(type(version) == "number" and version % 1 == 0 and version > store.baseline, "Migration version must be a whole number above " .. store.baseline)
+    assert(type(run) == "function", "Migration needs a function: " .. tostring(version))
+    assert(not store.migrations[version], "Migration already registered: " .. version)
+    store.migrations[version] = { name = name or ("version " .. version), run = run }
+end
+
+-- The database keeps its pre-upgrade data as a profile backup so it can be restored.
+local function backupIntoProfiles(data, before, from, target)
+    local profiles = data.profiles
+    if type(profiles) ~= "table" then return end
+    if type(profiles.backups) ~= "table" then profiles.backups = {} end
+    local snapshot = {}
+    for key, value in pairs(before) do
+        if not NOT_IN_BACKUP[key] then snapshot[key] = value end
+    end
+    table.insert(profiles.backups, 1, {
+        name = type(profiles.current) == "string" and profiles.current or "Default",
+        data = snapshot,
+        reason = "Before settings upgrade (version " .. from .. " to " .. target .. ")",
+        time = time and time() or 0,
+    })
+    while #profiles.backups > MAX_BACKUPS do table.remove(profiles.backups) end
+end
+
+FS.migrations = FS:RegisterMigrationStore("db", FS, "schemaVersion", 3, "Settings", backupIntoProfiles)
+
+-- Upgrades one saved table (the database, a profile, an import or another store)
+-- to `target`, which defaults to the version this build writes. Returns true plus
+-- the list of versions that ran, "newer" plus the stored version when the data
+-- comes from a newer build (left untouched), or false plus a failure description
+-- after restoring the data.
+function FS:MigrateData(data, target, storeName)
+    local store = storeFor(self, storeName)
+    target = target or store.owner[store.field]
     local stored = tonumber(data.schemaVersion)
     if stored and stored > target then return "newer", stored end
-    local from = math.max(stored or BASELINE_SCHEMA, BASELINE_SCHEMA)
+    local from = math.max(stored or store.baseline, store.baseline)
     local pending = {}
     for version = from + 1, target do
-        if self.migrations[version] then pending[#pending + 1] = version end
+        if store.migrations[version] then pending[#pending + 1] = version end
     end
     if #pending > 0 then
         local before = deepCopy(data)
         for _, version in ipairs(pending) do
-            local migration = self.migrations[version]
+            local migration = store.migrations[version]
             local ok, err = pcall(migration.run, data)
             if not ok then
                 for key in pairs(data) do data[key] = nil end
                 for key, value in pairs(before) do data[key] = value end
-                return false, { version = version, name = migration.name, message = tostring(err) }
+                return false, { store = store.name, label = store.label, version = version, name = migration.name, message = tostring(err) }
             end
         end
-        -- Keep the pre-upgrade data as a profile backup so it can be restored.
-        local profiles = data.profiles
-        if type(profiles) == "table" then
-            if type(profiles.backups) ~= "table" then profiles.backups = {} end
-            local snapshot = {}
-            for key, value in pairs(before) do
-                if not NOT_IN_BACKUP[key] then snapshot[key] = value end
-            end
-            table.insert(profiles.backups, 1, {
-                name = type(profiles.current) == "string" and profiles.current or "Default",
-                data = snapshot,
-                reason = "Before settings upgrade (version " .. from .. " to " .. target .. ")",
-                time = time and time() or 0,
-            })
-            while #profiles.backups > MAX_BACKUPS do table.remove(profiles.backups) end
-        end
+        if store.backup then store.backup(data, before, from, target) end
     end
     data.schemaVersion = target
     return true, pending
@@ -75,7 +102,7 @@ end
 
 function FS:ReportMigrationFailure(info)
     self.migrationFailure = info
-    local line = "Settings upgrade to version " .. info.version .. " (" .. tostring(info.name) .. ") failed and was rolled back: " .. info.message
+    local line = (info.label or "Settings") .. " upgrade to version " .. info.version .. " (" .. tostring(info.name) .. ") failed and was rolled back: " .. info.message
     self.runtimeErrors = self.runtimeErrors or {}
     if #self.runtimeErrors >= 10 then table.remove(self.runtimeErrors, 1) end
     self.runtimeErrors[#self.runtimeErrors + 1] = line
