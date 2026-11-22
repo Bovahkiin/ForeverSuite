@@ -31,7 +31,7 @@ local shortcuts = {
     {"wishlist", "GearAdvisor", "Gear Wishlist", "Track equipment you're looking for and mark it acquired.", "Gear Wishlist"},
     {"recipes", "Professions", "Browse recipes"},
     {"trainers", "Professions", "Trainer preview", "Check known trainers and the recipes they teach.", "Trainer preview"},
-    {"stock", "Bags", "Character stock", "Check items recorded on your other characters.", "Character stock"},
+    {"stock", nil, "Alt Tracker", "Review your characters, their gear, professions and bags.", "Alt Tracker", "Character"},
     {"checklists", "Bags", "Item checklists", "Make a checklist and track the items you still need.", "Item checklists"},
     {"buyback", "Vendor", "Buyback", "Review items you can buy back from the current merchant.", "Buyback"},
     {"loot", "Loot", "Loot session", "Review recent drops and the value of your loot.", "Loot session"},

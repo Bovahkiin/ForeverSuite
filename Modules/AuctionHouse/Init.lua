@@ -1,11 +1,22 @@
 local _,FS=...
 local T=FS.Tools
-local observationLimit=2000
+local observationLimit=20000
 local A=T:Module("AuctionHouse","auctionHouse","Auction House","Save prices from loaded auction results and keep a shopping list. Enter an item ID to add it. Purchases stay in the auction window.",{record=true,prices={},shopping={},shoppingOnly=false,hideSatisfied=false,showDates=true,countBank=true,sort="Name"},{"AUCTION_HOUSE_SHOW","AUCTION_HOUSE_CLOSED","AUCTION_ITEM_LIST_UPDATE","AUCTION_HOUSE_BROWSE_RESULTS_UPDATED","AUCTION_HOUSE_BROWSE_RESULTS_ADDED","COMMODITY_SEARCH_RESULTS_UPDATED","ITEM_SEARCH_RESULTS_UPDATED"})
 A.options={{key="record",label="Record prices from loaded results"},{key="shoppingOnly",label="Shopping list only"},{key="hideSatisfied",label="Hide completed shopping goals"},{key="showDates",label="Show price observation date"},{key="countBank",label="Include bank stock in shopping goals"},{key="sort",label="Sort overview",values={"Name","Lowest price","Newest"}}}
 function A:Scope() return (T:Call(GetRealmName) or "Realm")..":"..(T:Call(UnitFactionGroup,"player") or "Faction") end
+function A:PriceStore()
+    if not FS.Hub:Writable() then return nil end
+    if type(ForeverSuiteHub)=="table" and type(ForeverSuiteHub.schemaVersion)=="number"
+        and ForeverSuiteHub.schemaVersion>FS.Hub.schemaVersion then return nil end
+    local hub=FS.Hub:Data()
+    if type(hub.auctionPrices)~="table" then hub.auctionPrices={} end
+    return hub.auctionPrices
+end
 function A:Prices()
-    local all=self:Data().prices; local scope=self:Scope(); all[scope]=all[scope] or {}; return all[scope]
+    local all=self:PriceStore(); if not all then return {} end
+    local scope=self:Scope()
+    if type(all[scope])~="table" then all[scope]={} end
+    return all[scope]
 end
 local function itemID(id)
     return T:Number(id) and id>0 and id<=100000000 and id%1==0
@@ -17,9 +28,21 @@ local function prune(prices)
 end
 function A:Normalize()
     local db=self:Data()
-    for scope,prices in pairs(db.prices) do
+    local all=self:PriceStore()
+    if not all then return end
+    for scope,prices in pairs(type(db.prices)=="table" and db.prices or {}) do
+        if type(scope)=="string" and type(prices)=="table" then
+            if type(all[scope])~="table" then all[scope]={} end
+            for id,row in pairs(prices) do
+                local current=all[scope][id]
+                if type(row)=="table" and (type(current)~="table" or (tonumber(row.time) or 0)>(tonumber(current.time) or 0)) then all[scope][id]=row end
+            end
+        end
+    end
+    db.prices={}
+    for scope,prices in pairs(all) do
         if type(scope)~="string" or type(prices)~="table" then
-            db.prices[scope]=nil
+            all[scope]=nil
         else
             for id,row in pairs(prices) do
                 if not itemID(id) or type(row)~="table" or not T:Number(row.price) or row.price<=0
@@ -40,7 +63,7 @@ local function remember(scan,id,price,kind,stamp)
     elseif price<row.price then row.price=price end
 end
 function A:StoreScan(scan)
-    if not next(scan) then return end
+    if not FS.Hub:Writable() or FS.databaseReadOnly or not next(scan) then return end
     local prices=self:Prices()
     for id,row in pairs(scan) do prices[id]=row end
     prune(prices)
@@ -158,6 +181,6 @@ end
 A.actions={
     {label="Add",run=function(self,text) local id,count=text:match("^(%d+)%s*(%d*)$"); id,count=tonumber(id),tonumber(count) or 1; if itemID(id) and count>0 and count<=100000 then self:Data().shopping[id]=count end end},
     {label="Remove",run=function(self) if self.selected then self:Data().shopping[self.selected.id]=nil end end},
-    {label="Scan",run=function(self) self:Scan() end},
+    {label="Scan all",run=function(self) self:StartFullScan() end},
     {label="Find item",run=function(self) self:FindItem() end},
 }

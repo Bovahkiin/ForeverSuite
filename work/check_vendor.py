@@ -455,6 +455,11 @@ function ResetTest()
     ForeverSuiteDB={}
     ForeverSuite:InitializeDatabase()
     ForeverSuite:SelectLocale()
+    local A=ForeverSuite.modules.AuctionHouse
+    A.fullScan=nil; A.open=false; A.enchanter=nil
+    if ForeverSuite.Hub:Writable() then
+        ForeverSuite.Hub:Data().auctionPrices={}; ForeverSuite.Hub:Data().auctionScanRequests={}
+    end
     ForeverSuite.modules.Vendor.status=nil
     MerchantFrame:Show()
 end
@@ -1524,6 +1529,10 @@ for section in Path('work/check_beginner.lua').read_text().split('-- TEST: ')[1:
     checks[title] = 'do\n' + script + '\nend'
 
 for section in Path('work/check_talents.lua').read_text().split('-- TEST: ')[1:]:
+    title, script = section.split('\n', 1)
+    checks[title] = 'do\n' + script + '\nend'
+
+for section in Path('work/check_111.lua').read_text().split('-- TEST: ')[1:]:
     title, script = section.split('\n', 1)
     checks[title] = 'do\n' + script + '\nend'
 

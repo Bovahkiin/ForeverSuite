@@ -1,14 +1,13 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.10",lines={
-        "Talent Advisor: choose a guide build, compare talents and plan your next point.",
-        "73 guide variants cover all nine classes. Open All Tools or type /fs talents.",
-        "Open Talent Advisor from the game Talents screen and follow highlighted planned talents.",
-        "Edit builds, mark flexible choices and share build codes with your community.",
-        "Link Gear Advisor's Auto scale or save a build profile with optional layout.",
-        "Train all is now beside Train at class, pet and profession trainers.",
-        "Review the total coin cost before training. Closing the trainer stops the batch.",
-        "Nameplates now distinguish hostile (red), neutral (yellow) and friendly (green) NPCs.",
+    {version="1.0.11",lines={
+        "Alt Tracker: see your characters, levels, gear, professions and recorded bags in one place.",
+        "Search by name, realm or class, sort your alts and record the current character.",
+        "Open Alt Tracker from All Tools; your existing Character stock pins still work.",
+        "Auction House: use Scan all at an auctioneer to save buyout prices for item tooltips.",
+        "Enchanters can see an approximate disenchant material-value range using scanned prices.",
+        "A gold ! on nameplates marks needed quest enemies and item droppers reported by the game.",
+        "Toggle quest markers in Nameplates > Open nameplate designer > Text.",
     }},
 }
 function FS:ShowUpdateNotesOnLogin()

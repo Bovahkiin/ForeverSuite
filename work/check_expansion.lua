@@ -134,14 +134,14 @@ GetNumAuctionItems=nil; GetAuctionItemInfo=nil; GetAuctionItemLink=nil; GetRealm
 -- TEST: Auction price observations keep the newest entries without dropping shopping goals
 ResetTest(); local A=ForeverSuite.modules.AuctionHouse
 local prices=A:Prices()
-for id=1,2001 do prices[id]={price=10,time=id,kind='per item'} end
-prices[3000]={price=-10,time=3000,kind='per item'}
+for id=1,20001 do prices[id]={price=10,time=id,kind='per item'} end
+prices[30000]={price=-10,time=30000,kind='per item'}
 A:Data().shopping[1]=3
 A:Normalize()
-assert(not prices[1] and not prices[3000] and prices[2] and prices[2001])
+assert(not prices[1] and not prices[30000] and prices[2] and prices[20001])
 assert(A:Data().shopping[1]==3)
-A:StoreScan({[4000]={price=10,time=4000,kind='per item'}})
-assert(not prices[2] and prices[4000] and A:Data().shopping[1]==3)
+A:StoreScan({[40000]={price=10,time=40000,kind='per item'}})
+assert(not prices[2] and prices[40000] and A:Data().shopping[1]==3)
 
 -- TEST: Auction shopping row starts the native search only when its Buy controls are available
 ResetTest(); local FS=ForeverSuite; local A=FS.modules.AuctionHouse
@@ -1317,7 +1317,7 @@ local f=N.editor; assert(f:IsShown() and not FS.window:IsShown() and #N.designGr
 assert(f.preview.name:GetText()=='ForeverSuite Training Target' and f.preview.health.value==7200 and f.preview.cast:GetScript('OnUpdate')==nil)
 local cell=f.optionCells[1]; cell.input:SetText('260'); cell.input.scripts.OnEnterPressed(cell.input); assert(FS.db.nameplates.width==260 and f.preview.health.w==256)
 cell.input:SetText('9999'); cell.input.scripts.OnEnterPressed(cell.input); assert(FS.db.nameplates.width==260 and f.message:GetText():find('80 to 360',1,true))
-N:EditorGroup(2); assert(#f.optionCells==9 and not cell:IsShown()); f.optionCells[1]:Click(); assert(not FS.db.nameplates.showName and not f.preview.name:IsShown() and not f.handles.name:IsShown())
+N:EditorGroup(2); assert(#f.optionCells==10 and not cell:IsShown()); f.optionCells[1]:Click(); assert(not FS.db.nameplates.showName and not f.preview.name:IsShown() and not f.handles.name:IsShown())
 N:EditorGroup(3); assert(#f.optionCells==9); N:EditorGroup(4); assert(#f.optionCells==7)
 N:ApplyPreset('Large'); assert(FS.db.nameplates.width==240 and f.preview.auras[1].w==24)
 N:ApplyPreset('Minimal'); assert(not f.preview.level:IsShown() and not f.preview.auras[1]:IsShown())

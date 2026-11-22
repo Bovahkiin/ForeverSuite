@@ -12,7 +12,7 @@ sources = [line.strip() for line in toc.splitlines() if line.strip() and not lin
 files = ['ForeverSuite.toc', *sources]
 files += [str(path.relative_to(root)) for path in sorted((root / 'Assets').rglob('*.tga'))]
 files += [str(path.relative_to(root)) for path in sorted((root / 'Assets').rglob('*.ttf'))]
-files += ['README.md', 'CHANGELOG.md', 'COPYRIGHT.txt', 'LICENSE', 'Modules/TalentAdvisor/DATA_SOURCES.md']
+files += ['README.md', 'CHANGELOG.md', 'COPYRIGHT.txt', 'LICENSE', 'Modules/TalentAdvisor/DATA_SOURCES.md', 'Modules/AuctionHouse/DATA_SOURCES.md']
 
 destination = root / 'dist' / f'ForeverSuite-{version}-forever.zip'
 destination.parent.mkdir(exist_ok=True)

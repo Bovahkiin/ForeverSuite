@@ -12,3 +12,8 @@ checked on 2026-11-22. Each bundled guide build retains its author and source UR
 in Build details. Guide prose and calculator code are not distributed.
 Game spell textures remain Blizzard Entertainment's assets. ForeverSuite is
 independent of Icy Veins and Blizzard Entertainment and is not endorsed by them.
+
+Disenchant material facts reference WoW Professions' Forever guide and Everloot's
+Forever observations. See Modules/AuctionHouse/DATA_SOURCES.md for coverage,
+sources and limitations. Their guide prose, code and drop-rate samples are not
+distributed. ForeverSuite is independent of these projects.

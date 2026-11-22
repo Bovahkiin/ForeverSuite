@@ -1,7 +1,7 @@
 local _,FS=...
 local E,T,H=FS.Extensions,FS.Tools,FS.HUD
 local W=T:Module('Workbench','workbench','More tools','Search settings, manage profiles and use the new module tools.',{view='Settings'},{}); E.workbench=W
-W.views={'Settings','Favorites','Profiles','Accessibility','Alerts','NPC rules','Important casts','Chat keywords','Chat history','Guild notes','Recent groups','Item checklists','Buyback','Loot session','Waypoint queue','Leveling session','Maintenance','Layout presets','Character stock','Trainer preview','Route Library','Gathering runs','Notification Center','Rare sightings','Dungeon preparation'}
+W.views={'Settings','Favorites','Profiles','Accessibility','Alerts','NPC rules','Important casts','Chat keywords','Chat history','Guild notes','Recent groups','Item checklists','Buyback','Loot session','Waypoint queue','Leveling session','Maintenance','Layout presets','Alt Tracker','Trainer preview','Route Library','Gathering runs','Notification Center','Rare sightings','Dungeon preparation'}
 W.actions={{label='Open',run=function(self,text) self:Perform(1,text) end},{label='Change',run=function(self,text) self:Perform(2,text) end},{label='Favorite',run=function(self,text) self:Perform(3,text) end},{label='',run=function(self,text) self:Perform(4,text) end}}
 W.views[#W.views+1]='Dungeon & Raid Journal'
 W.views[#W.views+1]='Gear Wishlist'
@@ -35,6 +35,7 @@ local professionRecommendations={
         tip="Fish in the water by the trainers in Valanaar or Shen'dar Village. Bring a Fishing Pole and Shiny Baubles."},
 }
 local function setView(self,view,notesInstance)
+    if view=='Character stock' then view='Alt Tracker' end -- the view's former name
     local data=self:Data()
     local changed=data.view~=view or self.notesInstance~=notesInstance
     data.view=view
@@ -445,8 +446,23 @@ end
 local function recordedAt(stamp)
     return T:Number(stamp) and stamp>0 and T:Call(date,'%d %b %Y %H:%M',stamp) or 'Date unknown'
 end
+-- "MAGE" -> "Mage"; the client's own class names are used when it provides them.
+local function className(file)
+    file=T:Text(file)
+    if file=='' then return nil end
+    local names=_G.LOCALIZED_CLASS_NAMES_MALE
+    local localized=type(names)=='table' and T:Text(names[file]) or ''
+    if localized~='' then return localized end
+    return file:sub(1,1)..file:sub(2):lower()
+end
 function W:CharacterRecordText(record)
     local lines={}
+    local class,faction=className(record.class),T:Text(record.faction)
+    if T:Number(record.level) or class or faction~='' then
+        lines[#lines+1]='Character | '..(T:Number(record.level) and 'Level '..record.level or 'Level unknown')..(class and ' '..class or '')..(faction~='' and ' | '..faction or '')
+    end
+    if T:Number(record.lastSeen) then lines[#lines+1]='Last seen | '..recordedAt(record.lastSeen) end
+    if #lines>0 then lines[#lines+1]='' end
     local gear=record.gear
     if type(gear)=='table' and type(gear.items)=='table' then
         lines[#lines+1]='Gear | '..recordedAt(gear.time)
@@ -529,8 +545,8 @@ function W:NextStepRows()
     elseif next(d.routes) then
         add(5,'routes','[Navigation] Choose a saved route',{view='Route Library'})
     end
-    if FS.Hub:HasRecords() then
-        add(6,'alts','[Character stock] Review bags, gear and professions',{view='Character stock'})
+    if FS.Hub:HasRecords() or FS.Hub:CharacterCount()>1 then
+        add(6,'alts','[Alt Tracker] Review your characters, gear and professions',{view='Alt Tracker'})
     end
     table.sort(rows,function(a,b)
         if a.order~=b.order then return a.order<b.order end
@@ -539,8 +555,64 @@ function W:NextStepRows()
     end)
     return rows
 end
+local altSortNext={Name='Level',Level='Recorded',Recorded='Name'}
+-- One row per known character: identity from the DataHub plus what was recorded.
+-- Typing a name, realm, class or faction in the search box filters the list.
+function W:AltTrackerRows()
+    local rows,current={},E:CharacterKey()
+    for key,record in pairs(E:StockRecords()) do
+        if type(key)=='string' and type(record)=='table' then
+            local name=T:Text(record.name); if name=='' then name=key end
+            local realm,faction=T:Text(record.realm),T:Text(record.faction)
+            local level=T:Number(record.level) and record.level or nil
+            local class=className(record.class)
+            local recorded=T:Number(record.time) and record.time>0 and record.time or nil
+            local seen=T:Number(record.lastSeen) and record.lastSeen>0 and record.lastSeen or nil
+            local parts={name,(level and 'Lv '..level or 'Lv ?')..(class and ' '..class or '')}
+            if realm~='' then parts[#parts+1]=realm end
+            if type(record.gear)=='table' and T:Number(record.gear.level) then parts[#parts+1]=('Gear %.1f'):format(record.gear.level) end
+            parts[#parts+1]=recorded and 'Recorded '..recordedAt(recorded) or 'Not recorded yet'
+            if key==current then parts[#parts+1]='This character' end
+            local details={}
+            local skills={}
+            local professions=type(record.professions)=='table' and record.professions.items
+            if type(professions)=='table' then
+                for _,skill in ipairs(professions) do
+                    if type(skill)=='table' and T:Text(skill.name)~='' then
+                        skills[#skills+1]=skill.name..(T:Number(skill.skill) and T:Number(skill.maximum) and (' '..skill.skill..'/'..skill.maximum) or '')
+                    end
+                end
+            end
+            details[#details+1]='Professions: '..(#skills>0 and table.concat(skills,', ') or 'not recorded')
+            local counts=type(record.bags)=='table' and record.bags.counts
+            if type(counts)=='table' then
+                local kinds,total=0,0
+                for _,count in pairs(counts) do if T:Number(count) then kinds=kinds+1; total=total+count end end
+                details[#details+1]='Bags: '..total..' items ('..kinds..' different)'
+            else details[#details+1]='Bags: not recorded' end
+            if seen then details[#details+1]='Last seen: '..recordedAt(seen) end
+            rows[#rows+1]=row(key,table.concat(parts,' | '),'alt',{
+                record=record,detailLine=table.concat(details,'\n'),
+                searchText=table.concat({name,realm,class or '',faction,level and 'lv '..level or '',key},' '),
+                sortName=name:lower(),sortLevel=level or 0,sortRecorded=recorded or 0,sortSeen=seen or 0,
+            })
+        end
+    end
+    local mode=self.altSort or 'Name'
+    table.sort(rows,function(a,b)
+        if mode=='Level' and a.sortLevel~=b.sortLevel then return a.sortLevel>b.sortLevel end
+        if mode=='Recorded' then
+            if a.sortRecorded~=b.sortRecorded then return a.sortRecorded>b.sortRecorded end
+            if a.sortSeen~=b.sortSeen then return a.sortSeen>b.sortSeen end
+        end
+        if a.sortName~=b.sortName then return a.sortName<b.sortName end
+        return tostring(a.id)<tostring(b.id)
+    end)
+    return rows
+end
 function W:Build()
     E:Normalize(); local d=E:Data(); local view=self:Data().view; local rows={}; local labels={'Open','Change','Favorite'}; local owner='Core'
+    if view=='Character stock' then view='Alt Tracker'; self:Data().view=view end -- saved before the rename
     local valid=false; for _,v in ipairs(self.views) do if v==view then valid=true end end; if not valid then view='Settings'; self:Data().view=view end
     local entered=self.lastView~=view; self.lastView=view
     if view=='Settings' or view=='Favorites' then
@@ -674,15 +746,10 @@ function W:Build()
     elseif view=='Trainer preview' then
         owner='Professions'; labels={'Refresh preview','Train All',self.training and 'Stop' or ''}
         self.status=self:TrainerPreview(rows)
-    elseif view=='Character stock' then
-        owner='Bags'; labels={'Record character','Show record','Forget record'}
-        for key,record in pairs(E:StockRecords()) do
-            if type(key)=='string' and type(record)=='table' and T:Number(record.time) then
-                rows[#rows+1]=row(key,key..' | Last updated '..recordedAt(record.time),'stock',{record=record})
-            end
-        end
-        table.sort(rows,function(a,b) return a.id<b.id end)
-        self.status='Record each character to see its bags, gear and professions. Each section shows its own date. Bag counts exclude the bank.'
+    elseif view=='Alt Tracker' then
+        owner='Bags'; labels={'Record character','Show record','Forget record','Sort: '..(self.altSort or 'Name')}
+        rows=self:AltTrackerRows()
+        self.status='Search by name, realm, class or faction. Sort cycles Name, Level and Recorded. Record a character to see its bags, gear and professions. Bag counts exclude the bank.'
     elseif view=='Layout presets' then
         owner='Profiles'; labels={'Save current','Use preset','Delete preset'}
         local names={}
@@ -1050,15 +1117,24 @@ function W:Perform(action,text)
         if action==1 then self:Refresh() end
         if action==2 then self:ConfirmTraining() end
         if action==3 then self:StopTraining('Stopped by player.') end
-    elseif view=='Character stock' then
+    elseif view=='Alt Tracker' then
         if action==1 then
             local _,message=E:RecordCharacter()
             self.status=message
         elseif action==2 and r then
             E:TextDialog(r.id,self:CharacterRecordText(r.record),true)
         elseif action==3 and r then
-            local _,message=FS.Hub:RemoveCharacter(r.id)
-            self.status=message or 'Character record removed.'
+            if not FS.Hub:Writable() then self.status='Character data is read-only. Update the addon before removing records.';return end
+            local key,record=r.id,r.record
+            E:Form('Forget '..key..'? Saved bags, gear and professions will be removed.',{},function()
+                if FS.Hub:Characters()[key]~=record then return false,'This record changed. Cancel and select it again.' end
+                local ok,message=FS.Hub:RemoveCharacter(key)
+                if not ok then return false,message end
+                self.selected=nil;self.notice='Character record removed.';self.noticeUntil=GetTime()+6
+                return true
+            end,'Forget record')
+        elseif action==4 then
+            self.altSort=altSortNext[self.altSort or 'Name']; self.page=1
         end
     elseif view=='Layout presets' then
         if action==1 then

@@ -1,3 +1,33 @@
+## 1.0.11 Alt Tracker, auction scans and quest nameplates
+
+1. Open All Tools > Alt Tracker, including with Bags disabled. Check that the
+   previous Character stock pin still opens it. Log in on two characters; verify
+   both identities appear. Record one and compare its bags, professions and gear
+   with the game. Verify snapshot dates, realm/class/faction search and sorting.
+   Cancel Forget record once, then confirm deletion of a disposable record.
+2. Visit a faction auctioneer. Click Scan all in the auction window and watch
+   progress. Compare a stacked listing's per-item buyout with the tooltip after
+   leaving the auction house. Rehover the item, reload and check no duplicate
+   lines, correct realm/faction and a truthful observation age. Scan materials
+   used for enchanting too. The button must remain clickable across AH tabs.
+3. Try a second scan during cooldown. Test Stop scan, closing the auction house,
+   entering combat, disabling Auction House and changing profiles mid-scan.
+   Previous prices must survive; no buying, selling or automatic retries occur.
+   Compare CPU while idle, scanning and opening the overview; no ongoing idle
+   polling or repeated row rebuild should appear.
+4. With Enchanting, hover standard green armor/weapons and blue equipment.
+   Check the approximate material range, price age and missing-material case.
+   Grey items, quest-bound items, bags, fishing poles, epics and explicit
+   cannot-disenchant items must not get a numeric range. Test a non-enchanter
+   and the two tooltip settings. Range values are approximate, before fees.
+5. Accept one kill quest and one item-drop quest. Needed mobs should have a gold
+   ! beside their nameplates when the client reports the objective. Finish one
+   objective while another remains, abandon a quest, and test two quests sharing
+   a mob. Completed goals should clear using available progress; unrelated mobs
+   and party-only objectives must not be marked. Move away and back to recycle
+   plates. Disable Quest target marker in Nameplates designer > Text and check
+   all themes, neutral/hostile colors, cast bars, large fonts and designer preview.
+
 ## 1.0.10 Talent Advisor and native trainer buttons
 
 1. Open All Tools → Talent Advisor and `/fs talents`. Check all five tabs, large

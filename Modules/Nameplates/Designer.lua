@@ -27,6 +27,7 @@ function N:UpdatePreview()
     local f,db=editor.preview,FS.db.nameplates; self:StyleCanvas(f,db)
     f.name:SetText("ForeverSuite Training Target"); f.level:SetText("60"); f.value:SetText(self:HealthText(7200,10000,db))
     local disposition=editor.previewDisposition or 1
+    f.quest:SetShown(db.showQuest and disposition~=3)
     f.threat:SetText(db.showThreat and disposition==1 and "You have aggro" or ""); f.threat:SetTextColor(1,.3,.2)
     local colorKey=disposition==2 and db.neutralColor or disposition==3 and db.friendlyColor or db.enemyColor
     f.health:SetMinMaxValues(0,10000); f.health:SetValue(7200); f.health:SetStatusBarColor(unpack(self.colors[colorKey]))

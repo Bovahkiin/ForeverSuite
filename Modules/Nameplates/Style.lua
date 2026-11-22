@@ -3,7 +3,7 @@ local N,H=FS.modules.Nameplates,FS.HUD
 N.colors={Cyan={.12,.72,.86},Gold={.95,.68,.24},Yellow={1,.82,0},Red={.85,.12,.16},Green={.18,.75,.45},Blue={.22,.52,1},Purple={.65,.45,.95},Pink={.91,.39,.78},Orange={1,.46,.17},White={.9,.94,1},Gray={.45,.5,.55},None={0,0,0}}
 N.colorNames={"Cyan","Gold","Yellow","Red","Green","Blue","Purple","Pink","Orange","White","Gray"}
 N.designDefaults={width=190,height=22,fontSize=13,valueFontSize=11,castHeight=16,auraSize=17,auraCount=4,auraSpacing=3,
-    showName=true,showLevel=true,showHealth=true,showThreat=true,showCast=true,castIcon=false,castTime=false,
+    showName=true,showLevel=true,showHealth=true,showThreat=true,showQuest=true,showCast=true,castIcon=false,castTime=false,
     debuffs=true,auraType="Debuffs",onlyMine=false,auraCountdown=true,classColors=true,threatColors=false,
     enemyColor="Red",neutralColor="Yellow",friendlyColor="Green",borderColor="Cyan",targetColor="Gold",castColor="Cyan",targetHighlight=true,
     targetScale=1,otherOpacity=1,outline=true,healthFormat="Value + percent",nameAlign="CENTER",healthAlign="RIGHT",
@@ -18,6 +18,7 @@ N.designGroups={
     {name="Text",options={{key="showName",label="Show name"},{key="fontSize",label="Name font size",min=8,max=24,step=1},
         {key="valueFontSize",label="Detail font size",min=8,max=20,step=1},{key="outline",label="Text outline"},
         {key="showLevel",label="Show level"},{key="showThreat",label="Show threat text"},
+        {key="showQuest",label="Quest target marker",help="A gold ! marks needed quest enemies and item droppers reported by the game. Completed objectives are hidden when objective progress is available."},
         {key="healthFormat",label="Health format",values={"Value + percent","Percent","Value","Current / maximum"}},
         {key="nameAlign",label="Name alignment",values={"CENTER","LEFT","RIGHT"}},{key="healthAlign",label="Health alignment",values={"RIGHT","CENTER","LEFT"}}}},
     {name="Colors",options={{key="classColors",label="Player class colors"},{key="threatColors",label="Enemy threat colors",help="Aggro colors override hostile and neutral colors while you have threat. Turn off to keep reaction colors."},
@@ -68,6 +69,8 @@ function N:HealthText(current,maximum,db)
     return H:Number(current).." | "..percent
 end
 function N:CreateExtras(f)
+    f.quest=H:Label(f,"!",0,0,20); f.quest:ClearAllPoints(); f.quest:SetPoint("RIGHT",f,"LEFT",-5,0)
+    f.quest:SetTextColor(1,.82,0); f.quest:SetJustifyH("CENTER"); f.quest:Hide()
     f.auraAnchor=CreateFrame("Frame",nil,f); f.auraAnchor:EnableMouse(false)
     f.cast.icon=f.cast:CreateTexture(nil,"ARTWORK"); f.cast.icon:Hide()
     f.cast.time=H:Label(f.cast,"",0,0,48); f.cast.time:SetJustifyH("RIGHT")
@@ -98,6 +101,7 @@ function N:StyleCanvas(f,db)
     end
     if not changed then return end
     f.fsStyleValues=previous
+    FS:ApplyFont(f.quest,math.max(16,db.valueFontSize+5),"OUTLINE")
     f:SetSize(db.width,db.height); f:SetScale(db.scale)
     f.health:ClearAllPoints(); f.health:SetPoint("TOPLEFT",2,-2); f.health:SetSize(db.width-4,db.height-4)
     f.name:SetSize(db.width,db.fontSize+4); self:PartPoint(f.name,f,"name",nil,db); FS:ApplyFont(f.name,db.fontSize,db.outline and "OUTLINE" or ""); f.name:SetJustifyH(db.nameAlign); f.name:SetShown(db.showName)

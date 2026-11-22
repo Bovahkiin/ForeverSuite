@@ -51,6 +51,11 @@ Nameplates distinguish hostile NPCs (red) from neutral NPCs you can attack
 (yellow). Friendly units are green by default. Change these under
 **Nameplates → Open nameplate designer → Colors**, and cycle the reaction preview
 to compare them. Optional aggro colors and player class colors take precedence.
+A gold **!** beside a nameplate marks an enemy needed for a kill objective or
+quest item when the game exposes that relationship. Completed objectives are
+hidden when progress is available. Toggle **Quest target marker** in the
+designer's **Text** tab. This works with the client's quest data; it does not
+guess drops from NPC names.
 
 ## What's included
 
@@ -97,10 +102,31 @@ Quality of Life settings.
 
 DataHub keeps account-wide character records separate from UI profiles. Your
 name, realm, level, class, faction and last-seen time update automatically.
-Use **Character stock → Record character** to refresh recorded bags, equipment
-and professions. These snapshots show when they were recorded; they are not
-live views of logged-out characters. Existing Character stock data is imported
-once, and the original saved data is retained.
+Open **All Tools → Alt Tracker** to browse these characters. Search by name,
+realm, class or faction and sort by name, level or recorded date. Hover a
+character for professions and bag totals; use **Show record** for its recorded data.
+**Record character** refreshes bags, equipment and professions for the character
+you are playing. Snapshots show their recording dates, rather than live views of
+logged-out characters. Existing Character stock shortcuts and records still work.
+The original legacy saved data is retained; removing an alt asks for confirmation.
+
+At an auctioneer, click **Scan all** in the auction window. The scan saves the
+lowest buyout price per item from all returned listings. Hover items anywhere to
+see the cached price and how old it is. Repeat scans have a server cooldown;
+closing the auction house or entering combat stops the scan. Browsing also
+records loaded results when **Record prices from loaded results** is enabled.
+
+If you have **Enchanting**, eligible uncommon and rare equipment can also show
+an **approximate disenchant material-value range**. Scan enchanting materials
+first: missing material prices are shown as unknown, never zero. This range is
+not an average or a guaranteed profit; special items can differ, and prices are
+before auction fees. Toggle both price and disenchant tooltips in **Auction House
+Settings**. See [auction and disenchant coverage](Modules/AuctionHouse/DATA_SOURCES.md).
+
+Auction prices are stored separately from UI profiles in DataHub, capped at
+20,000 distinct items per realm/faction. Prices for items absent from a later
+scan retain their old timestamp. A scan over the limit is stopped without
+replacing the previous cache.
 
 Profession routes and trainer references combine bundled data with information
 recorded in game. See the [gear catalog coverage](ForeverSuite_GearData/DATA_SOURCES.md)

@@ -95,6 +95,14 @@ function H:RemoveCharacter(key)
     return true
 end
 
+function H:CharacterCount()
+    local count = 0
+    for _, record in pairs(self:Characters()) do
+        if type(record) == "table" then count = count + 1 end
+    end
+    return count
+end
+
 -- True when at least one character has recorded sections (bags, gear or
 -- professions), as opposed to only being seen.
 function H:HasRecords()

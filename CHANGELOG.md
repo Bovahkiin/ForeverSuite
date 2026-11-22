@@ -1,3 +1,14 @@
+# 1.0.11 - 2026-11-22
+
+- Adds Alt Tracker to All Tools, replacing the Character stock view while preserving saved shortcuts. Lists every known character, including characters with identity data only, with level, class, realm, last-seen time and recorded gear, professions and bags.
+- Search alts by name, realm, class or faction and sort by name, level or last recorded snapshot. Record the current character without enabling Bags. Removing a record now asks for confirmation and rechecks whether the record changed.
+- Adds Scan all directly to the native auction window. Uses the client's whole-house replication request, processes listings in small batches and caches minimum buyout prices per item. The server limits repeat scans; ForeverSuite waits 15 minutes between requests per realm/faction.
+- Item tooltips show cached AH prices outside the auction house, with observation age and a clear distinction between unit prices and lowest-listing observations. Prices are historical observations, not guaranteed sale values.
+- Enchanters can enable an approximate disenchant material-value range for supported uncommon and rare equipment. Uses cached unit prices for every required material; missing prices remain unknown. Special items, random yields, market changes and fees can change the result. This is not a simulated average or an automatic sell/disenchant recommendation.
+- Auction prices now live in the account-wide DataHub, separate from UI profile exports. Existing profile observations migrate on use. The cache keeps at most 20,000 item prices per realm/faction; full scans above that limit stop without saving a partial cache. Closing the AH, entering combat, changing settings or disabling the module cancels the scan and preserves previous prices.
+- Adds a gold quest marker beside nameplate health bars for needed kill objectives and quest-item droppers exposed by the client. Uses your own quest tooltip objectives where available, hides completed objectives, refreshes on quest-log changes and clears recycled plates. Toggle in Nameplates designer > Text. Unknown quest relationships are not guessed from NPC names.
+- New scan work runs only on request and in bounded batches. Quest tooltip checks are cached per visible unit and quest revision; neither feature adds a continuous background loop.
+
 # 1.0.10 - 2026-11-22
 
 - Adds Talent Advisor with 73 attributed guide build variants for all nine WoW Forever classes, checked against the current talent catalog. Open it from All Tools or with `/fs talents`.

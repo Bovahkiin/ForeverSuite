@@ -158,7 +158,7 @@ assert(not exported.stock and not exported.extras.stock and not exported.extras.
 W.selected=W.rows[1]; W:Perform(2,'')
 assert(E.dialog:IsShown() and E.dialog.readOnly and E.dialog.edit:GetText():find('x7',1,true))
 E.dialog:Hide()
-W:Perform(3,''); assert(E:ObservedStock(42)==0)
+W:Perform(3,''); assert(E:ObservedStock(42)==7 and E.form:IsShown()); E.form.save:Click(); assert(E:ObservedStock(42)==0)
 ForeverSuiteHub,UnitName,GetNormalizedRealmName,V.Snapshot=oldStock,oldName,oldRealm,oldSnapshot
 
 -- TEST: Character records update readable sections independently
@@ -1419,3 +1419,37 @@ assert(f.moduleSearch:GetWidth()<=302 and f.moduleFilterButton:GetWidth()==248 a
 assert(580+f.moduleSearch:GetWidth()+16<=940-f.close:GetWidth()-8)
 FS:SetModuleFilter('no-result-zzzz','All'); assert(f:GetHeight()==height and f.emptyModules:IsShown())
 FS:ClearModuleFilter(); FS.db.typography.global.size=0; FS.db.typography.global.scale=1; F:Apply(); FS:RefreshConfig()
+
+-- TEST: Alt Tracker lists every known character with identity, searchable text, tooltips and sorting
+local FS,E,W=ExtensionFixture()
+local oldHub,oldName,oldRealm,oldSort=ForeverSuiteHub,UnitName,GetNormalizedRealmName,W.altSort
+ForeverSuiteHub={characters={
+    ['Mage-Realm']={name='Mage',realm='Realm',level=13,class='MAGE',faction='Alliance',lastSeen=900,time=500,
+        gear={items={},level=22.4,lowest=60,time=500},
+        professions={items={{name='Mining',skill=40,maximum=75},{name='Fishing',skill=10,maximum=75}},time=500},
+        bags={counts={[1]=2,[2]=5},time=500}},
+    ['Hunter-Azjol-Nerub']={name='Hunter',realm='Azjol-Nerub',level=40,class='HUNTER',faction='Horde',lastSeen=950},
+    ['Legacy-Realm']={time=100,bags={counts={[3]=1}}},
+}}
+UnitName=function() return 'Mage' end; GetNormalizedRealmName=function() return 'Realm' end
+W.altSort=nil
+W:Choose('Alt Tracker'); W:Build()
+assert(W:Data().view=='Alt Tracker' and #W.rows==3 and W.status:find('Search by name',1,true))
+assert(W.rows[1].id=='Hunter-Azjol-Nerub' and W.rows[2].id=='Legacy-Realm' and W.rows[3].id=='Mage-Realm')
+assert(W.rows[3].text:find('Lv 13',1,true) and W.rows[3].text:find('Gear 22.4',1,true) and W.rows[3].text:find('This character',1,true))
+assert(W.rows[1].text:find('Lv 40',1,true) and W.rows[1].text:find('Azjol-Nerub',1,true) and W.rows[1].text:find('Not recorded yet',1,true))
+assert(W.rows[2].text:find('Lv ?',1,true) and W.rows[2].text:find('Recorded',1,true) and not W.rows[2].text:find('This character',1,true))
+assert(W.rows[3].detailLine:find('Mining 40/75, Fishing 10/75',1,true) and W.rows[3].detailLine:find('Bags: 7 items (2 different)',1,true))
+assert(W.rows[1].detailLine:find('Professions: not recorded',1,true) and W.rows[1].detailLine:find('Bags: not recorded',1,true))
+assert(W.rows[1].searchText:find('Horde',1,true) and W.rows[1].searchText:find('Azjol-Nerub',1,true) and W.rows[3].searchText:find('Alliance',1,true))
+W:Perform(4,''); assert(W.altSort=='Level'); W:Build()
+assert(W.rows[1].id=='Hunter-Azjol-Nerub' and W.rows[2].id=='Mage-Realm' and W.rows[3].id=='Legacy-Realm')
+W:Perform(4,''); assert(W.altSort=='Recorded'); W:Build()
+assert(W.rows[1].id=='Mage-Realm' and W.rows[2].id=='Legacy-Realm' and W.rows[3].id=='Hunter-Azjol-Nerub')
+W:Perform(4,''); assert(W.altSort=='Name')
+local report=W:CharacterRecordText(ForeverSuiteHub.characters['Mage-Realm'])
+assert(report:find('Character | Level 13',1,true) and report:find('Alliance',1,true) and report:find('Last seen',1,true) and report:find('Bags |',1,true))
+W:Choose('Character stock'); W:Build()
+assert(W:Data().view=='Alt Tracker' and #W.rows==3)
+if W.window then W.window:Hide() end
+W.altSort,ForeverSuiteHub,UnitName,GetNormalizedRealmName=oldSort,oldHub,oldName,oldRealm

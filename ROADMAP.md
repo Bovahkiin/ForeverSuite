@@ -7,7 +7,7 @@
 | Community UI Presets | Build on profile import and export. Let players preview a shared setup, choose which settings to apply, and restore a backup. |
 | Setup Wizard | Expand Guided Setup into a complete first-run flow for layout, theme, text, modules, and supported addon conflicts. Preview choices and apply them together. |
 | DataHub | Foundation delivered in 1.0.9: a local, versioned account database, one-time Character stock import and automatic character identity updates. Extend its recorded sections as the account tools grow. |
-| Alt Tracker | Use DataHub to show recorded character levels, professions, gear, and bags in one view, with realm filters and a last-updated date. |
+| Alt Tracker | First view delivered in 1.0.11: known characters, levels, professions, gear and bags; search by realm/name/class/faction, sorting and snapshot dates. Extend recorded sections as needed. |
 | Discord Feature Voting | Create a dedicated space for feature proposals, votes, and visible status updates. Use voting to inform roadmap decisions. |
 
 ## Medium priority
@@ -30,11 +30,11 @@
 
 ## Build order
 
-1. Extend the DataHub foundation delivered in 1.0.9 into the first Alt Tracker view.
+1. Build on the DataHub and Alt Tracker foundations delivered in 1.0.9 and 1.0.11.
 2. Extend the current profile import flow for Community UI Presets and connect it to the Setup Wizard.
 3. Set up Discord Feature Voting alongside the addon work so players can weigh in on the next iterations.
 
-Except for the DataHub foundation noted above, these items remain planned. The earlier delivery overview remains below as a record of shipped work.
+Except for the DataHub and first Alt Tracker view noted above, these items remain planned. The earlier delivery overview remains below as a record of shipped work.
 
 ---
 

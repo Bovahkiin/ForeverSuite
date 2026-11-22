@@ -3,7 +3,7 @@ local N={name="Nameplates",key="nameplates",custom={},nativeStates={}}; FS:Regis
 local H=FS.HUD
 local threatLabels={[1]="Threat rising",[2]="Losing threat",[3]="You have aggro"}
 function N:Release(saved)
-    saved.canvas:Hide(); saved.unit=nil
+    saved.canvas:Hide(); saved.canvas.fsQuestGUID=nil; saved.unit=nil
     local state=self.nativeStates[saved.native]
     if state and state.hidden then
         state.hidden=false
@@ -130,6 +130,7 @@ function N:Update(plate,unit)
     f.level:SetText(H:Safe(level) and type(level)=="number" and (level<0 and "??" or tostring(level)) or "")
     FS.modules.UnitFrames:RefreshCast(unit,f)
     local db=design; self:Paint(f,unit,selected,threat,db); self:CastAppearance(f,unit,db)
+    if self.UpdateQuestMarker then self:UpdateQuestMarker(f,unit,db) end
     local auraAccess=true
     if C_Secrets and C_Secrets.ShouldAurasBeSecret then
         auraAccess=FS.Tools:Call(C_Secrets.ShouldAurasBeSecret)==false
@@ -181,10 +182,14 @@ function N:SettingsChanged()
 end
 function N:Initialize()
     self.events=CreateFrame("Frame")
+    FS:RegisterClientEvent(self.events,"QUEST_LOG_UPDATE")
     FS:RegisterClientEvent(self.events,"UNIT_THREAT_SITUATION_UPDATE"); FS:RegisterClientEvent(self.events,"UNIT_THREAT_LIST_UPDATE")
     for _,e in ipairs({"CVAR_UPDATE","NAME_PLATE_UNIT_ADDED","NAME_PLATE_UNIT_REMOVED","UNIT_HEALTH","UNIT_MAXHEALTH","UNIT_NAME_UPDATE","UNIT_FACTION","UNIT_AURA","UNIT_SPELLCAST_START","UNIT_SPELLCAST_DELAYED","UNIT_SPELLCAST_STOP","UNIT_SPELLCAST_FAILED","UNIT_SPELLCAST_INTERRUPTED","UNIT_SPELLCAST_CHANNEL_START","UNIT_SPELLCAST_CHANNEL_UPDATE","UNIT_SPELLCAST_CHANNEL_STOP","PLAYER_TARGET_CHANGED","PLAYER_ENTERING_WORLD","PLAYER_REGEN_ENABLED"}) do FS:RegisterClientEvent(self.events,e) end
     self.events:SetScript("OnEvent",function(_,event,unit)
-        if event=="CVAR_UPDATE" then
+        if event=="QUEST_LOG_UPDATE" then
+            self.questRevision=(self.questRevision or 0)+1; self.questObjectives=nil
+            if FS:IsModuleEnabled(self.name) then self:QueuePlateRefresh() end
+        elseif event=="CVAR_UPDATE" then
             local name=type(unit)=="string" and unit:lower() or ""
             if not self.applyingCVars and name:find("nameplate",1,true) then
                 if name=="nameplateshowenemies" and GetCVar then FS.db.nameplates.enemies=GetCVar("nameplateShowEnemies")=="1" end
