@@ -47,6 +47,11 @@ Search tools and settings from the top bar. **Move Frames** lets you reposition
 supported elements; native action-bar placement uses the game's Edit Mode.
 Right-click the minimap button for quick access to profiles, themes and layouts.
 
+Nameplates distinguish hostile NPCs (red) from neutral NPCs you can attack
+(yellow). Friendly units are green by default. Change these under
+**Nameplates → Open nameplate designer → Colors**, and cycle the reaction preview
+to compare them. Optional aggro colors and player class colors take precedence.
+
 ## What's included
 
 | Area | Tools and customization |
@@ -55,14 +60,40 @@ Right-click the minimap button for quick access to profiles, themes and layouts.
 | Combat UI | Action bars with mouseover and idle opacity, quick keybind mode, unit frames, nameplates, buffs and cooldown tools. |
 | Inventory | Bags, item favorites, recorded character stock, junk selling, repairs, shopping lists and mail tools. |
 | Maps & quests | Quest tracker, saved pins, waypoint queues, Route Library and gathering-run reports. |
-| Equipment | Gear Advisor, Gear Planner, Gear Wishlist, durability tracking and Character Overview. |
+| Equipment & talents | Gear Advisor, Gear Planner, Gear Wishlist, Talent Advisor, durability tracking and Character Overview. |
 | Dungeons & raids | Dungeon & Raid Journal, recorded loot, preparation checklists and private run notes. |
-| Professions | Recipe browsing, crafting plans, material lists, skill-up suggestions, level routes and trainer references. |
+| Professions | Recipe browsing, crafting plans, material lists, skill-up suggestions, level routes, trainer references and Train all in trainer windows. |
 | Social & profiles | Chat tools, private guild notes, optional group history, profile import/export, backups and settings undo. |
 
 Gear Planner combines the built-in equipment catalog with equipped items,
 recorded drops and your wishlist. Its recommendations use your Gear Advisor
 weights. Check item requirements and special effects when comparing equipment.
+
+**Talent Advisor** provides 73 guide build variants for all nine classes, based on
+[Icy Veins' WoW Forever guides](https://www.icy-veins.com/wow-forever/).
+Open **Talent Advisor** directly from the game's **Talents** screen, from All
+Tools or with `/fs talents`. Choose a build, compare learned talents, plan legal points or save your own
+variation. Share builds through copyable codes and keep an account-wide library
+in DataHub. Build profiles combine a plan and gear preferences, with an optional
+layout and undo. Plans never spend or reset talents for you.
+
+The normal Talents screen highlights the build you follow: **gold** marks the
+next legal point, **blue** planned talents, **green** matched planned ranks and
+**purple** flexible choices. **P5**, for example, means five ranks are planned.
+Pending changes pause next-point guidance until applied or canceled. Inspecting
+another character hides your build highlights. You can disable the highlights
+in Talent Advisor settings while keeping the shortcut available.
+
+Gear Advisor's optional talent link uses the selected build's starter role scale.
+The displayed PvE stat reference is not a set of simulated weights and may differ
+for leveling or PvP. Check stat caps, item effects and your own situation in the
+linked guide. See [talent data coverage](Modules/TalentAdvisor/DATA_SOURCES.md).
+
+At a **class, pet or profession trainer**, use **Train all** beside the normal
+Train button. Review the coin cost, then confirm. It trains only the approved
+available lessons with known coin costs; new unlocks need another approval.
+Closing the trainer or entering combat stops training. Toggle the button in
+Quality of Life settings.
 
 DataHub keeps account-wide character records separate from UI profiles. Your
 name, realm, level, class, faction and last-seen time update automatically.
@@ -112,6 +143,7 @@ each tool or its settings.
 | `/fs help` | Open layout recovery. |
 | `/fs addons` | Choose supported addon systems. |
 | `/fs tools` | Open the tool browser at its last selected tool. |
+| `/fs talents` | Open Talent Advisor. |
 | `/fs undo` | Undo the last supported settings change. |
 | `/fs status` | Show client and compatibility information. |
 | `/fs errors` | Show blocked addon actions recorded during this session. |

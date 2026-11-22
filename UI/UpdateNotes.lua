@@ -1,12 +1,14 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.9",lines={
-        "DataHub keeps character records separate from your UI profiles.",
-        "Existing Character stock records are imported once; the original data is preserved.",
-        "Character identity and level update at login, level-up and logout.",
-        "Versioned upgrades and backups protect your saved settings and character records.",
-        "Newer or failed data formats are preserved, and unsafe profile loads are blocked.",
-        "Module enable states and settings initialization are more consistent.",
+    {version="1.0.10",lines={
+        "Talent Advisor: choose a guide build, compare talents and plan your next point.",
+        "73 guide variants cover all nine classes. Open All Tools or type /fs talents.",
+        "Open Talent Advisor from the game Talents screen and follow highlighted planned talents.",
+        "Edit builds, mark flexible choices and share build codes with your community.",
+        "Link Gear Advisor's Auto scale or save a build profile with optional layout.",
+        "Train all is now beside Train at class, pet and profession trainers.",
+        "Review the total coin cost before training. Closing the trainer stops the batch.",
+        "Nameplates now distinguish hostile (red), neutral (yellow) and friendly (green) NPCs.",
     }},
 }
 function FS:ShowUpdateNotesOnLogin()
