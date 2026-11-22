@@ -488,8 +488,8 @@ FS.migrations[4].run=function(d) d.probe=true; error('failed probe') end
 FS.db.schemaVersion=3; FS:InitializeDatabase()
 assert(FS.db.schemaVersion==3 and FS.db.probe==nil and FS.migrationFailure.version==4 and #FS.db.profiles.backups==count)
 assert(#FS.runtimeErrors==errorsBefore+1 and FS.runtimeErrors[#FS.runtimeErrors]:find('failed probe',1,true))
-FS.db.schemaVersion=9; FS:InitializeDatabase(); assert(FS.db.schemaVersion==9 and FS.newerData==9)
-FS.migrations[4]=nil; FS.schemaVersion=3; FS.db.schemaVersion=3; FS.migrationFailure=nil; FS.newerData=nil
+ForeverSuiteDB.schemaVersion=9; FS:InitializeDatabase(); assert(FS.db.schemaVersion==9 and FS.newerData==9)
+FS.migrations[4]=nil; FS.schemaVersion=3; ForeverSuiteDB.schemaVersion=3; FS.migrationFailure=nil; FS.newerData=nil
 table.remove(FS.runtimeErrors); if #FS.runtimeErrors==0 then FS.runtimeErrors=nil end
 FS:InitializeDatabase(); assert(FS.db.schemaVersion==3 and #FS.db.profiles.backups==count)
 
@@ -606,6 +606,60 @@ UnitName=function() return 'Mage' end; H.locked=true; stamp=3000
 assert(H:RecordIdentity()==false and record.lastSeen==2000)
 H.locked=nil
 ForeverSuiteHub,UnitName,GetNormalizedRealmName,UnitLevel,UnitClass,UnitFactionGroup,time=oldHub,oldName,oldRealm,oldLevel,oldClass,oldFaction,oldTime
+
+-- TEST: Newer saved settings remain untouched through normalization and logout profile persistence
+ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles
+local saved=ForeverSuiteDB
+local future={schemaVersion=99,language='future-language',bags={uiVersion=99,showEmpty=true},marker={keep=7}}
+ForeverSuiteDB=future; FS:InitializeDatabase()
+assert(FS.databaseReadOnly and FS.newerData==99 and FS.db~=future and FS.db.bags~=future.bags)
+assert(future.setup==nil and future.profiles==nil and future.bags.uiVersion==99 and future.bags.showEmpty==true and future.language=='future-language')
+FS.db.marker.keep=8; P:PersistCurrent()
+assert(future.marker.keep==7 and future.profiles==nil and not P:Save('Do not persist'))
+ForeverSuiteDB=saved; FS:InitializeDatabase(); assert(not FS.databaseReadOnly and not FS.newerData)
+
+-- TEST: Failed database upgrades preserve raw saved settings while the session uses a temporary copy
+ResetTest(); local FS=ForeverSuite
+local saved,errorsBefore=ForeverSuiteDB,#(FS.runtimeErrors or {})
+local raw={schemaVersion=3,language='original',bags={uiVersion=77},marker={keep=7}}
+FS.schemaVersion=4
+FS:RegisterMigration(4,'release rollback probe',function(data) data.marker.keep=99; data.added=true; error('rollback probe') end)
+ForeverSuiteDB=raw; FS:InitializeDatabase()
+assert(FS.databaseReadOnly and FS.db~=raw and raw.schemaVersion==3 and raw.marker.keep==7 and raw.added==nil)
+assert(raw.setup==nil and raw.language=='original' and raw.bags.uiVersion==77)
+FS.db.marker.keep=8; FS.modules.Profiles:PersistCurrent(); assert(raw.marker.keep==7 and raw.profiles==nil)
+FS.migrations[4]=nil; FS.schemaVersion=3; FS.migrationFailure=nil
+while #(FS.runtimeErrors or {})>errorsBefore do table.remove(FS.runtimeErrors) end
+ForeverSuiteDB=saved; FS:InitializeDatabase(); assert(not FS.databaseReadOnly)
+
+-- TEST: Direct profile loading rejects newer or failed migrations before replacing the active settings
+ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles
+local active=FS.db; local current=active.profiles.current; local saved=ForeverSuiteDB
+active.profiles.saved.Future={schemaVersion=99,gear={enabled=false}}
+assert(P:Load('Future')==false and FS.db==active and ForeverSuiteDB==saved and active.profiles.current==current)
+FS.schemaVersion=4; local errorsBefore=#(FS.runtimeErrors or {})
+FS:RegisterMigration(4,'profile failure probe',function(data) data.changed=true; error('profile probe') end)
+active.profiles.saved.Broken={schemaVersion=3,gear={enabled=false}}
+assert(P:Load('Broken')==false and FS.db==active and ForeverSuiteDB==saved and active.profiles.current==current)
+assert(active.profiles.saved.Broken.changed==nil and active.profiles.saved.Broken.schemaVersion==3)
+local runs=0; FS.migrations[4].run=function(data) runs=runs+1; data.upgraded=true end
+assert(P:Load('Broken')==true and FS.db.schemaVersion==4 and FS.db.upgraded and runs==1)
+FS.schemaVersion=3; FS.migrations[4]=nil; FS.migrationFailure=nil
+while #(FS.runtimeErrors or {})>errorsBefore do table.remove(FS.runtimeErrors) end
+ForeverSuiteDB=saved; saved.profiles.saved.Future=nil; saved.profiles.saved.Broken=nil; saved.profiles.current=current
+FS:InitializeDatabase()
+
+-- TEST: Read-only DataHub records cannot be repaired trimmed or deleted through Character stock
+ResetTest(); local FS=ForeverSuite; local H=FS.Hub; local W=FS.modules.Workbench
+local saved=ForeverSuiteHub
+ForeverSuiteHub={schemaVersion=99,characters='future-format'}; H:Initialize()
+assert(H.locked and next(H:Characters())==nil and ForeverSuiteHub.characters=='future-format')
+H:Trim(); assert(ForeverSuiteHub.characters=='future-format' and H:RemoveCharacter('A-Realm')==false)
+ForeverSuiteHub={schemaVersion=99,characters={['A-Realm']={time=1}}}; H:Initialize()
+W:Choose('Character stock'); W.selected={id='A-Realm'}; W:Perform(3,'')
+assert(ForeverSuiteHub.characters['A-Realm'].time==1 and W.status:find('read-only',1,true))
+W.window:Hide(); ForeverSuiteHub=saved; H:Initialize()
+H:Characters()['Delete-Realm']={time=1}; assert(H:RemoveCharacter('Delete-Realm') and H:Characters()['Delete-Realm']==nil)
 
 -- TEST: DataHub keeps the most recently seen or recorded characters when it trims
 local FS,H=ForeverSuite,ForeverSuite.Hub

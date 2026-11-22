@@ -41,6 +41,7 @@ end
 FS:RegisterMigrationStore("hub", H, "schemaVersion", 1, "Character data", keepBackup)
 
 function H:Data()
+    if self.locked and self.readOnlyData then return self.readOnlyData end
     if type(ForeverSuiteHub) ~= "table" then ForeverSuiteHub = {} end
     if type(ForeverSuiteHub.characters) ~= "table" then ForeverSuiteHub.characters = {} end
     return ForeverSuiteHub
@@ -68,6 +69,7 @@ end
 -- Keeps the characters seen or recorded most recently. A character that was only
 -- seen (no recorded sections) still counts as recent through lastSeen.
 function H:Trim()
+    if self.locked then return end
     local map, count = self:Characters(), 0
     for _ in pairs(map) do
         count = count + 1
@@ -85,6 +87,12 @@ function H:Trim()
         return tostring(a.key) < tostring(b.key)
     end)
     for index = self.limit + 1, #ranked do map[ranked[index].key] = nil end
+end
+
+function H:RemoveCharacter(key)
+    if self.locked then return false,"Character data is read-only. Update the addon before removing records." end
+    self:Characters()[key]=nil
+    return true
 end
 
 -- True when at least one character has recorded sections (bags, gear or
@@ -152,7 +160,7 @@ function H:ImportLegacy()
 end
 
 function H:Initialize()
-    self.locked = nil
+    self.locked = nil; self.readOnlyData=nil
     local fresh = type(ForeverSuiteHub) ~= "table" or next(ForeverSuiteHub) == nil
     if type(ForeverSuiteHub) ~= "table" then ForeverSuiteHub = {} end
     if fresh then
@@ -166,6 +174,9 @@ function H:Initialize()
             self.locked = true
             FS:Print("Your saved character data comes from a newer ForeverSuite (data version " .. info .. ") and is read-only until you update the addon.")
         end
+    end
+    if self.locked then
+        self.readOnlyData={schemaVersion=ForeverSuiteHub.schemaVersion,characters=type(ForeverSuiteHub.characters)=="table" and ForeverSuiteHub.characters or {}}
     end
     self:Data()
     self:ImportLegacy()

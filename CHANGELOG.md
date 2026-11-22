@@ -1,3 +1,12 @@
+# 1.0.9 - 2026-11-22
+
+- Adds DataHub, a separate account-wide character database. Existing Character stock records are imported once, while the original stock database is kept intact.
+- Records your character's name, realm, level, class, faction and last-seen time at login, level-up and logout. Bags, equipment and professions retain their own recorded snapshots and update times.
+- Character stock and profession material checks now read from DataHub. Automatic identity records do not create a misleading recorded-stock reminder.
+- Adds versioned migrations for settings, profiles and separate saved-data stores, with rollback and backups for upgrades.
+- Protects newer or failed saved-data formats from writes, blocks unsafe profile loads and prevents deletion of read-only character records.
+- Uses each module's settings key consistently when enabling, disabling, searching or resetting modules, and normalizes each module once during database loading.
+
 # 1.0.8 - 2026-11-19
 
 - Minimap frames now follow all eleven ForeverSuite themes, with individual Blender-rendered borders and matching header accents.

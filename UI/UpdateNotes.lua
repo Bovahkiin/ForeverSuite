@@ -1,12 +1,12 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.8",lines={
-        "Minimap frames follow your selected theme.",
-        "Choose a square, Diablo-inspired Dark Fantasy minimap in Map settings.",
-        "Switching minimap styles restores Forever terrain correctly, including rotation changes.",
-        "Cleaner Guild & Communities panels, member rows and navigation tabs.",
-        "Supported windows prepare their appearance before opening.",
-        "New README and in-game previews, with support and bug reports on Discord.",
+    {version="1.0.9",lines={
+        "DataHub keeps character records separate from your UI profiles.",
+        "Existing Character stock records are imported once; the original data is preserved.",
+        "Character identity and level update at login, level-up and logout.",
+        "Versioned upgrades and backups protect your saved settings and character records.",
+        "Newer or failed data formats are preserved, and unsafe profile loads are blocked.",
+        "Module enable states and settings initialization are more consistent.",
     }},
 }
 function FS:ShowUpdateNotesOnLogin()

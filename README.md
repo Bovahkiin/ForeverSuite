@@ -64,6 +64,13 @@ Gear Planner combines the built-in equipment catalog with equipped items,
 recorded drops and your wishlist. Its recommendations use your Gear Advisor
 weights. Check item requirements and special effects when comparing equipment.
 
+DataHub keeps account-wide character records separate from UI profiles. Your
+name, realm, level, class, faction and last-seen time update automatically.
+Use **Character stock → Record character** to refresh recorded bags, equipment
+and professions. These snapshots show when they were recorded; they are not
+live views of logged-out characters. Existing Character stock data is imported
+once, and the original saved data is retained.
+
 Profession routes and trainer references combine bundled data with information
 recorded in game. See the [gear catalog coverage](ForeverSuite_GearData/DATA_SOURCES.md)
 and [profession data coverage](ForeverSuite_ProfessionData/DATA_SOURCES.md) for details.

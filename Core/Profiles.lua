@@ -5,6 +5,7 @@ local function copy(v)
     local out={}; for k,value in pairs(v) do out[k]=copy(value) end; return out
 end
 function P:Allowed()
+    if FS.databaseReadOnly then FS:Print("Saved settings are read-only because their format could not be loaded safely. Update the addon before changing profiles."); return false end
     if InCombatLockdown() then FS:Print("Leave combat to change profiles."); return false end
     if FS.modules.Vendor and FS.modules.Vendor.busy then FS:Print("Stop the current vendor action before changing profiles."); return false end
     return true
@@ -31,9 +32,13 @@ function P:Save(name)
 end
 function P:Load(name)
     if not self:Allowed() or not FS.db.profiles.saved[name] then return false end
+    local selected=copy(FS.db.profiles.saved[name])
+    local migrated,info=FS:MigrateData(selected)
+    if migrated=="newer" then FS:Print("This profile was saved by a newer ForeverSuite. Update the addon to load it."); return false end
+    if migrated==false then FS:ReportMigrationFailure(info); return false end
     if FS.Extensions then FS.Extensions:FinishGathering('Profile changed') end
     if FS.Layout.active then FS.Layout:Stop() end
-    local manager=FS.db.profiles; local selected=copy(manager.saved[name])
+    local manager=FS.db.profiles
     local currentSnapshot=self:Snapshot()
     if self.Backup then self:Backup(manager.current,currentSnapshot,"Before profile switch") end
     manager.saved[manager.current]=currentSnapshot; manager.saved[name]=copy(selected)

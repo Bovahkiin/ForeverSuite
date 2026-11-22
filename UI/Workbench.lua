@@ -1044,7 +1044,8 @@ function W:Perform(action,text)
         elseif action==2 and r then
             E:TextDialog(r.id,self:CharacterRecordText(r.record),true)
         elseif action==3 and r then
-            E:StockRecords()[r.id]=nil
+            local _,message=FS.Hub:RemoveCharacter(r.id)
+            self.status=message or 'Character record removed.'
         end
     elseif view=='Layout presets' then
         if action==1 then

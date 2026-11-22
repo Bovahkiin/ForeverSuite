@@ -1,6 +1,6 @@
 local addonName, FS = ...
 FS.name = addonName
-FS.version = "1.0.8"
+FS.version = "1.0.9"
 FS.icon = "Interface\\AddOns\\ForeverSuite\\Assets\\Icon-FS.tga"
 FS.logo = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-wordmark.tga"
 FS.emblem = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-transparent.tga"

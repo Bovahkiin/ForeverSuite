@@ -142,29 +142,31 @@ function FS:InitializeDatabase()
     local firstRun=self.firstInstallation==nil and fresh
     if self.firstInstallation==nil then self.firstInstallation=fresh end
     if type(ForeverSuiteDB) ~= "table" then ForeverSuiteDB = {} end
-    -- Only an explicit saved choice may skip onboarding; partial settings are not completion.
-    if type(ForeverSuiteDB.setup)~="table" then ForeverSuiteDB.setup={completed=false,dismissed=false} end
-    if firstRun then
-        ForeverSuiteDB.setup.welcomePending=true
-    end
-    local social=ForeverSuiteDB.social
-    if type(social)=="table" then
-        if type(ForeverSuiteDB.chat)~="table" then ForeverSuiteDB.chat={enabled=social.enabled,timestamps=social.timestamps} end
-        if type(ForeverSuiteDB.guild)~="table" then ForeverSuiteDB.guild={enabled=social.enabled,onlineOnly=social.onlineOnly} end
-    end
-    -- The two repairs above are older than versioned migrations and detect their
-    -- own need; versioned migrations start after them.
+    local data=ForeverSuiteDB
+    self.databaseReadOnly=nil; self.newerData=nil
     if not fresh then
-        local result, info = self:MigrateData(ForeverSuiteDB)
-        if result == false then self:ReportMigrationFailure(info)
+        local result, info = self:MigrateData(data)
+        if result == false then
+            self:ReportMigrationFailure(info)
+            self.databaseReadOnly=true; data=deepCopy(data)
         elseif result == "newer" then
-            self.newerData = info
-            self:Print("Your saved settings come from a newer ForeverSuite (data version " .. info .. ") and were left unchanged. Update the addon to keep using them safely.")
+            self.newerData=info; self.databaseReadOnly=true; data=deepCopy(data)
+            self:Print("Your saved settings come from a newer ForeverSuite (data version " .. info .. "). They are preserved; this session uses a temporary copy. Update the addon before saving profile changes.")
         end
     end
-    local simplifyBags = type(ForeverSuiteDB.bags) == "table" and ForeverSuiteDB.bags.uiVersion ~= 1
-    self:ApplyDefaults(ForeverSuiteDB, self.defaults)
-    self.db = ForeverSuiteDB
+    -- Only an explicit saved choice may skip onboarding; partial settings are not completion.
+    if type(data.setup)~="table" then data.setup={completed=false,dismissed=false} end
+    if firstRun then
+        data.setup.welcomePending=true
+    end
+    local social=data.social
+    if type(social)=="table" then
+        if type(data.chat)~="table" then data.chat={enabled=social.enabled,timestamps=social.timestamps} end
+        if type(data.guild)~="table" then data.guild={enabled=social.enabled,onlineOnly=social.onlineOnly} end
+    end
+    local simplifyBags = type(data.bags) == "table" and data.bags.uiVersion ~= 1
+    self:ApplyDefaults(data, self.defaults)
+    self.db = data
     if self.Typography then self.Typography:Normalize() end
     if simplifyBags then self.db.bags.showEmpty = false end
     self.db.bags.uiVersion = 1
