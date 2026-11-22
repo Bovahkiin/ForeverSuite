@@ -8,6 +8,7 @@ local shortcuts = {
     {"bags", "Bags", "Open Bags"},
     {"map", "Map", "Open map tools"},
     {"gear", "GearAdvisor", "Open Gear Advisor"},
+    {"talents", "TalentAdvisor", "Open Talent Advisor", "Choose builds, plan your next talent and link gear priorities.", function() FS.modules.TalentAdvisor:ShowWindow() end,"Talents"},
     {"mail", "Mail", "Open mail tools"},
     {"vendor", "Vendor", "Review vendor items"},
     {"quests", "Quests", "Open quest log"},

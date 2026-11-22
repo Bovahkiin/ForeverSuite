@@ -1251,6 +1251,7 @@ FS.db.actionBars.menu=true; A:SettingsChanged(); assert(s.proxy:IsShown())
 """
 checks['Custom nameplates hide native visuals, preserve clicks, colors and pooled frame restoration'] = r"""
 ResetTest(); local FS=ForeverSuite; local N=FS.modules.Nameplates
+TEST.units.target.reaction=3
 local plate=CreateFrame('Frame'); local native=CreateFrame('Button',nil,plate); plate.UnitFrame=native
 native.unit='target'; native.HealthBarsContainer={healthBar=CreateFrame('StatusBar',nil,native)}
 local clicks=0; native:SetScript('OnClick',function() clicks=clicks+1 end)
@@ -1519,6 +1520,10 @@ for section in Path('work/check_services.lua').read_text().split('-- TEST: ')[1:
     checks[title] = 'do\n' + script + '\nend'
 
 for section in Path('work/check_beginner.lua').read_text().split('-- TEST: ')[1:]:
+    title, script = section.split('\n', 1)
+    checks[title] = 'do\n' + script + '\nend'
+
+for section in Path('work/check_talents.lua').read_text().split('-- TEST: ')[1:]:
     title, script = section.split('\n', 1)
     checks[title] = 'do\n' + script + '\nend'
 

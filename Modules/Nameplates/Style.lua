@@ -1,11 +1,11 @@
 local _,FS=...
 local N,H=FS.modules.Nameplates,FS.HUD
-N.colors={Cyan={.12,.72,.86},Gold={.95,.68,.24},Red={.85,.12,.16},Green={.18,.75,.45},Blue={.22,.52,1},Purple={.65,.45,.95},Pink={.91,.39,.78},Orange={1,.46,.17},White={.9,.94,1},Gray={.45,.5,.55},None={0,0,0}}
-N.colorNames={"Cyan","Gold","Red","Green","Blue","Purple","Pink","Orange","White","Gray"}
+N.colors={Cyan={.12,.72,.86},Gold={.95,.68,.24},Yellow={1,.82,0},Red={.85,.12,.16},Green={.18,.75,.45},Blue={.22,.52,1},Purple={.65,.45,.95},Pink={.91,.39,.78},Orange={1,.46,.17},White={.9,.94,1},Gray={.45,.5,.55},None={0,0,0}}
+N.colorNames={"Cyan","Gold","Yellow","Red","Green","Blue","Purple","Pink","Orange","White","Gray"}
 N.designDefaults={width=190,height=22,fontSize=13,valueFontSize=11,castHeight=16,auraSize=17,auraCount=4,auraSpacing=3,
     showName=true,showLevel=true,showHealth=true,showThreat=true,showCast=true,castIcon=false,castTime=false,
     debuffs=true,auraType="Debuffs",onlyMine=false,auraCountdown=true,classColors=true,threatColors=false,
-    enemyColor="Red",friendlyColor="Green",borderColor="Cyan",targetColor="Gold",castColor="Cyan",targetHighlight=true,
+    enemyColor="Red",neutralColor="Yellow",friendlyColor="Green",borderColor="Cyan",targetColor="Gold",castColor="Cyan",targetHighlight=true,
     targetScale=1,otherOpacity=1,outline=true,healthFormat="Value + percent",nameAlign="CENTER",healthAlign="RIGHT",
     positions={name={x=0,y=17},healthText={x=4,y=-2},level={x=4,y=-3},threat={x=0,y=32},cast={x=0,y=-4},auras={x=0,y=-45}}}
 for key,value in pairs(N.designDefaults) do FS.defaults.nameplates[key]=value end
@@ -20,8 +20,10 @@ N.designGroups={
         {key="showLevel",label="Show level"},{key="showThreat",label="Show threat text"},
         {key="healthFormat",label="Health format",values={"Value + percent","Percent","Value","Current / maximum"}},
         {key="nameAlign",label="Name alignment",values={"CENTER","LEFT","RIGHT"}},{key="healthAlign",label="Health alignment",values={"RIGHT","CENTER","LEFT"}}}},
-    {name="Colors",options={{key="classColors",label="Player class colors"},{key="threatColors",label="Enemy threat colors"},
-        {key="enemyColor",label="Enemy color",values=N.colorNames},{key="friendlyColor",label="Friendly color",values=N.colorNames},
+    {name="Colors",options={{key="classColors",label="Player class colors"},{key="threatColors",label="Enemy threat colors",help="Aggro colors override hostile and neutral colors while you have threat. Turn off to keep reaction colors."},
+        {key="enemyColor",label="Hostile color",values=N.colorNames,help="NPCs hostile to you. Uses your previous Enemy color setting."},
+        {key="neutralColor",label="Neutral NPC color",values=N.colorNames,help="NPCs you can attack that are not currently hostile to you, such as an unengaged Plainstrider. They normally leave you alone until attacked."},
+        {key="friendlyColor",label="Friendly color",values=N.colorNames},
         {key="borderColor",label="Border color",values={"Cyan","Gold","Red","Green","Blue","Purple","Pink","Orange","White","Gray","None"}},
         {key="targetColor",label="Target outline color",values=N.colorNames},{key="targetHighlight",label="Highlight your target"},{key="castColor",label="Cast color",values=N.colorNames}}},
     {name="Auras",options={{key="debuffs",label="Show aura icons"},{key="auraType",label="Aura type",values={"Debuffs","Buffs"}},
@@ -124,6 +126,13 @@ function N:HealthColor(unit,threat,db)
     end
     local player=UnitIsPlayer(unit)
     if db.classColors and H:Safe(player) and player then return H:Color(unit) end
+    if H:Safe(player) and not player then
+        local reaction=FS.Tools:Call(UnitReaction,unit,"player")
+        if FS.Tools:Number(reaction) then
+            if reaction==4 then return unpack(self.colors[db.neutralColor or "Yellow"]) end
+            if reaction>=1 and reaction<=3 then return unpack(self.colors[db.enemyColor]) end
+        end
+    end
     return unpack(self.colors[H:Safe(enemy) and enemy and db.enemyColor or db.friendlyColor])
 end
 function N:Paint(f,unit,selected,threat,db)

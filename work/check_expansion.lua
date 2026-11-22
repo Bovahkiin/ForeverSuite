@@ -41,7 +41,7 @@ for _,name in ipairs({'Map','Quests','Loot','Buffs','Cooldowns','Combat','Profes
     FS:SetModuleEnabled(name,false); assert((not M.window or not M.window:IsShown()) and not FS:IsModuleEnabled(name))
     FS:SetModuleEnabled(name,true)
 end
-FS:ShowWorkspacePage('modules'); local f=FS.window; assert(f.cardCount==24)
+FS:ShowWorkspacePage('modules'); local f=FS.window; assert(f.cardCount==25)
 f.nextModules:Click(); assert(f.cardPage==2 and f.cards.Quests.card:IsShown() and not f.cards.Bags.card:IsShown())
 f.nextModules:Click(); assert(f.cardPage==3 and f.cards.Bank.card:IsShown())
 f.previousModules:Click(); f.previousModules:Click(); assert(f.cardPage==1)
@@ -1011,7 +1011,7 @@ C_FriendList,GetNumGuildMembers,GetGuildRosterInfo,GetGuildInfo,ChatFrame_SendTe
 
 -- TEST: Profiles stays in the top navigation and saves and switches through its own page
 ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles; FS:ShowConfig(); local f=FS.window; local bar=f.profiles
-assert(bar==P.bar and not f.cards.Profiles and f.cardCount==24)
+assert(bar==P.bar and not f.cards.Profiles and f.cardCount==25)
 f.tabs.modules:Click()
 for page=1,3 do f.cardPage=page; FS:RefreshConfig(); assert(f.tabs.profiles:IsShown() and not bar:IsShown()) end
 f.tabs.profiles:Click(); assert(bar:IsShown())
@@ -1318,7 +1318,7 @@ assert(f.preview.name:GetText()=='ForeverSuite Training Target' and f.preview.he
 local cell=f.optionCells[1]; cell.input:SetText('260'); cell.input.scripts.OnEnterPressed(cell.input); assert(FS.db.nameplates.width==260 and f.preview.health.w==256)
 cell.input:SetText('9999'); cell.input.scripts.OnEnterPressed(cell.input); assert(FS.db.nameplates.width==260 and f.message:GetText():find('80 to 360',1,true))
 N:EditorGroup(2); assert(#f.optionCells==9 and not cell:IsShown()); f.optionCells[1]:Click(); assert(not FS.db.nameplates.showName and not f.preview.name:IsShown() and not f.handles.name:IsShown())
-N:EditorGroup(3); assert(#f.optionCells==8); N:EditorGroup(4); assert(#f.optionCells==7)
+N:EditorGroup(3); assert(#f.optionCells==9); N:EditorGroup(4); assert(#f.optionCells==7)
 N:ApplyPreset('Large'); assert(FS.db.nameplates.width==240 and f.preview.auras[1].w==24)
 N:ApplyPreset('Minimal'); assert(not f.preview.level:IsShown() and not f.preview.auras[1]:IsShown())
 FS.db.nameplates.width=360; FS.db.nameplates.scale=1.4; FS.db.nameplates.targetScale=1.5; N:SettingsChanged()

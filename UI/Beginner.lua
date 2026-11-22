@@ -13,7 +13,7 @@ B.help = {
     Gear = "See damaged equipment and get a reminder before it breaks.",
     UnitFrames = "See your health and power, your target and your pet.",
     ActionBars = "Choose how your action buttons look and open the game bar layout.",
-    Nameplates = "Customize the health bars above enemies and other players.",
+    Nameplates = "Customize health bars. Hostile NPCs are red, neutral NPCs yellow and friendly units green by default.",
     Character = "View equipment, character stats, your pet and reputation.",
     Map = "Find your way with a quest arrow, minimap trail and coordinates.",
     Quests = "Follow quest objectives and see what to do next.",
@@ -32,6 +32,7 @@ B.help = {
     Mail = "Collect mail attachments and money with fewer clicks.",
     MinimapButtons = "Keep supported minimap addon buttons together in one tray.",
     GearAdvisor = "See whether found equipment is better for your class and build.",
+    TalentAdvisor = "Choose a talent plan, see your next point and match gear advice to your build.",
 }
 
 B.aliases = {
@@ -41,6 +42,7 @@ B.aliases = {
     Chat = "chat messages chat window readable text",
     ActionBars = "buttons spells action bars abilities",
     GearAdvisor = "upgrade equipment advice better weapon armor",
+    TalentAdvisor = "talents talent build points leveling spec guide advisor community import export",
     Mail = "mail post letters attachments collect money",
     MinimapButtons = "minimap addon buttons collect tray",
     Bindings = "keys keyboard shortcuts hotkeys",
@@ -52,9 +54,10 @@ local explicit = {
     Gear = {"showButton", "warn", "warningPercent"},
     UnitFrames = {"showPet", "showFocus", "showParty", "showRaid"},
     ActionBars = {"mouseover", "fade", "menu"},
-    Nameplates = {"enemies", "friendlyPlayers", "friendlyNPCs"},
+    Nameplates = {"enemies", "friendlyPlayers", "friendlyNPCs", "neutralColor"},
     Map = {"navigation", "minimapStyle", "coordinates", "autoQuest"},
     GearAdvisor = {"preset", "role", "tooltips", "minimum"},
+    TalentAdvisor = {"goal", "library", "includeLayout"},
 }
 
 function B:Title(name)

@@ -16,6 +16,7 @@ local columns = {}
 for index, name in ipairs(names) do
     columns[name] = index - 1
 end
+columns.TalentAdvisor=columns.Talents
 
 -- Only ForeverSuite's decorative regions are registered here.
 local icons = setmetatable({}, { __mode = "k" })

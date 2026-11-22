@@ -10,6 +10,9 @@ Thumbs.db
 # Keep local development exports, logs and cached dependencies on this PC.
 /work/*
 !/work/check_vendor.py
+!/work/check_talents.lua
+!/work/build_talent_catalog.py
+!/work/prepare_talent_sources.py
 !/work/check_expansion.lua
 !/work/check_trail.lua
 !/work/check_native_chrome.lua

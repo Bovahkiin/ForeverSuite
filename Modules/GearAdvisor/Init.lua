@@ -1,11 +1,12 @@
 local _,FS=...
 local T=FS.Tools
 local G=T:Module('GearAdvisor','gearAdvisor','Gear Advisor','Stat-weight comparisons for your current gear. Starter presets are estimates: check class requirements, weapon setups, set bonuses and special effects yourself.',
-    {preset='Auto',role='Class default',view='Upgrades',tooltips=true,minimum=1,showAll=false,weights={}}, {'BAG_UPDATE_DELAYED','PLAYER_EQUIPMENT_CHANGED','GET_ITEM_INFO_RECEIVED','PLAYER_LEVEL_UP','ADDON_LOADED'})
+    {preset='Auto',role='Class default',view='Upgrades',tooltips=true,minimum=1,showAll=false,weights={},talentBuild=false}, {'BAG_UPDATE_DELAYED','PLAYER_EQUIPMENT_CHANGED','GET_ITEM_INFO_RECEIVED','PLAYER_LEVEL_UP','ADDON_LOADED'})
 G.options={{key='preset',label='Stat scale',values={'Auto','Strength','Agility','Caster','Healer','Tank','Custom'}},
     {key='role',label='My build',values={'Class default','Physical damage','Spell damage','Healer','Tank'}},
     {key='view',label='View',values={'Upgrades','Class guide','Weights'}},{key='tooltips',label='Show scores on item tooltips'},
-    {key='minimum',label='Minimum improvement percent',values={0,1,3,5,10}},{key='showAll',label='Also show comparable non-upgrades'}}
+    {key='minimum',label='Minimum improvement percent',values={0,1,3,5,10}},{key='showAll',label='Also show comparable non-upgrades'},
+    {key='talentBuild',label='Follow selected Talent Advisor plan',help='Applies to Auto scales. Custom and manually selected stat scales are preserved.'}}
 G.stats={{'Strength','ITEM_MOD_STRENGTH_SHORT'},{'Agility','ITEM_MOD_AGILITY_SHORT'},{'Stamina','ITEM_MOD_STAMINA_SHORT'},
     {'Intellect','ITEM_MOD_INTELLECT_SHORT'},{'Spirit','ITEM_MOD_SPIRIT_SHORT'},{'Armor','RESISTANCE0_NAME'},
     {'AttackPower','ITEM_MOD_ATTACK_POWER_SHORT'},{'RangedAttackPower','ITEM_MOD_RANGED_ATTACK_POWER_SHORT'},
@@ -52,6 +53,11 @@ function G:Weights()
     local name=self:Data().preset
     if name=='Custom' then return self:Data().weights,'Custom' end
     if name=='Auto' then
+        local advisor=FS.modules.TalentAdvisor
+        if self:Data().talentBuild and advisor and FS:IsModuleEnabled('TalentAdvisor') then
+            local weights,label=advisor:GearWeights()
+            if weights then return weights,label..' (planned build starter estimate)' end
+        end
         local guide,label,class=self:ClassGuide()
         name=guide and guide[1] or 'Strength'
         local role=self:Data().role

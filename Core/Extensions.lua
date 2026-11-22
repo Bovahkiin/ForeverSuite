@@ -347,6 +347,8 @@ function P:Export()
         data.extras.runNotes=nil; data.extras.encounterLoot=nil
     end
     for _,section in pairs(data) do if type(section)=="table" then section.history=nil end end
+    -- The account library is shared separately; UI profiles must not expose build names.
+    if data.talentAdvisor then data.talentAdvisor.selected='';data.talentAdvisor.activeBundle='' end
     return E:Encode({format=1,settings=data})
 end
 function P:PreviewImport(text)

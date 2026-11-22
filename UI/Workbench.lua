@@ -143,7 +143,7 @@ function E:SettingsIndex()
     add('Workbench','nativeWindows','Style game popup windows (off restores native art)',FS.db.extras,{key='nativeWindows'})
     table.sort(rows,function(a,b) return a.id<b.id end); return rows
 end
-function E:Form(title,fields,save,actionLabel)
+function E:Form(title,fields,save,actionLabel,onReturn,owner)
     if not self:Allowed() then FS:Print(FS.Text.leaveCombat); return end
     local f=self.form
     if not f then
@@ -152,13 +152,14 @@ function E:Form(title,fields,save,actionLabel)
         f.save=H:Button(f,FS.Text.apply,24,-350,320,function()
             if not E:Allowed() then f.status:SetText(FS.Text.leaveCombat); return end
             local values={}; for i=1,f.fieldCount do values[i]=f.edits[i]:GetText() end
-            local ok,message=f.saveAction(unpack(values)); if ok then f:Hide(); W:ShowWindow() else f.status:SetText(message or 'Check the entered values.') end
+            local returnAction=f.returnAction
+            local ok,message=f.saveAction(unpack(values)); if ok then f:Hide(); if returnAction then returnAction() else W:ShowWindow() end else f.status:SetText(message or 'Check the entered values.') end
         end)
-        f.cancel=H:Button(f,FS.Text.cancel,376,-350,320,function() f:Hide(); W:ShowWindow() end)
-        f:SetScript('OnHide',function() f.saveAction=nil end); UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteEditForm'
+        f.cancel=H:Button(f,FS.Text.cancel,376,-350,320,function() local returnAction=f.returnAction; f:Hide(); if returnAction then returnAction() else W:ShowWindow() end end)
+        f:SetScript('OnHide',function() f.saveAction=nil;f.returnAction=nil end); UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteEditForm'
     end
-    f:Hide(); f.saveAction=save; f.fieldCount=math.min(8,#fields); H:Skin(f); FS:FontTree(f)
-    f:SetBackdropBorderColor(unpack(FS.moduleCardColors[W.activeOwner] or {.12,.72,.86}))
+    f:Hide(); f.saveAction=save;f.returnAction=onReturn;f.fsFontModule=owner or W.activeOwner or 'Workbench'; f.fieldCount=math.min(8,#fields); H:Skin(f); FS:FontTree(f)
+    f:SetBackdropBorderColor(unpack(FS.moduleCardColors[owner or W.activeOwner] or {.12,.72,.86}))
     f.heading:SetText(title); f.save:SetText(actionLabel or FS.Text.apply); f.status:SetText('')
     local y=math.max(62,20+H:TextHeight(f.heading,672,3)+18)
     for i=1,f.fieldCount do
@@ -178,7 +179,7 @@ local function settingLabel(key)
     return (label:gsub('^%l',string.upper))
 end
 
-function E:TextDialog(title,text,readOnly,validate,apply,onReturn,reviewProfile)
+function E:TextDialog(title,text,readOnly,validate,apply,onReturn,reviewProfile,owner)
     if not self:Allowed() then return end
     local f=self.dialog
     if not f then
@@ -273,8 +274,8 @@ function E:TextDialog(title,text,readOnly,validate,apply,onReturn,reviewProfile)
         end)
         UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteTextDialog'
     end
-    f:Hide(); H:Skin(f); f.fsFontModule=W.activeOwner or 'Workbench'; FS:FontTree(f); f.readOnly=readOnly; f.validate=validate; f.applyAction=apply; f.returnAction=onReturn; f.candidate=nil; f.reviewProfile=reviewProfile
-    f:SetBackdropBorderColor(unpack(FS.moduleCardColors[W.activeOwner] or {.12,.72,.86})); f.heading:SetText(title); f.edit:SetText(text or '')
+    f:Hide(); H:Skin(f); f.fsFontModule=owner or W.activeOwner or 'Workbench'; FS:FontTree(f); f.readOnly=readOnly; f.validate=validate; f.applyAction=apply; f.returnAction=onReturn; f.candidate=nil; f.reviewProfile=reviewProfile
+    f:SetBackdropBorderColor(unpack(FS.moduleCardColors[owner or W.activeOwner] or {.12,.72,.86})); f.heading:SetText(title); f.edit:SetText(text or '')
     f.status:SetText(readOnly and 'Select all, then Ctrl+C to copy. This window does not send messages.' or 'Paste a ForeverSuite export, then Preview before applying.')
     f.preview:SetText(readOnly and 'Select all' or FS.Text.preview); f.apply:SetShown(not readOnly); f.apply:SetEnabled(false); f.cancel:SetText(readOnly and FS.Text.close or FS.Text.cancel)
     f:ResizeText(); f:UpdateReview(); f:Layout(); if f.scroll.SetVerticalScroll then f.scroll:SetVerticalScroll(0) end
@@ -301,14 +302,20 @@ function W:ReadTrainer()
         local key=T:Text(name)..'\031'..rank
         if T:Text(name)~='' and category=='available' then
             local cost,talent,profession=T:Call(GetTrainerServiceCost,index)
+            -- Forever returns coin/training-point cost plus a new-profession flag.
+            -- Older clients returned coin, talent-point and profession-slot costs.
+            if type(talent)=='boolean' then profession=talent and 1 or 0;talent=0 end
+            local petType=Enum and Enum.TrainerType and Enum.TrainerType.Pet
+            local pet=petType~=nil and T:Call(C_Trainer and C_Trainer.GetTrainerType)==petType
+            local petPoints=pet and T:Number(cost) and cost>0
             local price='Cost unavailable'
             if T:Number(cost) and cost>=0 then
-                data.total=data.total+cost
-                price=cost==0 and 'Free' or FS.modules.Vendor:Money(cost)
+                if not petPoints then data.total=data.total+cost end
+                price=petPoints and (cost..' pet training points') or cost==0 and 'Free' or FS.modules.Vendor:Money(cost)
                 if T:Number(talent) and talent>0 then price=price..' + '..talent..' talent points' end
                 if T:Number(profession) and profession>0 then price=price..' + '..profession..' profession slots' end
             else data.unknown=data.unknown+1 end
-            local coinsOnly=(talent==nil or talent==0) and (profession==nil or profession==0)
+            local coinsOnly=not petPoints and (talent==nil or talent==0) and (profession==nil or profession==0)
             data.available[#data.available+1]={
                 key=key,index=index,cost=cost,coinsOnly=coinsOnly and T:Number(cost) and cost>=0,
                 text=name..(rank~='' and ' ('..rank..')' or '')..' | '..price,
@@ -340,16 +347,20 @@ local function trainingPlan(data)
     end
     return entries,total
 end
+function W:TrainingPlan(data) return trainingPlan(data) end
 function W:StopTraining(message)
     local batch=self.training
     if not batch then return end
     self.training=nil
+    if FS.Training then FS.Training:Refresh() end
     FS:Print('Training: '..batch.completed..' confirmed. '..message)
     if self.window and self.window:IsShown() then self:Refresh() end
 end
 function W:TrainNext(batch)
     if self.training~=batch then return end
-    if not E:Allowed() or not self.window:IsShown() or self:Data().view~='Trainer preview' then
+    local context=batch.owner and FS.Training and FS.Training:Allowed(batch.owner)
+        or not batch.owner and self.window and self.window:IsShown() and self:Data().view=='Trainer preview'
+    if not E:Allowed() or not context then
         self:StopTraining('Training interrupted.'); return
     end
     local approved=batch.entries[batch.completed+1]
@@ -388,14 +399,15 @@ function W:TrainNext(batch)
     end
     C_Timer.After(.15,verify)
 end
-function W:ConfirmTraining()
+function W:ConfirmTraining(owner)
     if self.training or type(BuyTrainerService)~='function' then self.status='Bulk training is unavailable right now.'; return end
     local entries,total=trainingPlan(self:ReadTrainer())
     if not entries or #entries==0 then self.status='No unambiguous training with a known coin cost is available.'; return end
     local revision=self.trainerRevision
+    if owner and (not FS.Training or not FS.Training:Allowed(owner)) then return end
     E:Form(('Train %d skills for %s?'):format(#entries,FS.modules.Vendor:Money(total)),{},function()
         local current=trainingPlan(self:ReadTrainer())
-        if self.training or self.trainerRevision~=revision or not current or #current~=#entries then
+        if self.training or self.trainerRevision~=revision or not current or #current~=#entries or (owner and not FS.Training:Allowed(owner)) then
             return false,'The trainer list changed. Refresh the preview and try again.'
         end
         for index,entry in ipairs(current) do
@@ -405,11 +417,12 @@ function W:ConfirmTraining()
         end
         local balance=T:Call(GetMoney)
         if not T:Number(balance) or balance<total then return false,'You do not have enough readable coin for this batch.' end
-        local batch={entries=entries,completed=0}
+        local batch={entries=entries,completed=0,owner=owner}
         self.training=batch
+        if FS.Training then FS.Training:Refresh() end
         C_Timer.After(0,function() self:TrainNext(batch) end)
         return true
-    end,'Train skills')
+    end,'Train skills',owner and function() FS.Training:Refresh() end or nil,owner and 'QoL' or nil)
 end
 function W:WishlistForm(instance,boss,item)
     return E:Form('Add loot goal',{
@@ -1044,7 +1057,8 @@ function W:Perform(action,text)
         elseif action==2 and r then
             E:TextDialog(r.id,self:CharacterRecordText(r.record),true)
         elseif action==3 and r then
-            E:StockRecords()[r.id]=nil
+            local _,message=FS.Hub:RemoveCharacter(r.id)
+            self.status=message or 'Character record removed.'
         end
     elseif view=='Layout presets' then
         if action==1 then

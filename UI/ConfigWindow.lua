@@ -11,6 +11,7 @@ FS.moduleCardColors = {
     Character={.92,.80,.46}, Profiles={.40,.65,.90},
     Workbench={.43,.75,.88},
     Mail={.88,.69,.36}, MinimapButtons={.28,.84,.96}, GearAdvisor={.71,.87,.49},
+    TalentAdvisor={.75,.61,.95},
     Map={.46,.78,.29}, Quests={.98,.86,.22}, Loot={1.00,.46,.17}, Buffs={.14,.88,.78},
     Cooldowns={.91,.39,.78}, Combat={1.00,.38,.49}, Professions={.77,.56,.38}, AuctionHouse={.74,.90,.23},
     Social={.70,.63,1.00}, Chat={.91,.73,.90}, Guild={.38,.74,.58}, QoL={.98,.58,.72}, Bank={.52,.90,.70}, Bindings={.70,.79,.88},
@@ -194,6 +195,7 @@ function FS:CreateConfigWindow()
         {"Mail","Mail","Read mail and collect attachments or money"},
         {"MinimapButtons","Addon Buttons","Collect minimap addon buttons in one tray"},
         {"GearAdvisor","Gear Advisor","Compare equipment with customizable stat weights"},
+        {"TalentAdvisor","Talent Advisor","Plan talents and match gear advice to your build"},
     }
     for _,d in ipairs(additions) do modules[#modules+1]={name=d[1],title=d[2],detail=d[3]} end
     frame.cardCount=#modules; frame.cardPage=1; frame.moduleOrder={}

@@ -1,12 +1,14 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.8",lines={
-        "Minimap frames follow your selected theme.",
-        "Choose a square, Diablo-inspired Dark Fantasy minimap in Map settings.",
-        "Switching minimap styles restores Forever terrain correctly, including rotation changes.",
-        "Cleaner Guild & Communities panels, member rows and navigation tabs.",
-        "Supported windows prepare their appearance before opening.",
-        "New README and in-game previews, with support and bug reports on Discord.",
+    {version="1.0.10",lines={
+        "Talent Advisor: choose a guide build, compare talents and plan your next point.",
+        "73 guide variants cover all nine classes. Open All Tools or type /fs talents.",
+        "Open Talent Advisor from the game Talents screen and follow highlighted planned talents.",
+        "Edit builds, mark flexible choices and share build codes with your community.",
+        "Link Gear Advisor's Auto scale or save a build profile with optional layout.",
+        "Train all is now beside Train at class, pet and profession trainers.",
+        "Review the total coin cost before training. Closing the trainer stops the batch.",
+        "Nameplates now distinguish hostile (red), neutral (yellow) and friendly (green) NPCs.",
     }},
 }
 function FS:ShowUpdateNotesOnLogin()

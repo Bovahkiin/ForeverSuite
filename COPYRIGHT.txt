@@ -5,3 +5,10 @@ ForeverSuite is licensed under the MIT License. See LICENSE for the full terms.
 
 Third-party components, fonts and assets retain their respective copyright
 and license notices. This notice does not replace their licensing terms.
+
+Talent Advisor factual records and guide build allocations reference Icy Veins'
+WoW Forever guides and talent catalog (https://www.icy-veins.com/wow-forever/),
+checked on 2026-11-22. Each bundled guide build retains its author and source URL
+in Build details. Guide prose and calculator code are not distributed.
+Game spell textures remain Blizzard Entertainment's assets. ForeverSuite is
+independent of Icy Veins and Blizzard Entertainment and is not endorsed by them.

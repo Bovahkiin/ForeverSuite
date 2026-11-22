@@ -1,3 +1,26 @@
+# 1.0.10 - 2026-11-22
+
+- Adds Talent Advisor with 73 attributed guide build variants for all nine WoW Forever classes, checked against the current talent catalog. Open it from All Tools or with `/fs talents`.
+- Compare committed talents with a selected plan, see the next legal point, inspect the three talent trees and follow a point-by-point plan. Edit and save variations, mark flexible choices, and inspect active talent abilities.
+- Adds a Talent Advisor button beside the primary/secondary tabs in the game Talents screen. The selected plan highlights native talents: gold for the next legal point, blue for planned ranks, green for matched ranks and purple for flexible choices. Planned-rank badges leave the game's talent buttons and learned-rank text intact. Pending changes pause next-point guidance; inspecting another character hides the highlights.
+- Keeps the Talent Advisor shortcut above the native talent canvas input layers, with explicit mouse input and visibility tied to the Talents tab.
+- Link Gear Advisor's Auto mode to the selected build's starter role scale. Custom and manually selected scales remain available. PvE stat references are informational; scores do not simulate builds, stat caps or special effects.
+- Save personal builds and import or share community builds through bounded data-only codes. Builds and combined build/gear profiles live in the account-wide DataHub library, separate from UI profile exports.
+- Build profiles can optionally include frame positions, show a confirmation before loading and retain one undo point. Loading a plan never spends or resets learned talents.
+- Adds a themed Train all button beside Train in class, pet and profession trainer windows. Review the total coin cost before purchasing available lessons. No Control Center visit is needed.
+- Bulk training excludes unknown costs, talent-point costs and profession-slot costs, and stops when the trainer closes, combat starts, prices change or a request cannot be confirmed.
+- Talent Advisor expands only the current class's catalog, refreshes on relevant events and caches unchanged gear scales. Neither new feature runs an ongoing background update loop.
+- Nameplates distinguish hostile NPCs from neutral NPCs you can attack. Neutral NPCs use yellow by default; existing hostile and friendly colors are preserved. Adjust all three in the designer's Colors tab and cycle reaction previews. Optional aggro and player class colors retain precedence.
+
+# 1.0.9 - 2026-11-22
+
+- Adds DataHub, a separate account-wide character database. Existing Character stock records are imported once, while the original stock database is kept intact.
+- Records your character's name, realm, level, class, faction and last-seen time at login, level-up and logout. Bags, equipment and professions retain their own recorded snapshots and update times.
+- Character stock and profession material checks now read from DataHub. Automatic identity records do not create a misleading recorded-stock reminder.
+- Adds versioned migrations for settings, profiles and separate saved-data stores, with rollback and backups for upgrades.
+- Protects newer or failed saved-data formats from writes, blocks unsafe profile loads and prevents deletion of read-only character records.
+- Uses each module's settings key consistently when enabling, disabling, searching or resetting modules, and normalizes each module once during database loading.
+
 # 1.0.8 - 2026-11-19
 
 - Minimap frames now follow all eleven ForeverSuite themes, with individual Blender-rendered borders and matching header accents.

@@ -26,8 +26,11 @@ function N:UpdatePreview()
     local editor=self.editor; if not editor or not editor:IsShown() then return end
     local f,db=editor.preview,FS.db.nameplates; self:StyleCanvas(f,db)
     f.name:SetText("ForeverSuite Training Target"); f.level:SetText("60"); f.value:SetText(self:HealthText(7200,10000,db))
-    f.threat:SetText(db.showThreat and "You have aggro" or ""); f.threat:SetTextColor(1,.3,.2)
-    f.health:SetMinMaxValues(0,10000); f.health:SetValue(7200); f.health:SetStatusBarColor(unpack(self.colors[db.enemyColor]))
+    local disposition=editor.previewDisposition or 1
+    f.threat:SetText(db.showThreat and disposition==1 and "You have aggro" or ""); f.threat:SetTextColor(1,.3,.2)
+    local colorKey=disposition==2 and db.neutralColor or disposition==3 and db.friendlyColor or db.enemyColor
+    f.health:SetMinMaxValues(0,10000); f.health:SetValue(7200); f.health:SetStatusBarColor(unpack(self.colors[colorKey]))
+    if editor.reactionPreview then editor.reactionPreview:SetText("Preview: "..({"Hostile","Neutral","Friendly"})[disposition]) end
     local border=self.colors[db.targetHighlight and db.targetColor or db.borderColor]
     f:SetBackdropBorderColor(border[1],border[2],border[3],db.borderColor=="None" and not db.targetHighlight and 0 or 1)
     f:SetScale(math.min(db.scale*db.targetScale,(editor.stage:GetWidth()-60)/(db.width+50),(editor.stage:GetHeight()-50)/(db.height+90)))
@@ -77,6 +80,7 @@ function N:EditorGroup(index)
                 self:SetDesignOption(option,value)
             end)
             cell.option=option; cells[#cells+1]=cell; cell:RegisterForClicks("LeftButtonUp","RightButtonUp")
+            H:SetHelp(cell,option.help)
             if option.min then
                 H:Label(cell,option.label,8,-6,286)
                 cell.input=FS.Tools:Edit(cell,338,0,72); cell.input:SetHeight(30)
@@ -105,6 +109,10 @@ function N:CreateDesigner()
     H:Label(f,"Drag the outlined parts. Enter numbers or use +/- below; changes save automatically.",20,-55,918)
     f.stage=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(f.stage); f.stage:SetSize(696,260); f.stage:SetPoint("TOPLEFT",244,-84); f.stage:SetBackdropColor(.025,.045,.06,.96); f.stage:SetClipsChildren(true)
     H:Label(f.stage,"Example target - preview fits this panel",12,-10,660)
+    f.reactionPreview=H:Button(f.stage,"Preview: Hostile",12,-222,204,function()
+        f.previewDisposition=(f.previewDisposition or 1)%3+1;self:UpdatePreview()
+    end)
+    H:SetHelp(f.reactionPreview,"Cycle hostile, neutral and friendly examples. This preview does not change your settings. Aggro and player class colors can override reaction colors in game.")
     f.preview=self:CreateCanvas(f.stage); f.preview:SetPoint("CENTER",f.stage,"CENTER",0,0); f.preview.cast:SetScript("OnUpdate",nil)
     self:CreateAuras(f.preview)
     f.partButtons={}; f.handles={}; self.selectedPart="name"
@@ -171,7 +179,7 @@ function N:RefreshSettings()
     if f and f.size then
         local db=FS.db.nameplates; f.size:SetText("Size: "..math.floor(db.scale*100+.5).."% (click to change)")
         for _,entry in ipairs({{"enemies","Enemies"},{"friendlyPlayers","Friendly players"},{"friendlyNPCs","Friendly NPCs"}}) do f[entry[1]]:SetText(entry[2]..": "..(db[entry[1]] and "On" or "Off")) end
-        f.status:SetText(self.appearancePending and "Appearance changes apply when combat ends." or "Use the designer for sizes, fonts, colors, target emphasis and movable parts.\nNative nameplate targeting remains available.")
+        f.status:SetText(self.appearancePending and "Appearance changes apply when combat ends." or "Designer > Colors: hostile (red), neutral (yellow) and friendly (green) by default.\nNeutral NPCs can be attacked but normally leave you alone until attacked.")
     end
     self:UpdatePreview()
 end

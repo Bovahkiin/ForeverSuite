@@ -1,3 +1,45 @@
+## 1.0.10 Talent Advisor and native trainer buttons
+
+1. Open All Tools → Talent Advisor and `/fs talents`. Check all five tabs, large
+   text, a small viewport, several themes and repeated open/close cycles. Pin it
+   to the Control Center and verify its settings open the correct module.
+2. On each available class, select a guide build. Compare the learned rank counts
+   with the game Talents window. Spend and apply a point there, switch primary/
+   secondary talent groups, then return to the advisor. Pending uncommitted
+   changes must pause advice rather than show a misleading next point.
+3. Select a leveling build and inspect its point order. Left-click to plan a
+   point, right-click to remove one, and Shift-click to mark a flexible choice.
+   Check prerequisites and rank limits. Save, reload, change UI profiles and
+   verify saved builds remain in DataHub while unsaved drafts do not carry over.
+4. Share and reimport a build. A duplicate must not replace an existing entry.
+   Test a different-class code, a truncated code and an older catalog version.
+   Review marks must be local; source links should be copyable from Build details.
+5. Link a build while Gear Advisor is in Auto, compare equipment, then choose
+   Custom weights. Linking must preserve Custom. Save a build profile, preview
+   and load it with/without a layout, undo and reload. Learned talents must stay
+   unchanged, and ordinary UI profile exports must not expose build names.
+6. Visit class, pet and profession trainers. Check Train all beside Train at
+   normal and large font sizes. Confirm the displayed count and cost before
+   training. Try cancel, insufficient coin, unavailable filters and no lessons.
+   Professions consuming a slot and lessons consuming talent points must be excluded.
+7. Close the trainer, change trainers, press Stop training or enter combat during
+   a batch. No further request may start. Test several recipe/spell ranks; new
+   unlocks need a fresh confirmation. Control Center and More Tools must stay closed.
+8. Compare CPU/memory before and after opening the advisor, then leave it closed
+   while playing. Watch for Lua errors or blocked actions after talent changes,
+   trainer visits and profile switches. Report the class, steps and full error.
+9. Find an unengaged neutral NPC such as a Plainstrider: its bar should be yellow.
+   Compare it with a hostile NPC (red) and, with friendly plates enabled, a
+   friendly NPC (green). Engage or change reaction and check the color refreshes.
+   Test Colors → Neutral NPC color, the reaction preview, profile reload and
+   optional aggro colors. Player class colors and targeting must still work.
+10. Open the game Talents screen and use its Talent Advisor button. Choose a
+    build, then return with Open game Talents. Check gold next-point outlines,
+    blue planned talents, green matched ranks, purple flexible talents and P-rank
+    badges. Spend, cancel and apply points; switch primary/secondary tabs and
+    inspect another character. Guidance must pause or hide as appropriate.
+    Check native clicks/tooltips, search, large fonts, reopening and module disable.
+
 ## 0.9.8 First-use setup and independent settings screens
 
 1. On fresh SavedVariables, use the recommended start. Compare Balanced,
