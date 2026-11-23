@@ -12,19 +12,51 @@ function W:UsesSuiteStyle(name)
     end
     return false
 end
+function W:RememberGuildPlacement(frame)
+    local state=self.native[frame]
+    if not state or not state.guild or not frame:IsShown() then return end
+    state.guildPoints=FS.HUD:SavePoints(frame); state.guildScale=frame:GetScale()
+end
+function W:StabilizeGuild(frame)
+    local state=self.native[frame]
+    if not state or not state.guild or state.placing or state.preparing or FS.Layout.applying or frame.fsDirectDragging
+        or not frame:IsShown() or InCombatLockdown() or not self:UsesSuiteStyle(state.name) then return false end
+    if FS.Layout:Placements()[state.name] then
+        FS.Layout:Apply(state.name); self:RememberGuildPlacement(frame); return true
+    end
+    if not state.guildPoints then return false end
+    local points=FS.HUD:SavePoints(frame); local same=#points==#state.guildPoints and frame:GetScale()==state.guildScale
+    if same then for i,point in ipairs(points) do
+        for j=1,5 do if point[j]~=state.guildPoints[i][j] then same=false; break end end
+        if not same then break end
+    end end
+    if same then return true end
+    state.placing=true
+    frame:SetScale(state.guildScale); FS.HUD:RestorePoints(frame,state.guildPoints)
+    state.placing=nil
+    return true
+end
 function W:PrepareOpen(frame,finish)
     if InCombatLockdown() or self.openingFrames[frame] or (frame.IsForbidden and frame:IsForbidden()) then return false end
     local alpha=frame:GetAlpha()
     if not FS.Tools:Number(alpha) then return false end
     self.openingFrames[frame]=true
     frame:SetAlpha(0)
-    -- Finish after the game's show handlers have created and positioned the content.
+    -- Keep both the first show and the following native panel-position pass
+    -- invisible. Reveal after styling and the saved mover position agree.
     C_Timer.After(0,function()
         local ok,err=true
         if frame:IsShown() and not InCombatLockdown() then ok,err=pcall(finish) end
-        self.openingFrames[frame]=nil
-        local current=frame:GetAlpha()
-        if FS.Tools:Number(current) and current==0 then frame:SetAlpha(alpha) end
+        local function reveal()
+            self.openingFrames[frame]=nil
+            local current=frame:GetAlpha()
+            if FS.Tools:Number(current) and current==0 then frame:SetAlpha(alpha) end
+        end
+        if ok then C_Timer.After(0,function()
+            local placed,message=true
+            if frame:IsShown() and not InCombatLockdown() then placed,message=pcall(finish) end
+            reveal(); if not placed then error(message,0) end
+        end) else reveal() end
         if not ok then error(err,0) end
     end)
     return true
@@ -60,8 +92,21 @@ function W:Install()
         local parent=frame and frame.GetParent and frame:GetParent(); local nested=false
         while parent do if self.native[parent] then nested=true; break end; parent=parent.GetParent and parent:GetParent() end
         if frame and not nested and not self.native[frame] and not (frame.IsForbidden and frame:IsForbidden()) then
-            local state={name=name}; self.native[frame]=state
+            local state={name=name,guild=name=="CommunitiesFrame" or name=="GuildFrame"}; self.native[frame]=state
             frame:HookScript("OnShow",function(f)
+                if state.guild and self:UsesSuiteStyle(name) and not InCombatLockdown() then
+                    state.preparing=true
+                    local ok,err=pcall(function()
+                        self:NativeShown(f,name)
+                        local skin=FS.NativeWindows.windows[f]
+                        if not skin or not skin.enabled then FS.NativeWindows:Refresh(f) end
+                        FS.Layout:Apply(name)
+                    end)
+                    state.preparing=nil
+                    if not ok then error(err,0) end
+                    self:RememberGuildPlacement(f)
+                    return
+                end
                 if self:UsesSuiteStyle(name) and not InCombatLockdown() then self:NativeShown(f,name) end
                 if self:UsesSuiteStyle(name)
                     and self:PrepareOpen(f,function()
@@ -71,6 +116,12 @@ function W:Install()
                     end) then return end
                 self:QueueNativeShown(f,name)
             end)
+            if state.guild then
+                frame:HookScript("OnHide",function() state.guildPoints=nil; state.guildScale=nil end)
+                for _,method in ipairs({"SetPoint","SetScale"}) do
+                    hooksecurefunc(frame,method,function(f) self:StabilizeGuild(f) end)
+                end
+            end
             if name=="SpellBookFrame" or name=="PlayerSpellsFrame" then
                 hooksecurefunc(frame,"SetPoint",function(f)
                     if not state.placing and not self.opening and f:IsShown() then self:QueueNativeShown(f,name) end
@@ -79,10 +130,10 @@ function W:Install()
         end
     end
 end
-function W:HideNativeWindows(keep)
+function W:HideNativeWindows(keep,contextHost)
     if InCombatLockdown() then return end
     for frame in pairs(self.native) do
-        if frame~=keep and frame:IsShown() then
+        if frame~=keep and frame~=contextHost and not (FS.Context and FS.Context:IsHostFamily(frame,contextHost)) and frame:IsShown() then
             if HideUIPanel then HideUIPanel(frame) else frame:Hide() end
         end
     end

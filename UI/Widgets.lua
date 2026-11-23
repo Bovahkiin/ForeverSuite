@@ -44,20 +44,22 @@ end
 
 -- Modal suite windows share a single foreground screen. HUD bars stay visible.
 function FS:CloseOtherWindows(keep,returnToCenter)
-    self:CloseSettingsScreens(keep)
-    if self.Extensions then for _,f in pairs({self.Extensions.form,self.Extensions.dialog}) do if f~=keep then f:Hide() end end end
+    local contextHost=self.Context and self.Context:BeforeOpen(keep)
+    local retainGroup=contextHost and keep==contextHost
+    if not retainGroup then self:CloseSettingsScreens(keep) end
+    if self.Extensions then for _,f in pairs({self.Extensions.form,self.Extensions.dialog}) do if f~=keep and not (retainGroup and f.fsContextHost==contextHost) then f:Hide() end end end
     if self.Installer and self.Installer.window and self.Installer.window~=keep then self.Installer.window:Hide() end
     local quick=self.modules.Bindings and self.modules.Bindings.quick
     if quick and quick~=keep and quick:IsShown() then quick:Hide() end
-    if self.WindowManager then self.WindowManager:HideNativeWindows(keep) end
+    if self.WindowManager then self.WindowManager:HideNativeWindows(keep,contextHost) end
     self.closingOtherWindows=true
     local bank=self.modules.Bank; local bags=self.modules.Bags
-    local bankPair=bank and bank.open and (keep==bank.window or keep==bags.window)
-    local equipmentPair=CharacterFrame and (keep==CharacterFrame or (keep==bags.window and CharacterFrame:IsShown()))
+    local bankPair=bank and bank.open and (keep==bank.window or keep==bags.window or contextHost==bank.window or contextHost==bags.window)
+    local equipmentPair=CharacterFrame and (keep==CharacterFrame or contextHost==CharacterFrame or ((keep==bags.window or contextHost==bags.window) and CharacterFrame:IsShown()))
     if returnToCenter then self.aboutReturn=self.window and self.window:IsShown() or false end
     for _,frame in pairs({self.window,self.aboutWindow,self.Typography and self.Typography.window,self.Compatibility and self.Compatibility.window}) do if frame and frame~=keep and frame:IsShown() then frame:Hide() end end
     for _,module in self:EachModule() do
-        for _,key in ipairs({"window","saleReview"}) do local frame=module[key]; local paired=(bankPair and (frame==bank.window or frame==bags.window)) or (equipmentPair and frame==bags.window); if frame and frame~=keep and not paired and frame:IsShown() and not InCombatLockdown() then frame:Hide() end end
+        for _,key in ipairs({"window","saleReview"}) do local frame=module[key]; local paired=frame==contextHost or (frame and retainGroup and frame.fsContextHost==contextHost) or (bankPair and (frame==bank.window or frame==bags.window)) or (equipmentPair and frame==bags.window); if frame and frame~=keep and not paired and frame:IsShown() and not InCombatLockdown() then frame:Hide() end end
     end
     if CharacterFrame and CharacterFrame~=keep and not equipmentPair and CharacterFrame:IsShown() and not InCombatLockdown() then
         if HideUIPanel then HideUIPanel(CharacterFrame) else CharacterFrame:Hide() end

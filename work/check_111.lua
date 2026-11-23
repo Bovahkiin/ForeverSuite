@@ -183,3 +183,34 @@ local f=N:CreateCanvas(UIParent); N:UpdateQuestMarker(f,'nameplate1',ForeverSuit
 guid,needed='Second',false; N:UpdateQuestMarker(f,'nameplate1',ForeverSuite.db.nameplates); assert(not f.quest:IsShown())
 N.RefreshPlates,UnitIsQuestBoss,UnitGUID,C_TooltipInfo=oldRefresh,oldBoss,oldGUID,oldTip
 TEST.units.nameplate1=nil; N.questObjectives=nil; f:Hide()
+
+-- TEST: Dragging tool windows keeps their saved UIParent anchor without ever anchoring to themselves
+ResetTest(); local FS=ForeverSuite; local L=FS.Layout; FS.db.layout.snap=false
+for _,name in ipairs({'Workbench','Map','AuctionHouse'}) do
+    local f=FS.modules[name]:CreateWindow(); local id='Tool:'..name
+    f:SetScale(1); f.GetCenter=function() return 700,600 end
+    local center=UIParent:GetCenter()
+    f.scripts.OnDragStop(f)
+    local saved=FS.db.layout.frames[id]
+    assert(saved.x==700-center and saved.y==600 and saved.scale==1)
+    local point,relative,anchor,x,y=f:GetPoint()
+    assert(point=='CENTER' and relative==UIParent and anchor=='BOTTOM' and x==saved.x and y==saved.y)
+    local snapshot=FS.modules.Profiles:Snapshot()
+    assert(snapshot.layout.frames[id].x==saved.x and snapshot.layout.frames[id].y==saved.y)
+    f:ClearAllPoints(); f:SetPoint('CENTER',UIParent,'CENTER',0,0); L:Apply(id)
+    assert(select(2,f:GetPoint())==UIParent)
+    f.GetCenter=nil; f:Hide()
+end
+Drain()
+
+-- TEST: Layout saving keeps separate mover handles attached to the positioned frame
+ResetTest(); local FS=ForeverSuite; local L=FS.Layout; FS.db.layout.snap=true
+local target=CreateFrame('Frame',nil,UIParent); target:SetSize(100,80)
+local handle=CreateFrame('Frame',nil,UIParent); handle.GetCenter=function() return 563,683 end
+L:Register('MoverAnchorTest',target,'Test'); L:Save('MoverAnchorTest',handle,1.2)
+local point,relative,anchor=handle:GetPoint()
+assert(point=='CENTER' and relative==target and anchor=='CENTER')
+assert(select(2,target:GetPoint())==UIParent and target:GetScale()==1.2)
+local saved=FS.db.layout.frames.MoverAnchorTest
+assert(saved.x%32==0 and (saved.y-UIParent:GetHeight()/2)%32==0)
+L.targets.MoverAnchorTest=nil; target:Hide(); handle:Hide(); Drain()

@@ -1,13 +1,17 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.11",lines={
-        "Alt Tracker: see your characters, levels, gear, professions and recorded bags in one place.",
-        "Search by name, realm or class, sort your alts and record the current character.",
-        "Open Alt Tracker from All Tools; your existing Character stock pins still work.",
-        "Auction House: use Scan all at an auctioneer to save buyout prices for item tooltips.",
-        "Enchanters can see an approximate disenchant material-value range using scanned prices.",
-        "A gold ! on nameplates marks needed quest enemies and item droppers reported by the game.",
-        "Toggle quest markers in Nameplates > Open nameplate designer > Text.",
+    {version="1.0.12",lines={
+        "Screen tools: open related actions directly from Character, crafting, map, guild and other game windows.",
+        "Attached tools keep their source window open and use compact five-row lists.",
+        "Middle-click an equipment slot for its Gear Planner; use item planning menus in bags and bank.",
+        "Crafting tools use the selected recipe and the shared Auction House shopping list.",
+        "Right-click a quest heading for navigation tools or the addon tray button to manage icons.",
+        "Spellbook tools can track the spell you last hovered without entering a spell ID.",
+        "Clear Bag tools and Chat tools menus; Talent Advisor sits beside ForeverSuite in the title bar.",
+        "Guild opens without a delayed fade and keeps its position when switching tabs. Member tools sits below it.",
+        "Map shortcuts sit below the window, or at the bottom left on a maximized map.",
+        "Continuous themed backgrounds replace black insets. Professions has one page background with a watermark.",
+        "Fixes the self-anchor error when saving a directly dragged tool window.",
     }},
 }
 function FS:ShowUpdateNotesOnLogin()

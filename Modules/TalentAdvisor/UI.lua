@@ -335,12 +335,13 @@ function A:InstallNative()
         f.fsAdvisorButton=b;b.fsSuiteStyle=true;b.fsFontModule='TalentAdvisor';b.fsLabel.fsSuiteStyle=true
         b:SetFrameStrata('DIALOG');b:EnableMouse(true);b:RegisterForClicks('LeftButtonUp')
         b:ClearAllPoints()
-        if f.TabSystem then b:SetPoint('LEFT',f.TabSystem,'RIGHT',16,0)
-        else b:SetPoint('TOPLEFT',f,'TOPLEFT',420,0) end
+        b:SetPoint('TOPLEFT',root,'TOPLEFT',184,-4)
         H:FitButton(b,2,28)
         f.fsAdvisorPlan=H:Label(b,'',0,0,270);f.fsAdvisorPlan.fsSuiteStyle=true;f.fsAdvisorPlan.fsFontModule='TalentAdvisor'
         f.fsAdvisorPlan:SetWordWrap(false)
-        f.fsAdvisorPlan:ClearAllPoints();f.fsAdvisorPlan:SetPoint('LEFT',b,'RIGHT',12,0)
+        f.fsAdvisorPlan:ClearAllPoints()
+        if f.TabSystem then f.fsAdvisorPlan:SetPoint('LEFT',f.TabSystem,'RIGHT',16,0)
+        else f.fsAdvisorPlan:SetPoint('TOPLEFT',f,'TOPLEFT',420,0) end
     end
     self:RefreshNative()
 end
@@ -376,6 +377,10 @@ function A:RefreshNative()
     if not InCombatLockdown() then b:SetFrameLevel(level+30) end
     b:SetEnabled(not InCombatLockdown() and not FS.databaseReadOnly and not FS.modules.Vendor.busy)
     if InCombatLockdown() then return end
+    local context=FS.Context and FS.Context.hosts[PlayerSpellsFrame]
+    b:ClearAllPoints()
+    if context and context.button then b:SetPoint('LEFT',context.button,'RIGHT',8,0)
+    else b:SetPoint('TOPLEFT',PlayerSpellsFrame,'TOPLEFT',184,-4) end
     H:FitButton(b,2,28);H:TextHeight(f.fsAdvisorPlan,270,1)
     local p=self:Selected();local c=self:Catalog();local ranks=p and self:ValidatePlan(p)
     local inspect=T:Call(f.IsInspecting,f)==true

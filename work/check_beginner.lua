@@ -348,7 +348,7 @@ assert(f.rows[4]:GetText()=='Professions: Blacksmithing 18/75')
 assert(f.rows[5]:GetText()=='Equipped Item Level: 25.5' and f.rows[6]:GetText()=='Guild: Example Guild')
 GetAverageItemLevel,GetGuildInfo,GetProfessions,Enum,C_SkillInfo,C_TradeSkillUI=unpack(old,1,6)
 
--- TEST: Minimap right-click lists six shortcuts and Layouts opens the expanded preset picker
+-- TEST: Minimap right-click lists seven shortcuts and Layouts opens the expanded preset picker
 ResetTest(); local FS=ForeverSuite; local old=MenuUtil; local menu,owner={},nil
 MenuUtil={CreateContextMenu=function(source,build)
  owner=source
@@ -357,11 +357,11 @@ end}
 FS:CreateMinimapButton()
 local b=FS.minimapButton
 b.scripts.OnClick(b,'RightButton')
-assert(owner==b and #menu==6)
-assert(menu[1][1]=='Config' and menu[2][1]=='Profiles' and menu[3][1]=='Themes' and menu[4][1]=='Layouts' and menu[5][1]=='Modules' and menu[6][1]=='Reload UI')
+assert(owner==b and #menu==7)
+assert(menu[1][1]=='Config' and menu[2][1]=='Profiles' and menu[3][1]=='Themes' and menu[4][1]=='Layouts' and menu[5][1]=='Modules' and menu[6][1]=='Notifications' and menu[7][1]=='Reload UI')
 menu[4][2](); assert(FS.Installer.layoutOnly and FS.LayoutPresets:Valid('Immersive'))
   FS.Installer:Dismiss(); menu[5][2](); assert(FS.window:IsShown() and FS.window.workspacePage=='modules')
-local reloads=TEST.reloads or 0; menu[6][2](); assert(TEST.reloads==reloads+1)
+local reloads=TEST.reloads or 0; menu[7][2](); assert(TEST.reloads==reloads+1)
 MenuUtil=old
 
 -- TEST: Action bar visibility is reversible and quick bind keeps native clicks and saves the selected key

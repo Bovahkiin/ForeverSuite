@@ -180,7 +180,7 @@ function T:Module(name,key,title,description,defaults,events)
         end) end
         function f:LayoutText()
             local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
-            local y=math.max(54,math.max(H:TextHeight(self.heading,322,2)+18,H:FitButton(self.control,2)+10,H:FitButton(self.toolSettings,2)+10)+10)
+            local y=math.max(54,math.max(H:TextHeight(self.heading,self.fsContextLauncher and 208 or 322,2)+18,H:FitButton(self.control,2)+10,H:FitButton(self.toolSettings,2)+10)+10)
             if self.section then
                 at(self.section,136,y); at(self.previousSection,16,y)
                 y=y+math.max(H:FitButton(self.section,2,34),H:FitButton(self.previousSection,2,34))+10
@@ -237,7 +237,7 @@ function T:Module(name,key,title,description,defaults,events)
         local f=self.window; if not f or not f:IsShown() then return end
         local rows=self.rows or emptyRows
         local query=string.lower(f.search:GetText() or "")
-        local size=#f.cells
+        local size=math.min(#f.cells,f.fsContextRows or #f.cells)
         local requested=math.max(1,self.page or 1)
         local offset=(requested-1)*size
         local count=#rows
@@ -258,7 +258,7 @@ function T:Module(name,key,title,description,defaults,events)
         end
         f.visibleRows=0
         for i,b in ipairs(f.cells) do
-            if matches then b.row=matches[i] else b.row=rows[offset+i] end
+            if i>size then b.row=nil elseif matches then b.row=matches[i] else b.row=rows[offset+i] end
             local caption=b.row and b.row.text or ""; b:SetText(caption); b:SetShown(b.row~=nil)
             b:SetEnabled(not b.row or b.row.selectable~=false)
             if b.row then f.visibleRows=f.visibleRows+1 end

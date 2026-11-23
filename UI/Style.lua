@@ -173,6 +173,7 @@ function S:Chat()
         local f=_G["ChatFrame"..i]
         if f then
             local plate=self:Plate(f); plate:SetShown(panels)
+            if FS.NativeWindows then FS.NativeWindows:Surface(plate,panels) end
             local right=self:ChatScrollBar(f,panels,color,data.backgroundOpacity)
             plate:ClearAllPoints(); plate:SetPoint("TOPLEFT",f,"TOPLEFT",-5,5); plate:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",right,-5)
             paint(plate); plate.gold:SetShown(data.borderColor~="None"); plate.cyan:SetShown(data.borderColor~="None")
@@ -182,7 +183,16 @@ function S:Chat()
             end
             self:NativeFonts(_G["ChatFrame"..i.."Tab"],enabled,nil,data.fontSize,flags); self:NativeFonts(_G["ChatFrame"..i.."EditBox"],enabled,nil,data.fontSize,flags)
             local tab=_G["ChatFrame"..i.."Tab"]; if tab then
+                if enabled and FS.NativeWindows then
+                    for _,region in ipairs(tab:GetRegions()) do
+                        if region.GetFont then
+                            FS:ReleaseFont(region); local path,size,outline=region:GetFont()
+                            region:SetFont(path,math.min(size or 12,12),outline)
+                        end
+                    end
+                end
                 local plate=self:Plate(tab); plate:ClearAllPoints(); plate:SetAllPoints(tab); plate.gold:Hide(); plate.cyan:Hide(); plate:SetShown(tabs)
+                if FS.NativeWindows then FS.NativeWindows:Surface(plate,tabs) end
                 paint(plate)
                 for _,r in ipairs({tab:GetRegions()}) do
                     if r.GetObjectType and r:GetObjectType()=="Texture" then self:NativeRegion(r,tabs) end
@@ -203,8 +213,10 @@ end
 function S:ChatButtonIcon(button,kind)
     local f=CreateFrame("Frame",nil,button); f.fsSuiteStyle=true; f.ignoreInLayout=true; f:EnableMouse(false)
     f.ink={}
-    local size=kind=="Social" and 20 or 24
-    f:SetSize(size,size); f:SetPoint("CENTER",0,kind=="Social" and 5 or 0); f:SetFrameLevel(button:GetFrameLevel()+1)
+    local size=kind=="Social" and 14 or 24
+    f:SetSize(size,size)
+    if kind=="Social" then f:SetPoint("TOP",button,"TOP",0,-2) else f:SetPoint("CENTER") end
+    f:SetFrameLevel(button:GetFrameLevel()+1)
     if kind=="Social" or not f.CreateLine then
         local t=f:CreateTexture(nil,"ARTWORK"); t.fsSuiteStyle=true; t.ignoreInLayout=true; t:SetAllPoints(); FS:SetMenuIcon(t,kind=="Social" and "Social" or kind=="Speaker" and "Groups" or "Quests")
         f.texture=t; return f
@@ -226,6 +238,34 @@ function S:ChatButtonIcon(button,kind)
     end
     return f
 end
+function S:IconArt(region,enabled)
+    if not region or (region.IsForbidden and region:IsForbidden()) then return end
+    self.socialArt=self.socialArt or setmetatable({},{__mode="k"})
+    local state=self.socialArt[region]
+    if not state then
+        if not enabled then return end
+        state={shown=region:IsShown()}; self.socialArt[region]=state
+        -- Native animation groups change alpha without calling SetAlpha.
+        -- Hide only the replaced icon layers; their animations, counters and
+        -- notification toasts continue to be owned by the game.
+        hooksecurefunc(region,"Show",function(r)
+            if state.setting then return end
+            state.shown=true
+            if state.enabled then state.setting=true; r:Hide(); state.setting=false end
+        end)
+        hooksecurefunc(region,"Hide",function()
+            if not state.setting then state.shown=false end
+        end)
+        hooksecurefunc(region,"SetShown",function(r,shown)
+            if state.setting then return end
+            state.shown=shown and true or false
+            if state.enabled and shown then state.setting=true; r:Hide(); state.setting=false end
+        end)
+    end
+    state.enabled=enabled; state.setting=true
+    region:SetShown(not enabled and state.shown)
+    state.setting=false
+end
 function S:ChatButtons(enabled,color,opacity)
     if InCombatLockdown() or not FS.NativeWindows then return end
     local N=FS.NativeWindows; self.chatButtons=self.chatButtons or {}
@@ -244,10 +284,15 @@ function S:ChatButtons(enabled,color,opacity)
                 if not usable then control.plate:SetBackdropBorderColor(.22,.28,.32,.6)
                 else control.plate:SetBackdropBorderColor(color[1],color[2],color[3],color==FS.modules.Chat.colors.None and 0 or .8) end
                 state.icon:SetShown(enabled); state.icon:SetAlpha(usable and 1 or .35)
-                for _,region in ipairs(button:GetRegions()) do
+                for _,region in ipairs({button:GetRegions()}) do
                     if not region.fsSuiteStyle then
-                        if region:GetObjectType()=="Texture" then N:Art(region,enabled)
-                        elseif region:GetObjectType()=="FontString" then N:Font(region,enabled) end
+                        if definition[2]=="Social" and (region==button.FriendsButton or region==button.QueueButton or region==button.FlashingLayer) then
+                            self:IconArt(region,enabled)
+                        elseif region:GetObjectType()=="Texture" then N:Art(region,enabled)
+                        elseif region:GetObjectType()=="FontString" then
+                            if definition[2]=="Social" and (region==button.FriendCount or region==button.QueueCount) then N:NativeFont(region,enabled)
+                            else N:Font(region,enabled) end
+                        end
                     end
                 end
                 for _,key in ipairs({"Icon","icon","FriendIcon","NormalTexture","PushedTexture","HighlightTexture","DisabledTexture","Background","Border"}) do
@@ -463,7 +508,7 @@ for _,event in ipairs({"PLAYER_ENTERING_WORLD","ADDON_LOADED","PLAYER_REGEN_ENAB
 events:SetScript("OnEvent",function(_,event)
     if event=="PLAYER_ENTERING_WORLD" then S:Refresh()
     elseif event=="ZONE_CHANGED" or event=="ZONE_CHANGED_NEW_AREA" then if not InCombatLockdown() and FS.db then S:Minimap() end
-    else S:Discover() end
+    else S:Discover(); if S.MinimapHeaderControls then S:MinimapHeaderControls(FS:IsModuleEnabled("Map")) end end
 end)
 local elapsed=0
 events:SetScript("OnUpdate",function(_,dt)

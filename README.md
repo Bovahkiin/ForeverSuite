@@ -59,6 +59,42 @@ guess drops from NPC names.
 
 ## What's included
 
+Screen tools are available directly where you play. Look for **Character tools**,
+**Crafting tools**, **Shopping tools**, **Map tools**, **More tools**, or a small
+**...** button. Related tools stay alongside their source window. On narrow
+screens they use an attached drawer. Closing the source also closes its tools.
+
+| Screen | Quick access |
+| --- | --- |
+| Character | Gear Advisor, Gear Planner, Wishlist, Alt Tracker and Character Overview. Middle-click an equipment slot to plan that slot. |
+| Bags | Bag tools for checklists, alts and shopping. Plan item beside More item options uses the selected item. |
+| Bank | More tools for checklists and alts. Middle-click a bank item for its planning and protection actions. |
+| Professions | Selected-recipe materials, skill-ups, cost estimates, recipe sources, level routes, recommendations and trainer information. |
+| Auction House | Shared shopping goals beside the native auction window, plus the existing Scan all button. |
+| World map | Routes, saved pins, waypoint queue, gathering runs, rare history and lockouts. |
+| Quest tracker | Right-click a quest heading to navigate, add its known destination to the queue, or stop navigation. |
+| Guild / Contacts | Private notes, favorites, roster search, recent groups, whispers and invitations. |
+| Spellbook | Hover a spell, then open its tools to track its cooldown or add a missing-buff reminder. |
+| Chat | Chat tools above the tabs opens chat history and keyword controls. Capture remains optional. |
+| XP bar | Click to open your leveling session. |
+| Addon tray | Right-click the tray button to manage and rescan icons. |
+
+Native selections are used only when the client exposes them. Otherwise choose
+an entry in the tool's list. Regular left/right equipment clicks, dragging and
+game talent input keep their original behavior. The new menus are unavailable
+in combat; global settings and profiles remain in the Control Center.
+
+The map shortcut bar is centered below the map window, and moves to the bottom
+left when the map is maximized. Talent Advisor sits beside ForeverSuite in the
+Talents title bar. The arrow beside talent Search opens the game's search
+options for passive abilities and rank information.
+
+Control Center and native windows use continuous themed surfaces, accent colors
+and subtle ForeverSuite artwork. Professions uses section dividers on one page
+background. Guild keeps the client's tab positions, controls and compact roster
+text; Member tools sits below the window. Tab changes keep the current position
+without waiting for a delayed reposition or opening fade.
+
 | Area | Tools and customization |
 | --- | --- |
 | Interface | Visual themes, layout presets, fonts, movable frames and a guided first-run setup. |

@@ -657,6 +657,10 @@ function W:Build()
         if FS:IsModuleEnabled('GearAdvisor') and T:Number(level) and level>0 then
             local build,scanning
             rows,self.plannerPending,build,scanning=advisor:PlannerRows(level,T:Text(self.window and self.window.search:GetText()))
+            if self.contextSlot then
+                local selected={}; for _,item in ipairs(rows) do if item.slot==self.contextSlot then selected[#selected+1]=item end end
+                rows=selected
+            end
             local _,scale=advisor:Weights()
             local source=build and ('Forever catalog '..build) or 'Local sources'
             local status=scanning and 'Loading catalog items'

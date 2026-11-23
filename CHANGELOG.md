@@ -1,3 +1,25 @@
+# 1.0.12 - 2026-11-23
+
+- Fixes overlapping artwork on the chat social button, including when native Quick Join animations change icon alpha. The themed icon leaves room for the native counters; notifications, click actions and tooltips remain intact, and disabling button styling restores the native layers.
+- Tracking, Calendar and Addon Compartment share a compact minimap control bar, themed symbols and Dark Fantasy styling. The bar stays near the title when space permits, moves beside it near the screen edge, and uses a lower fallback on narrow layouts. Native menus, calendar notifications and the addon count remain functional; disabling Map restores native geometry and artwork.
+- Fixes Guild opening errors caused by treating native HTML information panels as plain text. Rich-text fonts and links remain client-owned across opening, deferred placement and discovery refreshes.
+- Adds screen-specific tool menus to Character, crafting, Auction House, map, mailbox, guild, friends, spellbook, loot and supported game windows. Existing standalone tools and Control Center shortcuts remain available.
+- Related tools stay attached to their source screen, using compact five-row lists and a drawer on narrow layouts. Refreshes keep the group together; closing a source screen closes its attached tools. Forms return to their original context.
+- Character tools group Gear Advisor, Gear Planner, Wishlist, Alt Tracker and Character Overview. Middle-click an equipment slot to filter Gear Planner by that slot; normal equipment input is preserved.
+- Bags and bank offer selected-item planning for checklists, shared AH shopping goals, gear goals and junk-sale protection. Bank selection never falls back to a stale bag selection.
+- Crafting tools use the native selected recipe when exposed by the client, with materials, recorded alt stock, skill-ups, costs, recipe sources, level routes and trainer information.
+- Map tools group pins, routes, queued stops, gathering runs and rare history. The map Routes button keeps its map open. Right-click quest headings for navigation, queue and stop actions.
+- Guild and Contacts expose notes, favorites, roster search, recent groups, whispers and invitations. Supported native guild selection focuses the corresponding private-note record.
+- Spellbook tools track the last hovered spell without typing its ID. A labeled Chat tools menu above the tabs exposes history and keywords; the XP bar opens its leveling report. Edit Mode exposes quick binding, mouseover and idle opacity.
+- Guild keeps native tab spacing, compact text and input handlers. Tab changes preserve the window position synchronously; opening does not wait for a deferred fade. Hidden pages are styled when shown, and one tree traversal replaces the former duplicate passes. Member tools uses its own row below the window.
+- Bag tools and Plan item replace ambiguous ellipsis buttons. Meter reports use a separate lower corner instead of overlapping the native header. Talent Advisor sits beside ForeverSuite in the title bar, and talent Search options have a visible arrow and explanation.
+- The map shortcut bar is centered below the windowed map and moves to the bottom left on the maximized map. Switching modes and resizing update the position without moving the map or its coordinates.
+- Control Center and native windows use continuous themed surfaces, subtle artwork and clearer accents. Fixes black inset rectangles from mismatched nine-slice opacity and the black header caused by multiplying dark gradient colors. Native buttons and dropdowns share the button skin and show one caret.
+- Tool cards retain their colored rails, primary actions, layout and scrolling. Professions uses one page background, subtle section dividers and a ForeverSuite watermark instead of five large nested boxes.
+- Right-click the addon tray button to manage or rescan icons. The minimap menu now includes Notifications.
+- Panels are created lazily and discovery is event driven, with no new background update loop. Unsupported selections fall back to existing tool lists.
+- Fixes the self-anchor error when directly dragging Workbench and other shared tool windows. Separate Layout Studio mover handles still follow their target normally.
+
 # 1.0.11 - 2026-11-22
 
 - Adds Alt Tracker to All Tools, replacing the Character stock view while preserving saved shortcuts. Lists every known character, including characters with identity data only, with level, class, realm, last-seen time and recorded gear, professions and bags.

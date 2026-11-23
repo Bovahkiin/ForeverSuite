@@ -175,7 +175,9 @@ function B:RefreshSidebar(view)
         top=top+f.search:GetHeight()+12
     else at(f.search,width-312,12); f.search:SetWidth(268); f.search:SetHeight(24) end
     f.sidebar:SetWidth(sidebarWidth); f.sidebar:SetHeight(height-113)
-    f.sidebarTitle:SetWidth(sidebarWidth-24); H:TextHeight(f.sidebarTitle,sidebarWidth-24,2)
+    local titleWidth=sidebarWidth-(f.fsContextLauncher and 116 or 24)
+    f.sidebarTitle:SetText(f.fsContextLauncher and 'BAGS' or 'CATEGORIES')
+    f.sidebarTitle:SetWidth(titleWidth); H:TextHeight(f.sidebarTitle,titleWidth,1)
     local toolbarBottom
     if large then
         local controlWidth=math.floor((contentWidth-8)/2); local rowHeight=0

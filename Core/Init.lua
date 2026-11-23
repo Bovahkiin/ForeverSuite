@@ -1,6 +1,6 @@
 local addonName, FS = ...
 FS.name = addonName
-FS.version = "1.0.11"
+FS.version = "1.0.12"
 FS.icon = "Interface\\AddOns\\ForeverSuite\\Assets\\Icon-FS.tga"
 FS.logo = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-wordmark.tga"
 FS.emblem = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-transparent.tga"
@@ -50,6 +50,7 @@ function FS:SetModuleEnabled(name, enabled)
     if self.Style then self.Style:Refresh() end
     if self.Extensions and self.Extensions.UpdateFilters then self.Extensions:UpdateFilters() end
     if self.Extensions and self.Extensions.SyncEvents then self.Extensions:SyncEvents() end
+    if self.Context then self.Context:Discover() end
 end
 
 function FS:Initialize()
@@ -65,6 +66,7 @@ function FS:Initialize()
         if module.Initialize then module:Initialize() end
     end
     if self.WindowManager then self.WindowManager:Install(); self.WindowManager:UpdateExperience() end
+    if self.Context then self.Context:Initialize() end
     if self.Themes then self.Themes:Refresh() end
     if self.Extensions then self.Extensions:Initialize() end
     if self.Typography then self.Typography:Apply() end

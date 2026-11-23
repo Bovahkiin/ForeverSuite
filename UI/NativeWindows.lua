@@ -20,16 +20,16 @@ local roles={CloseButton="X",MaximizeButton="+",MinimizeButton="-",NextPageButto
 local function forbidden(frame) return frame.IsForbidden and frame:IsForbidden() end
 local function own(region) return region.fsSuiteStyle or region.fsCharacterSkin end
 local function named(region) return (region.GetName and region:GetName() or ""):lower() end
-function N:Art(region,enabled)
+function N:Art(region,enabled,opacity)
     if not region or not region.GetAlpha or forbidden(region) or own(region) then return end
     local state=self.art[region]
     if not state then
         state={alpha=region:GetAlpha()}; self.art[region]=state
         hooksecurefunc(region,"SetAlpha",function(r)
-            if state.enabled and not state.setting then state.setting=true; r:SetAlpha(0); state.setting=false end
+            if state.enabled and not state.setting then state.setting=true; r:SetAlpha(state.opacity or 0); state.setting=false end
         end)
     end
-    state.enabled=enabled; state.setting=true; region:SetAlpha(enabled and 0 or state.alpha); state.setting=false
+    state.enabled=enabled; state.opacity=opacity or 0; state.setting=true; region:SetAlpha(enabled and state.opacity or state.alpha); state.setting=false
 end
 function N:IsIcon(frame,region)
     if own(region) then return true end
@@ -47,6 +47,9 @@ function N:IsIcon(frame,region)
 end
 function N:Font(region,enabled)
     if not region or not region.GetFont or not region.SetFont or forbidden(region) then return end
+    -- SimpleHTML exposes similarly named methods, but GetFont, SetFont and
+    -- GetTextColor require an HTML text type. Keep its native rich-text styles.
+    if region.GetObjectType and region:GetObjectType()=="SimpleHTML" then return end
     local state=self.fonts[region]
     if not state then
         state={font={region:GetFont()},color=region.GetTextColor and {region:GetTextColor()} or nil}; self.fonts[region]=state
@@ -62,6 +65,94 @@ function N:Font(region,enabled)
         if state.font[1] then region:SetFont(unpack(state.font)) end
         if state.color then region:SetTextColor(unpack(state.color)) end
     end
+end
+-- Native rows and dropdowns have fixed hit boxes. Keep their original text
+-- metrics instead of applying the resizable tool-window font override to them.
+function N:NativeFont(region,enabled)
+    self:Font(region,enabled)
+    local state=self.fonts[region]
+    if enabled and state and state.font[1] then
+        FS:ReleaseFont(region)
+        local path,_,flags=region:GetFont()
+        region:SetFont(path,state.font[2],flags)
+    end
+end
+function N:Surface(plate,enabled,kind)
+    if not plate then return end
+    if kind then FS.Themes:Register(plate,kind) end
+    local r,g,b=FS.Themes:Accent(); local parchment=FS.Themes:Current()==10
+    if parchment then plate:SetBackdropColor(.72,.65,.51,1)
+    else plate:SetBackdropColor(.09+r*.025,.11+g*.025,.145+b*.025,1) end
+    plate:SetBackdropBorderColor(r*.5,g*.5,b*.5,.8)
+    local theme=FS.Themes.frames[plate]
+    -- A nine-slice is one surface. A different center opacity creates an
+    -- artificial black rectangle inside its brighter edge strips.
+    local opacity=theme and theme.kind=="Button" and 1 or .65
+    for _,part in ipairs(theme and theme.parts or {}) do part:SetAlpha(opacity) end
+end
+function N:Dropdown(frame,enabled,help)
+    if not frame or forbidden(frame) then return end
+    self:Control(frame,enabled,"v")
+    local function arrows(node,depth,decoration)
+        if not node or depth>2 or own(node) or forbidden(node) then return end
+        for _,region in ipairs(node.GetRegions and {node:GetRegions()} or {}) do
+            if region.GetObjectType and region:GetObjectType()=="Texture" and not own(region) then
+                local art=(region.GetAtlas and region:GetAtlas()) or (region.GetTexture and region:GetTexture()) or ""
+                local name=((region.GetName and region:GetName() or "").." "..(type(art)=="string" and art or "")):lower()
+                if decoration or name:find("arrow",1,true) or name:find("dropdown",1,true) then self:Art(region,enabled) end
+            end
+        end
+        for _,key in ipairs({"Arrow","ArrowTexture","ArrowButton","DropdownArrow"}) do
+            local child=node[key]
+            if child and child.GetObjectType then
+                if child:GetObjectType()=="Texture" then self:Art(child,enabled) else arrows(child,depth+1,true) end
+            end
+        end
+    end
+    arrows(frame,0,false)
+    if help then H:SetHelp(frame,help) end
+end
+function N:Watermark(state,enabled)
+    if state and not state.watermark then
+        local art=state.plate:CreateTexture(nil,"ARTWORK"); state.watermark=art
+        art.fsSuiteStyle=true; art.ignoreInLayout=true; art:SetTexture(FS.emblem)
+        art:SetSize(240,240); art:SetPoint("BOTTOMRIGHT",-24,32); art:SetAlpha(.035)
+    end
+    if state and state.watermark then state.watermark:SetShown(enabled) end
+end
+function N:SpellChrome(frame,enabled)
+    self:Watermark(self.windows[frame],enabled)
+    local function options(button,help)
+        if not button or (button.IsForbidden and button:IsForbidden()) then return end
+        self:Dropdown(button,enabled,help)
+    end
+    local book=frame.SpellBookFrame or (frame==SpellBookFrame and frame)
+    if book then
+        options(book.SettingsDropdown,"Spellbook display options: choose which spells are shown.")
+        for _,key in ipairs({"BookBGHalved","BookBGLeft","BookBGRight","Bookmark"}) do self:Art(book[key],enabled,.12) end
+        local function cards(node,depth)
+            if not node or node.fsSuiteStyle or depth>8 or (node.IsForbidden and node:IsForbidden()) then return end
+            if node.Icon and (node.Name or node.Text or node.SpellName) then
+                local plate=S:Plate(node); plate:ClearAllPoints(); plate:SetAllPoints(node); self:Surface(plate,enabled); plate:SetShown(enabled)
+                plate.gold:Hide(); plate.cyan:Hide()
+            end
+            for _,child in ipairs(node.GetChildren and {node:GetChildren()} or {}) do cards(child,depth+1) end
+        end
+        cards(book.PagedSpellsFrame,0)
+    end
+    local talents=frame.TalentsFrame
+    if talents then
+        options(talents.SearchOptionsDropdown,"Talent search options: hide passive abilities or show talent ranks in search results.")
+        self:Art(talents.ClassBackground,enabled,.22)
+        if FS.modules.TalentAdvisor.nativeFrame==talents and FS.modules.TalentAdvisor.RefreshNative then FS.modules.TalentAdvisor:RefreshNative() end
+    end
+    -- The compact spellbook has a narrow title bar; reserve the left side for
+    -- ForeverSuite and Talent Advisor without changing spellbook page geometry.
+    local title=frame.TitleText or (frame.TitleContainer and frame.TitleContainer.TitleText)
+    local width=FS.Tools:Call(frame.GetWidth,frame)
+    self:Geometry(title,enabled and FS.Tools:Number(width) and width<760,function(label)
+        label:ClearAllPoints(); label:SetPoint("RIGHT",frame,"TOPRIGHT",-66,-15); label:SetWidth(140)
+    end)
 end
 function N:Control(frame,enabled,glyph)
     local state=self.controls[frame]
@@ -83,6 +174,7 @@ function N:Control(frame,enabled,glyph)
         end) end
     end
     state.enabled=enabled; state.plate:SetShown(enabled); state.hover:SetShown(enabled)
+    self:Surface(state.plate,enabled,"Button")
     if not enabled then state.flash:Hide() end
     local checked=frame.GetChecked and frame:GetChecked()
     local selected=frame.IsSelected and frame:IsSelected()
@@ -103,6 +195,9 @@ function N:Control(frame,enabled,glyph)
     if glyph and glyph~="" then
         if not state.glyph then state.glyph=FS.Widgets:Label(frame); state.glyph.fsSuiteStyle=true; state.glyph.ignoreInLayout=true; state.glyph:SetPoint("CENTER") end
         state.glyph:SetText(glyph); state.glyph:SetShown(enabled)
+        state.glyph:ClearAllPoints()
+        if glyph=="v" and FS.Tools:Number(frame:GetWidth()) and frame:GetWidth()>60 then state.glyph:SetPoint("RIGHT",frame,"RIGHT",-8,0)
+        else state.glyph:SetPoint("CENTER") end
     elseif state.glyph then state.glyph:Hide() end
 end
 function N:Bar(frame,enabled)
@@ -330,12 +425,13 @@ function N:Tree(frame,enabled,root,depth,deco,role)
             self:GuildRow(frame,enabled)
         else self:Control(frame,enabled,glyph) end
     elseif kind=="EditBox" then
-        local p=S:Plate(frame); p:ClearAllPoints(); p:SetAllPoints(frame); p.gold:Hide(); p.cyan:Hide(); p:SetShown(enabled); self:Font(frame,enabled)
+        local p=S:Plate(frame); p:ClearAllPoints(); p:SetAllPoints(frame); p.gold:Hide(); p.cyan:Hide(); p:SetShown(enabled); self:Surface(p,enabled,"Button"); self:Font(frame,enabled)
     end
     local barTexture=kind=="StatusBar" and frame:GetStatusBarTexture()
     for _,r in ipairs(frame.GetRegions and {frame:GetRegions()} or {}) do
         if not own(r) then
-            if r.GetObjectType and r:GetObjectType()=="FontString" then self:Font(r,enabled)
+            if r.GetObjectType and r:GetObjectType()=="FontString" then
+                if root==PlayerSpellsFrame or root==SpellBookFrame then self:NativeFont(r,enabled) else self:Font(r,enabled) end
             elseif r.GetObjectType and r:GetObjectType()=="Texture" and r~=barTexture and (glyph and glyph~="" or not self:IsIcon(frame,r)) then
                 local layer=r.GetDrawLayer and r:GetDrawLayer(); local rn=named(r)
                 local keyed=false; for _,key in ipairs(artKeys) do if frame[key]==r then keyed=true; break end end
@@ -352,6 +448,7 @@ function N:Tree(frame,enabled,root,depth,deco,role)
         local p=frame[key]
         if p and p.GetFrameLevel and not forbidden(p) then
             local plate=S:Plate(p); plate:ClearAllPoints(); plate:SetAllPoints(p); plate.gold:Hide(); plate.cyan:Hide(); plate:SetShown(enabled)
+            self:Surface(plate,enabled)
         end
     end
     if frame.GetChildren then for _,child in ipairs({frame:GetChildren()}) do
@@ -549,26 +646,38 @@ function N:Window(frame,definition)
     state.enabled=enabled
     state.plate:SetShown(enabled); state.header:SetShown(enabled)
     if FS.Themes:Current()==10 then state.fill:SetColorTexture(.48,.37,.21,.98)
-    else state.fill:SetColorTexture(.025,.045,.06,.95) end
+    else local r,g,b=FS.Themes:Accent(); state.fill:SetColorTexture(.10+r*.04,.12+g*.04,.16+b*.04,1) end
     if definition[2]=="Professions" then self:Professions(frame,enabled) end
     if definition[1]=="CollectionsJournal" or definition[1]=="WardrobeFrame" then self:Collections(frame,enabled) end
-    self:Tree(frame,enabled,frame)
+    if definition[2]=="Guild" and self.GuildTree then self:GuildTree(frame,enabled)
+    else self:Tree(frame,enabled,frame) end
     -- Generic traversal precedes the final targeted pass so scroll arrows and
     -- reset controls retain their glyphs even when they have unnamed children.
     if definition[2]=="Professions" then self:Professions(frame,enabled) end
     if definition[1]=="CollectionsJournal" or definition[1]=="WardrobeFrame" then self:Collections(frame,enabled) end
     local portrait=_G[definition[1].."Portrait"]; if portrait then self:Art(portrait,enabled) end
     if definition[1]=="ProfessionsBookFrame" then
+        self:Watermark(state,enabled)
         for _,name in ipairs({"PrimaryProfession1","PrimaryProfession2","SecondaryProfession1","SecondaryProfession2","SecondaryProfession3"}) do
-            local p=_G[name]
+            local p=frame[name] or _G[name]
             if p and not forbidden(p) then
-                local plate=S:Plate(p); plate:ClearAllPoints(); plate:SetAllPoints(p); plate.gold:Hide(); plate.cyan:Hide(); plate:SetShown(enabled)
                 self:Tree(p,enabled,frame)
+                -- Keep one page surface rather than five large nested boxes.
+                local plate=S:Plate(p); plate:Hide()
+                if name:find("Primary",1,true)==1 then
+                    if not p.fsProfessionRule then
+                        p.fsProfessionRule=p:CreateTexture(nil,"BORDER"); p.fsProfessionRule.fsSuiteStyle=true; p.fsProfessionRule.ignoreInLayout=true
+                        p.fsProfessionRule:SetHeight(1); p.fsProfessionRule:SetPoint("BOTTOMLEFT",12,2); p.fsProfessionRule:SetPoint("BOTTOMRIGHT",-12,2)
+                    end
+                    local r,g,b=FS.Themes:Accent(); p.fsProfessionRule:SetColorTexture(r,g,b,.3); p.fsProfessionRule:SetShown(enabled)
+                end
             end
         end
     end
     if definition[1]=="WorldMapFrame" then self:MapChrome(frame,enabled); self:MapText(frame,enabled) end
     if definition[2]=="Guild" and self.Guild then self:Guild(frame,enabled) end
+    if self.SpellChrome and (definition[1]=="PlayerSpellsFrame" or definition[1]=="SpellBookFrame") then self:SpellChrome(frame,enabled) end
+    self:Surface(state.plate,enabled)
     if definition[1]=="AchievementFrame" then
         self:Achievements(frame,enabled)
         for _,suffix in ipairs({"MetalBorderTop","MetalBorderBottom","MetalBorderLeft","MetalBorderRight","MetalBorderTopLeft","MetalBorderTopRight","MetalBorderBottomLeft","MetalBorderBottomRight","WoodBorderTopLeft","WoodBorderTopRight","WoodBorderBottomLeft","WoodBorderBottomRight","WaterMark","StatsBG"}) do self:Art(_G["AchievementFrame"..suffix],enabled) end

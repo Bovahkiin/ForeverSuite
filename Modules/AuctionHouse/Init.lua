@@ -135,7 +135,7 @@ function A:Build()
         end
     end
     for id,price in pairs(prices) do
-        if not db.shoppingOnly and not included[id] then
+        if not db.shoppingOnly and not self.contextShoppingOnly and not included[id] then
             local name,link=T:Call(itemInfo,id)
             self.rows[#self.rows+1]={id=id,link=link,price=price.price,time=price.time,
                 text=(name or "Item "..id).." | "..observedPrice(price,db.showDates)}

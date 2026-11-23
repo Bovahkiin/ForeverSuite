@@ -1242,7 +1242,7 @@ WorldMapFrame,OpenMapAPI,M.Position=oldMap,oldAPI,oldPosition
 L.targets.WorldMapFrame=oldTarget
 M.openMapCallbacks=nil; world:Hide()
 
--- TEST: World map toolbar stays inside the viewport and above the native footer when the map changes size
+-- TEST: World map toolbar centers below the window and moves to bottom left when maximized
 local FS=ExtensionFixture(); local M=FS.modules.Map
 local oldMap=WorldMapFrame
 local map=CreateFrame('Frame',nil,UIParent); map:SetSize(1050,550); map:Show()
@@ -1256,12 +1256,15 @@ local toggle=CreateFrame('Button',nil,map); toggle:SetPoint('BOTTOMRIGHT',viewpo
 WorldMapFrame=map; M:UpdatePins()
 local toolbar=M.worldControls
 local point,parent,edge,x,y=toolbar:GetPoint()
-assert(toolbar:IsShown() and point=='BOTTOM' and parent==viewport and edge=='BOTTOM' and x==0)
-assert(math.abs(y*toolbar:GetScale()-58)<.001 and toolbar:GetWidth()*toolbar:GetScale()<=336.001)
+assert(toolbar:IsShown() and point=='TOP' and parent==map and edge=='BOTTOM' and x==0)
+assert(math.abs(y*toolbar:GetScale()+6)<.001 and toolbar:GetWidth()*toolbar:GetScale()<=336.001)
 viewport:SetSize(1000,520); viewport.scripts.OnSizeChanged(viewport)
-assert(toolbar:GetScale()==1 and select(5,toolbar:GetPoint())==58)
+assert(toolbar:GetScale()==1 and select(5,toolbar:GetPoint())==-6)
 canvas:SetSize(1500,1500); M:UpdatePins()
-assert(select(2,toolbar:GetPoint())==viewport and toolbar:GetScale()==1)
+assert(select(2,toolbar:GetPoint())==map and toolbar:GetScale()==1)
+map.IsMaximized=function() return true end; M:UpdatePins()
+assert(select(1,toolbar:GetPoint())=='BOTTOMLEFT' and select(4,toolbar:GetPoint())==12 and select(5,toolbar:GetPoint())==12)
+map.IsMaximized=function() return false end; M:UpdatePins(); assert(select(1,toolbar:GetPoint())=='TOP')
 assert(select(4,coords:GetPoint())==-32 and select(4,toggle:GetPoint())==-2)
 map:Hide(); WorldMapFrame=oldMap
 

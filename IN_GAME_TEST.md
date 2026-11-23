@@ -1,3 +1,74 @@
+## 1.0.12 Screen tools and attached panels
+
+1. Restart the client after installing the new Lua files. Open Character tools:
+   try Advisor, Planner, Wishlist, Alt Tracker and Overview. The character window
+   must stay open. Middle-click equipment slots and verify the planner's slot.
+   Check normal pickup, drag, right-click use and spell targeting separately.
+2. Open a profession and select a recipe. Use Crafting tools > Selected recipe:
+   materials. Change the native recipe and verify the materials follow. Back or
+   choosing another tool view stops automatic recipe following. Adjust quantity
+   and add the missing materials to the existing AH shopping list.
+3. Open shopping beside the AH and confirm its normal search and Scan all still
+   work. Switch to Recorded prices and verify shopping-only mode does not leak
+   into later standalone views or saved profile preferences.
+4. Open Bags > More tools and the planning button in the selected item's options.
+   At the bank, middle-click a bank item. Check the item ID and quantity in each
+   goal, including when a different bag item was selected earlier. Regular bank
+   pickup and dragging must remain unchanged. Never sell must protect the item.
+5. Open Map tools and the existing Routes button. Try route loading, waypoint
+   queue, gathering runs and saved pins with OpenMap enabled and disabled. The
+   world map must stay open. Right-click quest headings and test known and
+   unavailable quest locations. Queueing a quest must never guess a destination.
+6. In Guild, select a member and open notes. Confirm private notes and stars
+   affect the intended player. In Contacts and recent groups, check whisper and
+   invite recipients. These actions must happen only after a click.
+7. Hover a spell in Spellbook, then open its tools. Check the resulting cooldown
+   or buff spell ID. Close/reopen Spellbook and verify stale hover selections do
+   not carry over. Try Talent Advisor from Talents; native talents stay usable.
+8. Check Chat tools above the tabs, the XP-bar report, loot tools, mailbox collection,
+   right-click tray management, Edit Mode controls and minimap Notifications.
+   Mail collection must still stop on closure, combat and unavailable bag space.
+9. Open forms and read-only details from attached tools. Cancel/save/close and
+   confirm the source stays open and returns correctly. Close the source, switch
+   native tabs, or open Control Center; orphan panels and menus must disappear.
+10. Try all themes, large text, UI scaling and narrow screens. Check overlapping
+    native controls, dropdown placement, attached drawers, paging and tooltips.
+    Move the source window and verify the tool follows. Saved standalone mover
+    positions must survive. Confirm no idle CPU loop or repeated UI creation.
+11. Open Guild repeatedly from closed state and when another window is open:
+    no flash at the default location before the final saved position. Test Chat,
+    Roster, Info, Benefits, minimize/maximize, all dropdowns, invitations and
+    member details. Check native icons, unread indicators, compact text, scroll
+    controls and permissions with both a member and officer account if available.
+12. Check Bag tools and Plan item labels. Chat tools must remain separate from
+    General/Combat Log tabs; switch tabs and detached chat windows. In Talents,
+    Talent Advisor sits beside ForeverSuite; Search options shows an arrow and
+    help. Check both native search checkboxes and ordinary talent clicks.
+13. Switch map window/fullscreen modes with OpenMap on/off. The four shortcuts
+    center below the window, then align bottom left in fullscreen. Coordinates,
+    the quest log and native map dragging/zooming must remain usable.
+14. Check Control Center in each theme and at large font size. Tool cards, the
+    header and native spell artwork must remain readable; hidden windows and
+    off-page module cards must never be shown merely by repainting the theme.
+15. Repeatedly switch Guild Chat, Roster, Info and Benefits, with a saved mover
+    position and without one. Position and scale must stay fixed before any
+    deferred callbacks run. Open/close must not deliberately fade the window.
+    Check Member tools below the window and confirm the roster dropdown has
+    exactly one visible arrow. Try small screens and minimized Guild too.
+16. Check Tools, Settings, Modules, Profiles, Spellbook and Professions across
+    themes. There must be no black center rectangles or black gradient header.
+    Native search/paging controls should match the theme buttons. Profession
+    ranks and actions remain functional, with one background and section rules.
+17. Check the social chat button at rest, pressed and during a Quick Join toast.
+    Only one icon should show, with room for friend/queue counts. Native tooltip,
+    click behavior and toast text must work. Turn chat button styling off/on.
+18. Check Tracking, Calendar and Addon Compartment in the minimap control bar
+    across themes, Dark Fantasy, resizing and moving the minimap. Open each menu,
+    check the addon count and a calendar invitation. Near the top screen edge,
+    the bar must move to a free side instead of covering the zone title. Disable
+    Map and verify all three native buttons restore; none belongs in the addon
+    tray. Combat defers changes and must not alter the terrain mask.
+
 ## 1.0.11 Alt Tracker, auction scans and quest nameplates
 
 1. Open All Tools > Alt Tracker, including with Bags disabled. Check that the

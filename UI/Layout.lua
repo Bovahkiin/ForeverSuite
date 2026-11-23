@@ -10,6 +10,11 @@ function L:IsExternallyManaged(id)
 end
 function L:QueueApply(id)
     if self:IsExternallyManaged(id) then return end
+    local target=self.targets[id]
+    local native=target and FS.WindowManager and FS.WindowManager.native[target.frame]
+    if (id=="CommunitiesFrame" or id=="GuildFrame") and native and native.placing then return end
+    if (id=="CommunitiesFrame" or id=="GuildFrame") and target and FS.WindowManager
+        and FS.WindowManager:StabilizeGuild(target.frame) then return end
     self.queued=self.queued or {}
     if self.queued[id] then return end; self.queued[id]=true
     C_Timer.After(0,function() self.queued[id]=nil; self:Apply(id) end)
@@ -32,6 +37,7 @@ function L:Apply(id)
     if not target or not saved then return end
     if (id=="MainMenu" or id=="BagsBar" or id:find("Bar")) and not FS:IsModuleEnabled("ActionBars") then return end
     local f=target.frame
+    if f.fsContextHost then return end
     if f.fsDirectDragging then return end
     if id=="ControlCenter" and f==FS.window and FS.LayoutConfigText then FS:LayoutConfigText(); return end
     local scale=saved.scale or 1
@@ -344,7 +350,9 @@ function L:Save(id,handle,scale,dragging)
     positions[id]={x=x,y=y,scale=scale}
     self:ConstrainSaved(id)
     self:Apply(id)
-    if not dragging then handle:ClearAllPoints(); handle:SetPoint("CENTER",f,"CENTER") end
+    -- Directly dragged windows already have their UIParent anchor from Apply.
+    -- Only a separate Layout Studio handle should follow the target frame.
+    if not dragging and handle~=f then handle:ClearAllPoints(); handle:SetPoint("CENTER",f,"CENTER") end
 end
 function L:Resize(id,handle)
     local start=handle.resizeStart

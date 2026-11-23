@@ -1058,8 +1058,20 @@ for _,name in ipairs(names) do
  b:SetScript('OnClick',function() clicks=clicks+1 end); b:SetScript('OnEnter',function(self) GameTooltip:SetOwner(self); GameTooltip:Show() end)
 end
 local contact=QuickJoinToastButton; contact.count=contact:CreateFontString(); contact.count:SetText('0'); contact.count:SetFont('count-original',11,'OUTLINE')
+contact.FriendsButton=contact:CreateTexture(); contact.FriendsButton:SetAlpha(1)
+contact.QueueButton=contact:CreateTexture(); contact.QueueButton:SetAlpha(0)
+contact.FlashingLayer=contact:CreateTexture(); contact.FlashingLayer:SetAlpha(0)
+contact.FriendCount=contact:CreateFontString(); contact.FriendCount:SetText('3'); contact.FriendCount:SetFont('native-count',11,'')
+contact.QueueCount=contact:CreateFontString(); contact.QueueCount:SetText('1'); contact.QueueCount:SetAlpha(0); contact.QueueCount:SetFont('native-count',11,'')
 contact.Toast=CreateFrame('Frame',nil,contact); local toast=contact.Toast:CreateTexture(); toast:SetTexture('notification-content')
 S:Chat(); assert(S.chatButtons[contact].icon.texture.texture==FS.menuAtlas and contact.Icon:GetAlpha()==0 and contact.count:GetText()=='0' and toast:GetAlpha()==1)
+local social=S.chatButtons[contact].icon; assert(social:GetHeight()==14 and social.point[1]=='TOP' and social.point[5]==-2)
+-- Simulate an engine-driven animation bypassing SetAlpha hooks entirely.
+contact.QueueButton.alpha=1; contact.FlashingLayer.alpha=1; contact.QueueCount.alpha=1
+assert(not contact.FriendsButton:IsShown() and not contact.QueueButton:IsShown() and not contact.FlashingLayer:IsShown())
+contact.QueueButton:Show(); assert(not contact.QueueButton:IsShown() and contact.QueueCount:GetAlpha()==1)
+contact.FlashingLayer:SetShown(true); assert(not contact.FlashingLayer:IsShown())
+assert(contact.FriendCount:GetText()=='3' and select(2,contact.FriendCount:GetFont())==11 and toast:GetAlpha()==1)
 local speaker=S.chatButtons[ChatFrameChannelButton].icon; local lines=0; for _,child in ipairs({speaker:GetChildren()}) do if child.kind=='Line' then lines=lines+1; assert(child.thickness==1.5 and child.startPoint and child.endPoint) end end
 assert(lines>0 and S.chatButtons[ChatFrameMenuButton].icon:IsShown())
 for _,name in ipairs(names) do local b=_G[name]; b:Click(); b.scripts.OnEnter(b); assert(GameTooltip.owner==b and b:GetParent()==UIParent and b.point[1]=='LEFT' and b:GetAlpha()==.8) end
@@ -1069,6 +1081,8 @@ local plate=N.controls[contact].plate; plate.SetBackdropBorderColor=function(sel
 FS.db.chat.borderColor='Gold'; FS.db.chat.backgroundOpacity=.55; S:Chat(); assert(plate.testBorder[1]==.95 and plate.testBackground[4]==.55)
 FS:SetModuleEnabled('Social',false); assert(S.chatButtons[contact].icon:IsShown())
 FS.db.chat.styleButtons=false; S:Chat(); assert(contact.Icon:GetAlpha()==1 and not S.chatButtons[contact].icon:IsShown() and contact.count.font[1]=='count-original' and toast:GetAlpha()==1)
+assert(contact.FriendsButton:IsShown() and contact.QueueButton:IsShown() and contact.FlashingLayer:IsShown() and contact.QueueButton:GetAlpha()==1)
+assert(contact.FriendCount:GetText()=='3' and contact.QueueCount:GetText()=='1' and contact.QueueCount:GetAlpha()==1)
 FS.db.chat.styleButtons=true; TEST.combat=true; S:Chat(); assert(not S.chatButtons[contact].icon:IsShown()); TEST.combat=false; S.events.scripts.OnEvent(S.events,'PLAYER_REGEN_ENABLED'); assert(S.chatButtons[contact].icon:IsShown())
 FS:SetModuleEnabled('Chat',false); assert(contact.Icon:GetAlpha()==1 and not N.controls[contact].plate:IsShown() and contact.count:GetText()=='7')
 for _,name in ipairs(names) do _G[name]:Hide(); _G[name]=saved[name] end; FS:SetModuleEnabled('Chat',true); FS:SetModuleEnabled('Social',true)

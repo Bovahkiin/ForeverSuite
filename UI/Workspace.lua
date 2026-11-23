@@ -94,6 +94,9 @@ end
 function W:CreateRow()
     local row = CreateFrame("Frame", nil, self.host, "BackdropTemplate")
     H:Skin(row)
+    row.rail=row:CreateTexture(nil,"ARTWORK"); row.rail:SetWidth(3)
+    row.rail:SetPoint("TOPLEFT",0,-7); row.rail:SetPoint("BOTTOMLEFT",0,7)
+    row.iconWell=row:CreateTexture(nil,"BACKGROUND",nil,2); row.iconWell:SetSize(42,42); row.iconWell:SetPoint("TOPLEFT",8,-8)
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(34,34)
     row.icon:SetPoint("TOPLEFT",12,-12)
@@ -124,6 +127,13 @@ function W:LayoutRow(index, tool, isHome, x, y)
     local row = self.rows[index]
     if not row then row=self:CreateRow(); self.rows[index]=row end
     row.tool=tool
+    local color=FS.moduleCardColors[tool.owner] or {FS.Themes:Accent()}
+    local paper=FS.Themes:Current()==10
+    if FS.NativeWindows then FS.NativeWindows:Surface(row,true) end
+    row.rail:SetColorTexture(color[1],color[2],color[3],canOpen(tool) and .95 or .3)
+    row.iconWell:SetColorTexture(color[1],color[2],color[3],.09)
+    row.summary:SetTextColor(paper and .25 or .63,paper and .22 or .71,paper and .18 or .79,1)
+    row.open:SetBackdropBorderColor(color[1],color[2],color[3],.85)
     FS:SetMenuIcon(row.icon, tool.icon or "Category")
     row.title:SetText(tool.title)
     row.summary:SetText(tool.description)

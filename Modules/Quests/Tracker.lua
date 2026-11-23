@@ -56,7 +56,7 @@ function Q:CreateTracker()
         c.heading:SetScript("OnEnter",function(b)
             if b.row then GameTooltip:SetOwner(b,"ANCHOR_LEFT"); GameTooltip:AddLine(b.row.title,1,.8,.3)
                 for _,line in ipairs(b.row.objectives) do GameTooltip:AddLine(line,1,1,1,true) end
-                GameTooltip:AddLine("Click to focus. Map opens the quest location.",.4,.8,1,true); GameTooltip:Show() end
+                GameTooltip:AddLine("Click to focus. Right-click for navigation tools.",.4,.8,1,true); GameTooltip:Show() end
         end)
         c.heading:SetScript("OnLeave",function() GameTooltip:Hide() end)
     end

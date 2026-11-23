@@ -253,6 +253,7 @@ function P:ExpandPlan(root,materials)
     return result
 end
 function P:OnSelect(row,quantity,deferRefresh)
+    if not deferRefresh and self.planRecipe~=row then self.contextFollowSelection=nil end
     if self.recipeView==5 then
         if row and row.profession then self:ShowLevelRoute(row.profession,"") end
         return
@@ -305,6 +306,7 @@ function P:OnSelect(row,quantity,deferRefresh)
     if not deferRefresh then self:Refresh() end
 end
 function P:ClearPlan(returnToResults)
+    self.contextFollowSelection=nil
     local search=self.recipeSearch
     self.materials=nil; self.expanded=nil; self.planRecipe=nil; self.quantity=nil; self.selected=nil; self.page=1
     self.recipeSearch=nil

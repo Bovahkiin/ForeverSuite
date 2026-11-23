@@ -51,6 +51,8 @@ function M:Candidate(button,registered)
     if kind~="Button" and kind~="CheckButton" then return end
     local name=T:Text(T:Call(button.GetName,button))
     if blocked[name] or name:match("^Blizzard_") or button==AddonCompartmentFrame
+        or button==GameTimeFrame or button==MiniMapTrackingButton
+        or button==(MinimapCluster and MinimapCluster.Tracking and MinimapCluster.Tracking.Button)
         or button.pinTemplate or button.dataProvider or button.uiMapID or button.unit then return end
     local lower=name:lower()
     if name~="" and (registered or button==FS.minimapButton or name:match("^LibDBIcon10_")

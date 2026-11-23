@@ -754,7 +754,7 @@ N:Refresh(f)
 assert(f.CommunitiesList.TopFiligree:GetAlpha()==0 and N.guildRows[member].fill:IsShown())
 assert(not N.controls[member] and member.ClassIcon:GetAlpha()==1)
 assert(member.NameFrame.Name:GetTextColor()==.2 and f.Chat.Messages.font[1]==FS.font)
-assert(f.Chat.Messages.lines[1]=='Private test chat' and tab:GetWidth()==34 and tab.fsGuildIcon:IsShown())
+assert(f.Chat.Messages.lines[1]=='Private test chat' and tab:GetWidth()==28 and tab.fsGuildIcon:IsShown())
 member:Click(); tab:Click(); assert(clicks==2)
 FS.db.guild.styleWindow=false; N:Refresh(f)
 assert(f.CommunitiesList.TopFiligree:GetAlpha()==.7 and tab:GetWidth()==28 and tab:GetHeight()==26)
@@ -771,9 +771,10 @@ f.SetDisplayMode=function(self)
  created.NameFrame.Name=created.NameFrame:CreateFontString(); created.NameFrame.Name:SetText('New member')
 end
 N:Refresh(f); Drain(); f:SetDisplayMode()
+assert(N.guildRows[created] and not N.guildPending[f])
 local pending=#TEST.timers
 for i=1,30 do N.guildEvents.scripts.OnEvent(N.guildEvents,'GUILD_ROSTER_UPDATE') end
-assert(#TEST.timers==pending and N.guildPending[f])
+assert(#TEST.timers==pending+1 and N.guildPending[f])
 Drain(); assert(N.guildRows[created] and not N.controls[created] and not N.guildPending[f])
 f:Hide(); pending=#TEST.timers
 for i=1,30 do N.guildEvents.scripts.OnEvent(N.guildEvents,'GUILD_ROSTER_UPDATE') end
@@ -802,3 +803,49 @@ W:Install(); N:Refresh()
 f:Show(); assert(f:GetAlpha()==0 and not CommunitiesFrame:IsShown())
 Drain(); assert(f:GetAlpha()==.65 and f.Background:GetAlpha()==0 and not W.openingFrames[f])
 f:Hide(); CommunitiesFrame:Hide(); CommunitiesFrame,ContactsFrame=oldGuild,oldContacts
+
+-- TEST: Minimap header controls follow the skin without replacing native input counters alerts or parents
+ResetTest(); local FS=ForeverSuite; local S,N=FS.Style,FS.NativeWindows
+local oldMap,oldCluster,oldCalendar,oldAddon=Minimap,MinimapCluster,GameTimeFrame,AddonCompartmentFrame
+local oldHeader,oldStyle=S.minimap,FS.db.map.minimapStyle
+local map=CreateFrame('Frame',nil,UIParent); map:SetSize(198,198); Minimap=map
+MinimapCluster=CreateFrame('Frame',nil,UIParent); MinimapCluster.Tracking=CreateFrame('Frame',nil,MinimapCluster)
+local tracking=MinimapCluster.Tracking; tracking.Background=tracking:CreateTexture(); tracking.Background:SetAlpha(.8)
+tracking.Button=CreateFrame('Button',nil,tracking)
+GameTimeFrame=CreateFrame('Button',nil,MinimapCluster); AddonCompartmentFrame=CreateFrame('Button',nil,MinimapCluster)
+local buttons={tracking.Button,GameTimeFrame,AddonCompartmentFrame}; local original={}; local clicks=0
+for _,button in ipairs(buttons) do
+    button:SetPoint('TOPLEFT',MinimapCluster,'TOPLEFT',7,-9); button:SetSize(23,23); button:SetScale(.9); button:SetFrameLevel(5)
+    button.StateTexture=button:CreateTexture(); button.StateTexture:SetAtlas('ui-hud-minimap-native-button')
+    button.AddTexture=button:CreateTexture(); button.AddTexture:Hide()
+    button:SetScript('OnClick',function() clicks=clicks+1 end)
+    original[button]={parent=button:GetParent(),point={button:GetPoint()}}
+end
+AddonCompartmentFrame.Text=AddonCompartmentFrame:CreateFontString(); AddonCompartmentFrame.Text:SetAllPoints(); AddonCompartmentFrame.Text:SetText('7')
+local invite=GameTimeFrame:CreateTexture(); invite:SetAlpha(.6)
+S.minimap=CreateFrame('Frame',nil,map); S.minimap:SetSize(198,24); FS.HUD:Skin(S.minimap)
+S.minimap.GetTop=function() return 500 end; S.minimap.GetLeft=function() return 500 end
+S:MinimapHeaderControls(true); local bar=S.minimapControls
+assert(bar:IsShown() and bar:GetWidth()==102 and bar.point[1]=='BOTTOMRIGHT' and bar.point[2]==S.minimap)
+for _,button in ipairs(buttons) do
+    assert(button:GetParent()==original[button].parent and button.ignoreInLayout and S.headerButtons[button].icon:IsShown())
+    assert(not button.StateTexture:IsShown() and N.controls[button].plate:IsShown()); button:Click()
+end
+assert(clicks==3 and invite:GetAlpha()==.6 and AddonCompartmentFrame.Text:GetText()=='7')
+assert(AddonCompartmentFrame.Text.point[1]=='RIGHT' and AddonCompartmentFrame.Text:GetWidth()==16)
+assert(not FS.modules.MinimapButtons:Candidate(tracking.Button,true) and not FS.modules.MinimapButtons:Candidate(GameTimeFrame,true))
+FS.db.map.minimapStyle='Dark Fantasy'; S:MinimapHeaderControls(true)
+assert(N.controls[GameTimeFrame].plate.fsMinimapFantasyFill:IsShown())
+local count=#TEST.frames; for i=1,30 do S:MinimapHeaderControls(true) end; assert(#TEST.frames==count)
+S.minimap.GetTop=function() return UIParent:GetHeight()-1 end; S:MinimapHeaderControls(true)
+assert(bar.point[1]=='TOPRIGHT' and bar.point[3]=='TOPLEFT')
+S.minimap.GetLeft=function() return 0 end; S:MinimapHeaderControls(true)
+assert(bar.point[2]==map and bar.point[3]=='BOTTOMRIGHT' and bar.point[5]==-36)
+S:MinimapHeaderControls(false); assert(not bar:IsShown() and tracking.Background:IsShown())
+for _,button in ipairs(buttons) do
+    assert(button:GetParent()==original[button].parent and button:GetScale()==.9 and button:GetWidth()==23 and button:GetFrameLevel()==5)
+    assert(button.point[2]==original[button].point[2] and button.point[4]==7 and button.point[5]==-9)
+    assert(button.StateTexture:IsShown() and not button.AddTexture:IsShown() and not S.headerButtons[button].icon:IsShown())
+end
+map:Hide(); MinimapCluster:Hide(); S.minimap=oldHeader; FS.db.map.minimapStyle=oldStyle
+Minimap,MinimapCluster,GameTimeFrame,AddonCompartmentFrame=oldMap,oldCluster,oldCalendar,oldAddon

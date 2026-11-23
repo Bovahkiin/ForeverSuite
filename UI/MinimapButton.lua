@@ -5,6 +5,7 @@ local shortcuts={
     {"Themes",function() FS.Installer:ShowThemes() end},
     {"Layouts",function() FS.Installer:ShowLayouts() end},
     {"Modules",function() FS:ShowWorkspacePage("modules") end},
+    {"Notifications",function() FS.modules.Workbench:Choose("Notification Center") end},
     {"Reload UI",function()
         if not FS.modules.Profiles:Allowed() then return end
         FS.modules.Profiles:PersistCurrent(); ReloadUI()

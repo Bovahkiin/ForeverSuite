@@ -231,7 +231,9 @@ function NativeTalentFixture()
     A:InstallNative();A:Event('NATIVE_TALENTS');Drain();return FS,A,c,root,f
 end
 local FS,A,c,root,f=NativeTalentFixture();local p=A:Selected();local ranks=A:Ranks(p.order)
-assert(f.fsAdvisorButton:IsShown() and f.fsAdvisorButton:GetText()=='Talent Advisor' and f.fsAdvisorButton.point[2]==f.TabSystem)
+FS.Context:Discover(); A:RefreshNative()
+assert(f.fsAdvisorButton:IsShown() and f.fsAdvisorButton:GetText()=='Talent Advisor')
+assert(f.fsAdvisorButton.point[1]=='LEFT' and f.fsAdvisorButton.point[2]==FS.Context.hosts[root].button and f.fsAdvisorButton.point[4]==8)
 assert(f.fsAdvisorButton:GetParent()==root and f.fsAdvisorButton:IsMouseEnabled() and f.fsAdvisorButton.frameStrata=='DIALOG')
 assert(f.fsAdvisorPlan:GetText():find(p.name,1,true))
 for id,node in pairs(f.nodeIDToButton) do
@@ -240,7 +242,7 @@ for id,node in pairs(f.nodeIDToButton) do
 end
 local nextID=A:NextPoint();assert(A.nativeHints[f.nodeIDToButton[nextID]].kind=='next')
 local node=f.nodeIDToButton[nextID];local click=node:GetScript('OnClick');node:Click();assert(TEST.nativeClicks==1 and node:GetScript('OnClick')==click)
-f.fsAdvisorButton:Click();assert(A.window:IsShown() and not root:IsShown())
+f.fsAdvisorButton:Click();assert(A.window:IsShown() and root:IsShown() and A.window.fsContextHost==f)
 A:OpenGameTalents();f:Hide();f:Show();Drain();assert(root:IsShown() and f.fsAdvisorButton:IsShown())
 f:Hide();assert(not f.fsAdvisorButton:IsShown() and not f.fsAdvisorPlan:IsShown())
 f:Show();Drain();assert(f.fsAdvisorButton:IsShown())

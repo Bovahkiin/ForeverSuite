@@ -88,6 +88,7 @@ end
 function FS:PaintModuleCard(name)
     local card=self.window and self.window.cards[name]; if not card then return end
     local c=self.moduleCardColors[name]; local enabled=self:IsModuleEnabled(name); local factor=self.Themes:Current()==10 and .23 or 1
+    if self.NativeWindows then self.NativeWindows:Surface(card.card,true) end
     card.heading:SetTextColor(c[1]*factor,c[2]*factor,c[3]*factor)
     card.card:SetBackdropBorderColor(c[1]*(card.hovered and 1 or .45),c[2]*(card.hovered and 1 or .45),c[3]*(card.hovered and 1 or .45),1)
     card.hover:SetColorTexture(c[1],c[2],c[3],.08); card.hover:SetShown(card.hovered==true)
@@ -98,6 +99,24 @@ function FS:PaintModuleCard(name)
     if enabled then card.toggle.fsLabel:SetTextColor(c[1]*factor,c[2]*factor,c[3]*factor)
     elseif factor==1 then card.toggle.fsLabel:SetTextColor(.60,.65,.72)
     else card.toggle.fsLabel:SetTextColor(.25,.28,.32) end
+end
+function FS:PaintControlCenter()
+    local f=self.window; if not f then return end
+    local r,g,b=self.Themes:Accent(); local paper=self.Themes:Current()==10
+    if self.NativeWindows then self.NativeWindows:Surface(f,true) end
+    f.headerFill:SetDrawLayer("ARTWORK",-1)
+    if f.headerFill.SetGradient and CreateColor then
+        -- Gradients multiply the base texture color. Start from white rather
+        -- than multiplying two dark fills into a black header.
+        f.headerFill:SetColorTexture(1,1,1,1); f.headerFill:SetVertexColor(1,1,1,1)
+        f.headerFill:SetGradient("VERTICAL",CreateColor(paper and .53 or .12,paper and .43 or .15,paper and .29 or .20,1),CreateColor(paper and .68 or .14+r*.08,paper and .57 or .17+g*.08,paper and .39 or .22+b*.08,1))
+    else f.headerFill:SetColorTexture(paper and .53 or .14+r*.04,paper and .43 or .17+g*.04,paper and .29 or .22+b*.04,1) end
+    if f.brandWatermark then f.brandWatermark:SetAlpha(paper and .05 or .075) end
+    if not f.headerRule then
+        f.headerRule=f:CreateTexture(nil,"ARTWORK"); f.headerRule:SetHeight(1)
+        f.headerRule:SetPoint("BOTTOMLEFT",f.headerFill,"BOTTOMLEFT",20,0); f.headerRule:SetPoint("BOTTOMRIGHT",f.headerFill,"BOTTOMRIGHT",-20,0)
+    end
+    f.headerRule:SetColorTexture(r,g,b,.45)
 end
 function FS:CreateConfigWindow()
     if self.window then return self.window end
@@ -114,7 +133,7 @@ function FS:CreateConfigWindow()
     FS.Themes:Register(frame)
     local header = frame:CreateTexture(nil, "BACKGROUND")
     frame.headerFill=header; header:SetColorTexture(0.055, 0.075, 0.105, 1); header:SetSize(938, 84); header:SetPoint("TOPLEFT", 1, -1)
-    local watermark = frame:CreateTexture(nil, "BACKGROUND"); watermark:SetTexture(self.emblem)
+    local watermark = frame:CreateTexture(nil, "ARTWORK"); frame.brandWatermark=watermark; watermark:SetTexture(self.emblem)
     watermark:SetSize(330, 330); watermark:SetPoint("BOTTOMRIGHT", -46, 65); watermark:SetAlpha(0.075)
     local accent = frame:CreateTexture(nil, "ARTWORK"); accent:SetColorTexture(0.12, 0.72, 0.86, 1)
     accent:SetHeight(2); accent:SetPoint("TOPLEFT", 1, -1); accent:SetPoint("TOPRIGHT", -1, -1)
@@ -422,6 +441,7 @@ function FS:LayoutConfigText()
     self:FitConfigViewport(bodyTop,contentBottom,footer,740)
 end
 function FS:RefreshConfig()
+    self:PaintControlCenter()
     local frame = self.window; if not frame then return end
     frame.minimap.label:SetText(self.L.MINIMAP); frame.minimap:SetChecked(self.db.minimap.show)
     frame.welcome.label:SetText(self.L.WELCOME); frame.welcome:SetChecked(self.db.welcome)

@@ -116,13 +116,19 @@ local function layoutWorldControls(toolbar,viewport)
     local widthInParent=width*viewportScale/parentScale
     local margin=math.min(24,widthInParent/4)
     local scale=math.min(1,(widthInParent-margin)/toolbar:GetWidth())
-    -- Keep a separate row above the coordinates and the quest log toggle.
-    local clearance=58*viewportScale/parentScale/scale
     if toolbar:GetScale()~=scale then toolbar:SetScale(scale) end
-    local _,anchor,_,_,offset=toolbar:GetPoint()
-    if anchor~=viewport or offset~=clearance then
+    local world=toolbar:GetParent()
+    local worldWidth=T:Call(world.GetWidth,world)
+    local rootWidth=UIParent:GetWidth()
+    local maximized=T:Call(world.IsMaximized,world)==true or
+        (T:Number(worldWidth) and worldWidth*parentScale/UIParent:GetEffectiveScale()>=rootWidth*.9)
+    local point,relative,relativePoint,x,y
+    if maximized then point,relative,relativePoint,x,y="BOTTOMLEFT",world,"BOTTOMLEFT",12/scale,12/scale
+    else point,relative,relativePoint,x,y="TOP",world,"BOTTOM",0,-6/scale end
+    local oldPoint,anchor,oldRelative,oldX,oldY=toolbar:GetPoint()
+    if oldPoint~=point or anchor~=relative or oldRelative~=relativePoint or oldX~=x or oldY~=y then
         toolbar:ClearAllPoints()
-        toolbar:SetPoint("BOTTOM",viewport,"BOTTOM",0,clearance)
+        toolbar:SetPoint(point,relative,relativePoint,x,y)
     end
 end
 function M:UpdateWorldControls(world)
@@ -134,6 +140,7 @@ function M:UpdateWorldControls(world)
     if not f then
         local H=FS.HUD
         f=CreateFrame("Frame",nil,world,"BackdropTemplate"); self.worldControls=f
+        f.fsSuiteStyle=true; f.ignoreInLayout=true; f:SetClampedToScreen(true)
         H:Skin(f); f:SetSize(432,36)
         f:SetFrameLevel(world:GetFrameLevel()+12)
         f.zone=H:Button(f,"My zone",4,-3,100,function()
@@ -152,6 +159,9 @@ function M:UpdateWorldControls(world)
         f.pins=H:Button(f,"",110,-3,100,function() self:ToggleWorldLayer("worldPins") end)
         f.stops=H:Button(f,"",216,-3,106,function() self:ToggleWorldLayer("worldRoute") end)
         f.routes=H:Button(f,"Routes",328,-3,100,function() FS.modules.Workbench:Choose("Route Library") end)
+        world:HookScript("OnSizeChanged",function()
+            if self.worldControls==f and f.viewport and world:IsShown() and not InCombatLockdown() then layoutWorldControls(f,f.viewport) end
+        end)
     end
     local pins=db.worldPins and "Pins: On" or "Pins: Off"
     local stops=db.worldRoute and "Stops: On" or "Stops: Off"

@@ -204,7 +204,7 @@ function G:PlannerRows(targetLevel,query)
                 end
                 if matches then
                     slots[slot]=slots[slot] or {}
-                    slots[slot][#slots[slot]+1]={id=id,score=score,item=item,sources=entry.sources,slotName=slotName}
+                    slots[slot][#slots[slot]+1]={id=id,score=score,item=item,sources=entry.sources,slot=slot,slotName=slotName}
                 end
             end
         end

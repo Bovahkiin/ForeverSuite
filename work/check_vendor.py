@@ -129,6 +129,7 @@ function M:GetShadowOffset() return unpack(self.shadowOffset or {0,0}) end
 function M:SetShadowOffset(x,y) self.shadowOffset={x,y} end
 function M:GetObjectType() return self.kind end
 function M:GetDrawLayer() return self.layer or 'ARTWORK' end
+function M:SetDrawLayer(layer,sublevel) self.layer=layer; self.sublevel=sublevel end
 function M:GetRegions()
     local result={}; for _,f in ipairs(TEST.frames) do if f.parent==self and (f.kind=='Texture' or f.kind=='FontString') then result[#result+1]=f end end
     return unpack(result)
@@ -143,7 +144,11 @@ function M:Click(mouse)
     if self.scripts.PostClick then self.scripts.PostClick(self,mouse or 'LeftButton') end
 end
 function M:SetID(id) self.id = id end
-function M:SetPoint(...) self.point = {...} end
+function M:SetPoint(...)
+    local _,relative=...
+    assert(relative~=self and not (type(relative)=='string' and relative==self.name), 'Cannot anchor to itself')
+    self.point = {...}
+end
 function M:SetText(t) self.text = t; if self.fontString then self.fontString:SetText(t) end end
 function M:SetTextColor(...) self.textColor={...} end
 function M:GetTextColor() return unpack(self.textColor or {1,1,1,1}) end
@@ -440,6 +445,7 @@ function BuybackItem(i)
     end)
 end
 function ResetTest()
+    if ForeverSuite.Context then ForeverSuite.Context:Clear() end
     ForeverSuite.modules.Vendor:CloseMerchant()
     if ForeverSuite.modules.Vendor.window then ForeverSuite.modules.Vendor.window:Hide() end
     if ForeverSuite.modules.Vendor.glowWindow then ForeverSuite.modules.Vendor.glowWindow:Hide() end
@@ -1533,6 +1539,10 @@ for section in Path('work/check_talents.lua').read_text().split('-- TEST: ')[1:]
     checks[title] = 'do\n' + script + '\nend'
 
 for section in Path('work/check_111.lua').read_text().split('-- TEST: ')[1:]:
+    title, script = section.split('\n', 1)
+    checks[title] = 'do\n' + script + '\nend'
+
+for section in Path('work/check_context.lua').read_text().split('-- TEST: ')[1:]:
     title, script = section.split('\n', 1)
     checks[title] = 'do\n' + script + '\nend'
 
