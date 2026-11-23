@@ -12,6 +12,9 @@ Made by **DeluxiZ** for **WoW Forever**.
 [CurseForge](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz) ·
 [Discord support & community](https://discord.gg/wmBcax2bvJ)
 
+**1.0.13 hotfix:** fixes the login and `/reload` Lua error from 1.0.12.
+Update to the latest release; your settings and profiles are preserved.
+
 ## Install
 
 - **WowUp:** select your WoW Forever installation and search for **ForeverSuite**.

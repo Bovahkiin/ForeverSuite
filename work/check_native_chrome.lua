@@ -804,6 +804,31 @@ f:Show(); assert(f:GetAlpha()==0 and not CommunitiesFrame:IsShown())
 Drain(); assert(f:GetAlpha()==.65 and f.Background:GetAlpha()==0 and not W.openingFrames[f])
 f:Hide(); CommunitiesFrame:Hide(); CommunitiesFrame,ContactsFrame=oldGuild,oldContacts
 
+-- TEST: Native styling waits for saved settings before handling reload and addon load events
+ResetTest(); local FS=ForeverSuite; local S=FS.Style
+local data,initialized=FS.db,FS.initialized
+local event=S.events:GetScript('OnEvent')
+FS.db=nil; FS.initialized=nil
+for _,name in ipairs({'ADDON_LOADED','PLAYER_REGEN_ENABLED','ZONE_CHANGED','ZONE_CHANGED_NEW_AREA','PLAYER_ENTERING_WORLD'}) do
+    event(S.events,name,'ForeverSuite')
+end
+event(S.events,'ADDON_LOADED','Blizzard_Calendar')
+assert(FS.db==nil and FS.initialized==nil)
+-- Database creation alone does not mean module initialization has finished.
+FS.db=data
+event(S.events,'ADDON_LOADED','ForeverSuite')
+FS.initialized=initialized
+local header,discover=S.MinimapHeaderControls,S.Discover
+local refreshes,discoveries,lastEnabled=0,0,nil
+S.MinimapHeaderControls=function(_,enabled) refreshes=refreshes+1; lastEnabled=enabled end
+S.Discover=function() discoveries=discoveries+1 end
+local enabled=data.map.enabled
+data.map.enabled=false; event(S.events,'ADDON_LOADED','Blizzard_Calendar')
+assert(refreshes==1 and discoveries==1 and lastEnabled==false)
+data.map.enabled=true; event(S.events,'PLAYER_REGEN_ENABLED')
+assert(refreshes==2 and discoveries==2 and lastEnabled==true)
+data.map.enabled=enabled; S.MinimapHeaderControls=header; S.Discover=discover
+
 -- TEST: Minimap header controls follow the skin without replacing native input counters alerts or parents
 ResetTest(); local FS=ForeverSuite; local S,N=FS.Style,FS.NativeWindows
 local oldMap,oldCluster,oldCalendar,oldAddon=Minimap,MinimapCluster,GameTimeFrame,AddonCompartmentFrame

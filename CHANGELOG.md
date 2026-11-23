@@ -1,3 +1,8 @@
+# 1.0.13 - 2026-11-23
+
+- Fixes the startup and `/reload` Lua error in `IsModuleEnabled` introduced in 1.0.12. Minimap styling now waits until saved settings and addon initialization are ready before handling load events.
+- Keeps normal minimap updates after initialization, including when another addon loads or combat ends. Existing settings and profiles are preserved.
+
 # 1.0.12 - 2026-11-23
 
 - Fixes overlapping artwork on the chat social button, including when native Quick Join animations change icon alpha. The themed icon leaves room for the native counters; notifications, click actions and tooltips remain intact, and disabling button styling restores the native layers.

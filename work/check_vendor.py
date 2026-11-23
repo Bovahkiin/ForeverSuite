@@ -482,6 +482,7 @@ for file in files:
     path = root/file
     assert path.is_file(), f'Missing TOC file {file}'
     compile_lua(path.read_text(encoding='utf-8'), '@'+file)('ForeverSuite', namespace)
+lua.execute("ForeverSuite.Style.events:GetScript('OnEvent')(ForeverSuite.Style.events,'ADDON_LOADED','ForeverSuite')")
 lua.execute("ForeverSuite.events:GetScript('OnEvent')(ForeverSuite.events,'ADDON_LOADED','ForeverSuite'); Drain()")
 print(f'PASS: Lua 5.1 syntax and startup in TOC order ({len(files)} files)')
 

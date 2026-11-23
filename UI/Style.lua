@@ -506,6 +506,8 @@ end
 local events=CreateFrame("Frame"); S.events=events
 for _,event in ipairs({"PLAYER_ENTERING_WORLD","ADDON_LOADED","PLAYER_REGEN_ENABLED","ZONE_CHANGED","ZONE_CHANGED_NEW_AREA"}) do FS:RegisterClientEvent(events,event) end
 events:SetScript("OnEvent",function(_,event)
+    -- ADDON_LOADED can reach this frame before Core initializes saved settings.
+    if not FS.initialized or not FS.db then return end
     if event=="PLAYER_ENTERING_WORLD" then S:Refresh()
     elseif event=="ZONE_CHANGED" or event=="ZONE_CHANGED_NEW_AREA" then if not InCombatLockdown() and FS.db then S:Minimap() end
     else S:Discover(); if S.MinimapHeaderControls then S:MinimapHeaderControls(FS:IsModuleEnabled("Map")) end end
