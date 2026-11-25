@@ -7,6 +7,7 @@ T.moduleHelp={
         empty="No saved pins",hint="Save your current location to start navigating."},
     Quests={summary="Your active quests",empty="No quests to show",hint="Accept a quest or clear the search filter."},
     Loot={summary="Recent drops and active loot rolls",empty="No loot yet",hint="Loot an item or open Settings to change the view."},
+    LootFeed={summary="Your feed history for this session",empty="No feed entries yet",hint="Preview the feed or loot an item. Use /fs lootfeed settings to choose what appears."},
     Buffs={summary="Your buffs and missing-buff reminders",input="Spell ID",placeholder="e.g. 21562",
         empty="No buffs to show",hint="Add a spell ID to track a missing buff."},
     Cooldowns={summary="Track your important abilities",input="Spell ID",placeholder="Enter an ability's spell ID",

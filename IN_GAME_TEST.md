@@ -101,7 +101,7 @@
 
 ## 1.0.10 Talent Advisor and native trainer buttons
 
-1. Open All Tools → Talent Advisor and `/fs talents`. Check all five tabs, large
+1. Open All Tools â†’ Talent Advisor and `/fs talents`. Check all five tabs, large
    text, a small viewport, several themes and repeated open/close cycles. Pin it
    to the Control Center and verify its settings open the correct module.
 2. On each available class, select a guide build. Compare the learned rank counts
@@ -132,7 +132,7 @@
 9. Find an unengaged neutral NPC such as a Plainstrider: its bar should be yellow.
    Compare it with a hostile NPC (red) and, with friendly plates enabled, a
    friendly NPC (green). Engage or change reaction and check the color refreshes.
-   Test Colors → Neutral NPC color, the reaction preview, profile reload and
+   Test Colors â†’ Neutral NPC color, the reaction preview, profile reload and
    optional aggro colors. Player class colors and targeting must still work.
 10. Open the game Talents screen and use its Talent Advisor button. Choose a
     build, then return with Open game Talents. Check gold next-point outlines,
@@ -1252,3 +1252,13 @@ Verify time appears only at bottom center in the suite frame. Move/resize Clock 
 ## v0.7.16 local time and coordinates
 
 Compare Clock against Windows local time, wait for a minute change and repeat during combat. Confirm only one coordinate pair under Minimap after reload, zone changes and minimap hover. Toggle Map > Show coordinates off and verify the other addon label restores; turn it back on and confirm duplicate labels hide again.
+
+## 1.0.14 Loot Feed and vendor launcher
+
+1. Reload, run `/fs lootfeed`, and verify the clearly labeled preview uses the current theme. Try all themes, small screens and large text. Drag the header, reload, and verify the position is restored.
+2. Loot items, craft an item, receive money, gain reputation and a profession rank. Check quantities, repeated-item merging, hover details, item links, right-click dismissal and automatic fading. Currency entries appear only if the client exposes currency gain chat events.
+3. Open History and Settings from the feed header, All Tools and Loot tools. Toggle categories, crafted items, quality, character counts, value provider, duration, visible rows, width, text size, direction, hover interaction and combat display.
+4. Enable Hide matching chat messages. Check multiple chat tabs: the feed must count each gain once. Party loot, unknown formats, filtered qualities and unresolved item quality must remain in chat. Disable the feed and verify chat remains normal.
+5. Test a large loot burst: visible rows stay within the selected limit; queued entries expire normally. Entries exceeding the queue capacity remain in chat. No animation update runs after the feed empties.
+6. If installed, test Auctionator, TSM and Masque independently. Values must name the source; missing prices must not become invented AH values. Toggle Masque off and verify only item icons change. Verify coexistence with ElvUI without changing its frames.
+7. Visit a vendor. The complete ForeverSuite button should sit below the merchant window and remain readable when scaling or moving that window. Open its tools, close the merchant, and verify both launcher and menu disappear. Repeat after reload and with Vendor disabled.

@@ -220,7 +220,7 @@ function C:Attach(host,spec)
         if InCombatLockdown() then return end
         if not state.button then
             state.visual=spec.visual and spec.visual(host) or host
-            state.button=H:Button(state.visual,spec.label or 'ForeverSuite',0,0,spec.width or 128,function() C:Menu(host,spec.entries(host)) end)
+            state.button=H:Button(spec.detached and UIParent or state.visual,spec.label or 'ForeverSuite',0,0,spec.width or 128,function() C:Menu(host,spec.entries(host)) end)
             state.button.fsSuiteStyle=true; state.button.ignoreInLayout=true; state.button.fsLabel.fsSuiteStyle=true
             state.button:SetFrameLevel((T:Call(state.visual.GetFrameLevel,state.visual) or 1)+30); H:FitButton(state.button,1,24)
             state.button:ClearAllPoints()
@@ -230,19 +230,26 @@ function C:Attach(host,spec)
         end
         local visual=spec.visual and spec.visual(host) or host
         if visual~=state.visual then
-            state.visual=visual; state.button:SetParent(visual); state.button:ClearAllPoints()
+            state.visual=visual; state.button:SetParent(spec.detached and UIParent or visual); state.button:ClearAllPoints()
             state.button:SetFrameLevel((T:Call(visual.GetFrameLevel,visual) or 1)+30)
             if spec.place then spec.place(state.button,host) else state.button:SetPoint('TOPRIGHT',visual,'TOPRIGHT',spec.x or -48,spec.y or -4) end
         end
+        if spec.detached then
+            local scale=T:Call(visual.GetEffectiveScale,visual)
+            if T:Number(scale) then state.button:SetScale(scale/UIParent:GetEffectiveScale()) end
+            state.button:SetFrameStrata('DIALOG')
+        end
         if spec.place then state.button:ClearAllPoints(); spec.place(state.button,host) end
-        state.button:SetShown((not spec.owner or FS:IsModuleEnabled(spec.owner)) and not host.fsContextHost and (not spec.visible or spec.visible(host)))
+        state.button:SetShown(shown(host) and (not spec.owner or FS:IsModuleEnabled(spec.owner)) and not host.fsContextHost and (not spec.visible or spec.visible(host)))
     end
     state.update=update
+    if spec.detached then host:HookScript('OnSizeChanged',update); hooksecurefunc(host,'SetScale',update) end
     host:HookScript('OnShow',function()
         update()
         if not C.queued then C.queued=true; C_Timer.After(0,function() C.queued=false; C:Discover() end) end
     end)
     host:HookScript('OnHide',function()
+        if spec.detached and state.button then state.button:Hide() end
         if state.menu then state.menu:Hide() end
         if C.spellHost==host then C.spellHost=nil; C.spellID=nil end
         if C.nativeGuildHost==host then C.nativeGuildHost=nil; C.nativeGuildName=nil end

@@ -1547,6 +1547,10 @@ for section in Path('work/check_context.lua').read_text().split('-- TEST: ')[1:]
     title, script = section.split('\n', 1)
     checks[title] = 'do\n' + script + '\nend'
 
+for section in Path('work/check_loot_feed.lua').read_text().split('-- TEST: ')[1:]:
+    title, script = section.split('\n', 1)
+    checks[title] = 'do\n' + script + '\nend'
+
 for name, script in checks.items():
     try:
         lua.execute(script)

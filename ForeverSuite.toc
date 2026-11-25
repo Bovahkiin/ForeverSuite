@@ -4,9 +4,9 @@
 ## IconTexture: Interface\AddOns\ForeverSuite\Assets\Icon-FS.tga
 ## Author: DeluxiZ
 ## X-License: MIT
-## Version: 1.0.13
+## Version: 1.0.14
 ## SavedVariables: ForeverSuiteDB, ForeverSuiteStock, ForeverSuiteHub
-## OptionalDeps: OpenMap
+## OptionalDeps: OpenMap, Auctionator, TradeSkillMaster, Masque, ElvUI
 
 Core/Init.lua
 Localization/enUS.lua
@@ -63,6 +63,10 @@ Modules/Quests/Tracker.lua
 Modules/Quests/Pins.lua
 Modules/Map/Navigation.lua
 Modules/Loot/Init.lua
+Modules/LootFeed/Init.lua
+Modules/LootFeed/Messages.lua
+Modules/LootFeed/Context.lua
+Modules/LootFeed/Feed.lua
 Modules/Buffs/Init.lua
 Modules/Cooldowns/Init.lua
 Modules/Combat/Init.lua

@@ -41,6 +41,7 @@ function L:Apply(id)
     if f.fsDirectDragging then return end
     if id=="ControlCenter" and f==FS.window and FS.LayoutConfigText then FS:LayoutConfigText(); return end
     local scale=saved.scale or 1
+    if f.fsFitScale then scale=f:fsFitScale(scale) end
     local parent=f:GetParent() or UIParent
     local ratio=parent:GetEffectiveScale()*scale/UIParent:GetEffectiveScale()
     local halfWidth=math.min(UIParent:GetWidth()/2,f:GetWidth()*ratio/2)
@@ -65,7 +66,8 @@ function L:ConstrainSaved(id)
     local target=self.targets[id]; local saved=self:Placements()[id]
     if not target or not saved then return end
     local f=target.frame; local parent=f:GetParent() or UIParent
-    local ratio=parent:GetEffectiveScale()*(saved.scale or 1)/UIParent:GetEffectiveScale()
+    local scale=saved.scale or 1; if f.fsFitScale then scale=f:fsFitScale(scale) end
+    local ratio=parent:GetEffectiveScale()*scale/UIParent:GetEffectiveScale()
     local halfWidth=math.min(UIParent:GetWidth()/2,f:GetWidth()*ratio/2)
     local halfHeight=math.min(UIParent:GetHeight()/2,f:GetHeight()*ratio/2)
     saved.x=math.max(-UIParent:GetWidth()/2+halfWidth,math.min(UIParent:GetWidth()/2-halfWidth,saved.x))

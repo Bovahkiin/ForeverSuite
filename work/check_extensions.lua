@@ -962,7 +962,9 @@ assert(E:SaveRoute('Test run',{{map=12,x=.8,y=.5,name='Finish'}}))
 assert(E:StartGathering('Test run') and not E:StartGathering('Test run'))
 local capture
 for _,f in ipairs(TEST.frames) do
-    if f.events.CHAT_MSG_LOOT and f~=FS.modules.Loot.events then capture=f end
+    -- Gathering has an independent, single-event listener; other loot modules
+    -- may also observe the same messages without owning this capture.
+    if f.events.CHAT_MSG_LOOT and not f.events.PLAYER_REGEN_ENABLED then capture=f end
 end
 assert(capture and E.gathering)
 local L=FS.modules.Loot

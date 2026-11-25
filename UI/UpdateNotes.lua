@@ -1,9 +1,12 @@
 local _,FS=...
 FS.patchNotes={
-    {version="1.0.13",lines={
-        "Fixes the Lua error after login or /reload in version 1.0.12.",
-        "Minimap styling now waits until saved settings and addon initialization are ready.",
-        "Your existing settings and profiles are preserved.",
+    {version="1.0.14",lines={
+        "Loot Feed: items, money, currencies, reputation and skill-ups in your ForeverSuite theme.",
+        "Type /fs lootfeed to preview; drag the header or use Move Frames to position it.",
+        "Open History or Settings from the feed header. Matching chat messages can optionally be hidden.",
+        "Choose item counts, value providers, quality, duration, size and stacking direction.",
+        "The feed stops updating when empty and keeps only a bounded session history.",
+        "The vendor ForeverSuite button now sits outside the merchant window's clipped content.",
     }},
 }
 function FS:ShowUpdateNotesOnLogin()

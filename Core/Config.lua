@@ -11,6 +11,9 @@ SlashCmdList.FOREVERSUITE = function(message)
     if type(message)=="string" and message:lower():match("^%s*audit%s*$") then if FS.initialized then FS.modules.Workbench:Choose('Maintenance') end; return end
     if type(message)=="string" and message:lower():match("^%s*status%s*$") then FS:PrintClientStatus(); return end
     if not FS.initialized then return end
+    if type(message)=='string' and message:lower():match('^%s*lootfeed%s+history%s*$') then FS.modules.LootFeed:ShowWindow();return end
+    if type(message)=='string' and message:lower():match('^%s*lootfeed%s+settings%s*$') then FS.Beginner:ShowModule('LootFeed');return end
+    if type(message)=='string' and message:lower():match('^%s*lootfeed%s*$') then FS.modules.LootFeed:Preview();return end
     if type(message)=='string' and message:lower():match('^%s*talents%s*$') then FS.modules.TalentAdvisor:ShowWindow();return end
     if type(message)=="string" and message:lower():match("^%s*help%s*$") then FS.Beginner:ShowRecovery(); return end
     if type(message)=="string" and message:lower():match("^%s*tour%s*$") then FS.Beginner:ShowTour(); return end

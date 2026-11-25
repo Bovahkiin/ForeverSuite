@@ -12,9 +12,6 @@ Made by **DeluxiZ** for **WoW Forever**.
 [CurseForge](https://www.curseforge.com/wow/addons/foreversuite-by-deluxiz) ·
 [Discord support & community](https://discord.gg/wmBcax2bvJ)
 
-**1.0.13 hotfix:** fixes the login and `/reload` Lua error from 1.0.12.
-Update to the latest release; your settings and profiles are preserved.
-
 ## Install
 
 - **WowUp:** select your WoW Forever installation and search for **ForeverSuite**.
@@ -59,6 +56,29 @@ quest item when the game exposes that relationship. Completed objectives are
 hidden when progress is available. Toggle **Quest target marker** in the
 designer's **Text** tab. This works with the client's quest data; it does not
 guess drops from NPC names.
+
+## Loot Feed
+
+See your items, looted money, currencies, reputation gains and profession skill-ups
+in a compact feed that follows your ForeverSuite theme. Repeated gains combine;
+hover for details and pause fading, click item links, or right-click to dismiss.
+
+- `/fs lootfeed` previews the feed. Drag its header or use **Move Frames** to position it.
+- **History** and **Settings** are on the header. You can also use
+  `/fs lootfeed history` and `/fs lootfeed settings`, or open it from **Loot tools**.
+- Choose categories, item quality, crafted items, size, duration, stacking direction
+  and combat display. **Hide matching chat messages** is optional and off by default.
+  Unknown messages, other players' loot and entries the feed cannot display stay in chat.
+- Show your character's item count and available currency caps, reputation progress
+  and skill ranks. Price estimates can use ForeverSuite AH scans, Auctionator,
+  TSM market data or vendor value; the source is labeled and no scan starts automatically.
+- Optional Masque skins affect item icons. The surrounding feed keeps ForeverSuite's
+  styling and works independently alongside ElvUI. No other addon is required.
+
+The feed sleeps when empty and keeps bounded session history. Your existing **Loot**
+history and roll controls remain available. The feature concept was inspired by
+[RPGLootFeed](https://www.curseforge.com/wow/addons/rpglootfeed), with a separate
+ForeverSuite implementation and appearance.
 
 ## What's included
 

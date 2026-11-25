@@ -223,7 +223,9 @@ C.nativeSpecs={
         return {tool('Review junk and item rules','Vendor'),view('Buyback','Buyback','Vendor'),
             entry('Repair gear','Vendor',function() FS.modules.Vendor:TryRepair(FS.modules.Vendor.repairConfirmation~=nil) end),
             entry('Buy planned supplies','Vendor',function() FS.modules.Vendor:StartRestock() end)}
-    end),
+    end,{detached=true,place=function(button,host)
+        button:SetPoint('TOPLEFT',host,'BOTTOMLEFT',16,-6); button:SetClampedToScreen(true)
+    end}),
     native('ProfessionsFrame','Professions',function(host) return C:ProfessionEntries(host) end),
     native('TradeSkillFrame','Professions',function(host) return C:ProfessionEntries(host) end),
     native('CraftFrame','Professions',function(host) return C:ProfessionEntries(host) end),
@@ -242,7 +244,9 @@ C.nativeSpecs={
     native('SpellBookFrame',nil,function(host) return C:SpellEntries(host) end,{place=headerTools}),
     native('PlayerSpellsFrame',nil,function(host) return C:SpellEntries(host) end,{place=headerTools}),
     native('EncounterJournal',nil,function() return C:JournalEntries() end),
-    native('LootFrame','Loot',function() return {view('Loot session','Loot session','Loot'),tool('Loot history and rolls','Loot')} end),
+    native('LootFrame','Loot',function() return {view('Loot session','Loot session','Loot'),tool('Loot history and rolls','Loot'),
+        entry('Preview Loot Feed','LootFeed',function() FS.modules.LootFeed:Preview() end),
+        entry('Loot Feed settings','LootFeed',function() FS.Beginner:ShowModule('LootFeed') end)} end),
     native('EditModeManagerFrame','ActionBars',function() return {entry('Quick keybind mode','Bindings',function() FS.modules.Bindings:OpenQuickBindings() end),entry('Action bar display','ActionBars',function() FS:ConfigureModule('ActionBars') end),view('Layout presets','Layout presets')} end),
     native('DamageMeter','Combat',function() return {tool('Combat report','Combat'),view('Loot session','Loot session','Loot')} end,
         {label='Report',width=70,place=function(button,host) button:SetPoint('BOTTOMRIGHT',host,'BOTTOMRIGHT',-8,6) end,

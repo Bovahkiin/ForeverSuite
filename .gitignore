@@ -13,6 +13,7 @@ Thumbs.db
 !/work/check_talents.lua
 !/work/check_111.lua
 !/work/check_context.lua
+!/work/check_loot_feed.lua
 !/work/build_talent_catalog.py
 !/work/prepare_talent_sources.py
 !/work/check_expansion.lua

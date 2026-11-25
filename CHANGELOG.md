@@ -1,3 +1,13 @@
+# 1.0.14 - 2026-11-25
+
+- Adds Loot Feed: compact, themed notifications for your items, looted money, currencies, reputation gains and profession skill-ups. Repeated gains combine briefly; hover for details and pause fading, click an item link, or right-click to dismiss.
+- Shows available character item counts, currency totals and caps, reputation progress and skill ranks. Unknown client information is left unknown. Current currency updates refresh context without duplicating the original gain.
+- Item values can use cached ForeverSuite unit prices, Auctionator, TSM DBMarket or vendor sell value. Automatic mode labels the provider and falls back when data is unavailable; it never starts a scan. Masque can optionally skin item icons while the surrounding feed keeps ForeverSuite styling. The feed also works independently alongside ElvUI.
+- Open a preview with `/fs lootfeed`, settings with `/fs lootfeed settings`, or session history with `/fs lootfeed history`. History and Settings are also in the feed header; Loot tools includes feed shortcuts. Drag the header or use Move Frames to position it.
+- Configure categories, quality, crafted items, character counts, values, duration, visible rows, width, text size, direction, hover interaction and combat display. Optional chat filtering hides only recognized messages the feed can display. Other players' loot, unsupported formats, filtered qualities, unresolved item quality and overflow remain in chat. Existing Loot history and roll actions stay independent.
+- Feed frames are created on demand and pooled, with at most seven visible rows, forty queued entries, twenty pending item lookups and sixty session-history entries. The feed's animation update stops when empty; session entries are not saved in settings or profiles.
+- Moves the native merchant window's ForeverSuite launcher to a separate clamped row below it, outside clipped native content. It follows merchant scaling and hides with the window and its menu.
+
 # 1.0.13 - 2026-11-23
 
 - Fixes the startup and `/reload` Lua error in `IsModuleEnabled` introduced in 1.0.12. Minimap styling now waits until saved settings and addon initialization are ready before handling load events.

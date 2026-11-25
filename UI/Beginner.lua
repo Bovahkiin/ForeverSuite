@@ -18,6 +18,7 @@ B.help = {
     Map = "Find your way with a quest arrow, minimap trail and coordinates.",
     Quests = "Follow quest objectives and see what to do next.",
     Loot = "Loot faster and keep track of recent drops and loot rolls.",
+    LootFeed = "See items, money, currency, reputation and skill-ups in a compact feed that follows your theme.",
     Buffs = "See active buffs and reminders for missing effects.",
     Cooldowns = "Track when important abilities are ready again.",
     Combat = "Review group damage, healing and recent combat.",
@@ -58,6 +59,7 @@ local explicit = {
     Map = {"navigation", "minimapStyle", "coordinates", "autoQuest"},
     GearAdvisor = {"preset", "role", "tooltips", "minimum"},
     TalentAdvisor = {"goal", "library", "includeLayout"},
+    LootFeed = {"items", "hideChat", "duration", "visible"},
 }
 
 function B:Title(name)

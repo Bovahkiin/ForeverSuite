@@ -35,6 +35,7 @@ local shortcuts = {
     {"checklists", "Bags", "Item checklists", "Make a checklist and track the items you still need.", "Item checklists"},
     {"buyback", "Vendor", "Buyback", "Review items you can buy back from the current merchant.", "Buyback"},
     {"loot", "Loot", "Loot session", "Review recent drops and the value of your loot.", "Loot session"},
+    {"lootFeed", "LootFeed", "Loot Feed", "See loot, currency, reputation and skill-ups in a themed feed.",function() FS.modules.LootFeed:Preview() end,"Loot"},
     {"chat", "Chat", "Chat history", "Look up messages if you have enabled chat history capture.", "Chat history"},
     {"keywords", "Chat", "Chat keywords", "Manage the words that highlight matching messages.", "Chat keywords"},
     {"guildNotes", "Guild", "Guild notes", "Keep private notes about your guild members.", "Guild notes"},

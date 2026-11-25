@@ -33,7 +33,7 @@ UnitIsUnit=nil; UnitThreatSituation=nil; N:Release(N.custom[plate])
 
 -- TEST: Every added module opens a working skinned window, paginates settings and respects disable
 ResetTest(); local FS=ForeverSuite; FS:ShowConfig()
-for _,name in ipairs({'Map','Quests','Loot','Buffs','Cooldowns','Combat','Professions','AuctionHouse','Chat','Social','Guild','QoL','Bank','Bindings'}) do
+for _,name in ipairs({'Map','Quests','Loot','LootFeed','Buffs','Cooldowns','Combat','Professions','AuctionHouse','Chat','Social','Guild','QoL','Bank','Bindings'}) do
     local M=FS.modules[name]; FS:ConfigureModule(name); assert(M.settings:IsShown())
     M:ShowWindow()
     if name=='Chat' then assert(M.settings:IsShown() and not FS.window:IsShown() and not M.window)
@@ -41,7 +41,7 @@ for _,name in ipairs({'Map','Quests','Loot','Buffs','Cooldowns','Combat','Profes
     FS:SetModuleEnabled(name,false); assert((not M.window or not M.window:IsShown()) and not FS:IsModuleEnabled(name))
     FS:SetModuleEnabled(name,true)
 end
-FS:ShowWorkspacePage('modules'); local f=FS.window; assert(f.cardCount==25)
+FS:ShowWorkspacePage('modules'); local f=FS.window; assert(f.cardCount==26 and f.cards.LootFeed)
 f.nextModules:Click(); assert(f.cardPage==2 and f.cards.Quests.card:IsShown() and not f.cards.Bags.card:IsShown())
 f.nextModules:Click(); assert(f.cardPage==3 and f.cards.Bank.card:IsShown())
 f.previousModules:Click(); f.previousModules:Click(); assert(f.cardPage==1)
@@ -1011,7 +1011,7 @@ C_FriendList,GetNumGuildMembers,GetGuildRosterInfo,GetGuildInfo,ChatFrame_SendTe
 
 -- TEST: Profiles stays in the top navigation and saves and switches through its own page
 ResetTest(); local FS=ForeverSuite; local P=FS.modules.Profiles; FS:ShowConfig(); local f=FS.window; local bar=f.profiles
-assert(bar==P.bar and not f.cards.Profiles and f.cardCount==25)
+assert(bar==P.bar and not f.cards.Profiles and f.cardCount==26)
 f.tabs.modules:Click()
 for page=1,3 do f.cardPage=page; FS:RefreshConfig(); assert(f.tabs.profiles:IsShown() and not bar:IsShown()) end
 f.tabs.profiles:Click(); assert(bar:IsShown())
