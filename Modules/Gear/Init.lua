@@ -71,7 +71,7 @@ function G:Refresh()
     end
     if self.indicator then
         self.indicator:SetText("Gear: " .. (self.data.percent and (math.floor(self.data.percent) .. "%") or "--"))
-        self.indicator:SetBackdropBorderColor(self.data.broken > 0 and 1 or 0.55, self.data.broken > 0 and 0.2 or 0.4, self.data.broken > 0 and 0.2 or 0.9, 1)
+        self:PaintIndicator()
     end
     self:RefreshWindow(); self:RefreshSettings()
 end

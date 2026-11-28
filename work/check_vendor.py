@@ -207,6 +207,7 @@ for _,k in ipairs({'ClearAllPoints','SetAllPoints','SetFrameStrata','SetClampedT
 function M:SetFontString(region) self.fontString=region end
 function M:GetFontString() return self.fontString end
 function M:SetBackdropBorderColor(...) self.border={...} end
+function M:GetBackdropBorderColor() return unpack(self.border or {1,1,1,1}) end
 function M:SetBackdropColor(...) self.backdropColor={...} end
 function M:SetColorTexture(...) self.color={...} end
 function M:SetFrameStrata(value) self.frameStrata=value end
@@ -790,13 +791,15 @@ B:ToggleWindow(); local f=B.window; assert(f:IsShown() and #f.cells==132)
 local cell; for _,c in ipairs(f.cells) do if c.row and c.row.id==1 then cell=c end end
 assert(cell and cell.marker.text=='$' and cell.fsVendorGlow:IsShown())
 cell.scripts.OnClick(cell,'LeftButton'); assert(B.selected.id==1 and f.detail.text:find('You have 3',1,true))
+assert(not f.itemPanel:IsShown() and f.status:GetText():find('×3',1,true))
+Click(f.inspectItem); assert(f.itemPanel:IsShown())
 Click(FindButton(f.itemPanel,'Never sell')); assert(cell.marker.text=='K' and not cell.fsVendorGlow:IsShown())
 f.search:SetText('unmatched'); f.search.scripts.OnTextChanged(f.search); assert(#B.view.rows==0 and not f.cells[1]:IsShown())
 f.search:SetText(''); f.search.scripts.OnTextChanged(f.search)
 TEST.bagSizes={[0]=16,[1]=200}; TEST.bags[1]={}; V:Refresh(); assert(B.view.capacity==216 and B.view.free==215)
 Click(FindButton(f,'Next')); assert(B.page==2)
 Click(FindButton(f,'Previous')); assert(B.page==1)
-Click(FindButton(f.filterMenu,'Shopping list')); assert(ForeverSuite.db.bags.category=='Stock')
+Click(f.filter); Click(FindButton(f.filterMenu,'Shopping list')); assert(ForeverSuite.db.bags.category=='Stock')
 TEST.bagSizes=nil; TEST.bags[1]=nil; B:ToggleWindow(); assert(not f:IsShown())
 """
 checks['Bags settings migration and unknown inventory slots fail closed'] = r"""
@@ -810,13 +813,14 @@ assert(view.free==15 and view.unknown==1 and #view.rows==15)
 
 checks['Automatic category grouping, saved assignments and category layout boundaries'] = r"""
 ResetTest(); local B=ForeverSuite.modules.Bags; local V=ForeverSuite.modules.Vendor
+ForeverSuite.db.bags.storageLayout='Vault'
 TEST.data[1]={quality=1,price=1,classID=2,name='Z Gear'}
 TEST.data[2]={quality=1,price=200,classID=0,name='A Food'}
 TEST.data[3]={quality=1,price=1,classID=7,name='Material'}
 AddItem(1,1,1); AddItem(2,2,1); AddItem(3,3,1)
 ForeverSuite.db.bags.showEmpty=false; ForeverSuite.db.bags.sort='value'
 local view=B:BuildView(); assert(view.rows[1].id==1 and view.rows[2].id==2 and view.rows[3].id==3)
-local layouts=B:Layout(view); assert(#layouts[1].headers==4 and layouts[1].headers[1].category=='Favorites' and layouts[1].headers[2].text:find('Equipment',1,true))
+local layouts=B:Layout(view); assert(#layouts[1].headers==3 and layouts[1].headers[1].text:find('Equipment',1,true))
 B.selected=V:ReadItem(0,2); B:AssignCategory('Gear'); assert(B:Category(B:CurrentItem())=='Gear')
 V:SetRule(2,true,0,0); assert(B:Category(V:BuildPlan().bySlot['0:2'])=='Junk')
 V:KeepItem(2); assert(B:Category(V:BuildPlan().bySlot['0:2'])=='Gear')
@@ -918,10 +922,12 @@ assert(not f.filterMenu:IsShown() and not f.itemMore:IsShown())
 for _,control in ipairs(f.basic) do assert(not control:IsShown()) end
 for _,control in ipairs(f.advanced) do assert(not control:IsShown()) end
 for _,control in ipairs(f.merchantButtons) do assert(not control:IsShown()) end
-Click(f.cells[1]); assert(f.use:IsShown() and not f.sell:IsShown() and f.itemMore:IsShown())
+Click(f.cells[1]); assert(f.inspectItem:IsShown() and not f.itemPanel:IsShown())
+Click(f.inspectItem); assert(f.use:IsShown() and not f.sell:IsShown() and f.itemMore:IsShown())
 for _,control in ipairs(f.advanced) do assert(not control:IsShown()) end
 Click(f.itemMore); for _,control in ipairs(f.advanced) do assert(control:IsShown()) end
 Click(f.cells[1]); for _,control in ipairs(f.advanced) do assert(not control:IsShown()) end
+Click(f.inspectItem)
 Open(); assert(f.sell:IsShown() and not f.use:IsShown())
 V:CloseMerchant(); Drain(); assert(not f.sell:IsShown())
 Click(FindButton(f,'More options')); assert(f.options:IsShown())
@@ -944,7 +950,7 @@ assert(n==4)
 FS:SetModuleEnabled('Vendor',true); V:ShowWindow(false); assert(not f:IsShown() and V.window:IsShown())
 Click(V.window.tabs.Settings); assert(not f:IsShown() and not V.window:IsShown() and s:IsShown() and s.module=='Vendor')
 B:ShowWindow(); assert(not f:IsShown() and not V.window:IsShown())
-Click(B.window.back); assert(f:IsShown() and not B.window:IsShown())
+Click(B.window.more); Click(FindButton(B.window.options,'Control Center')); assert(f:IsShown() and not B.window:IsShown())
 V:ShowWindow(false); Click(V.window.back); assert(f:IsShown() and not V.window:IsShown())
 """
 checks['Old bag preferences migrate once and preserve saved item rules'] = r"""
@@ -999,16 +1005,18 @@ TEST.bagsAllowed=nil; CloseAllBags(); Drain(); B.nativeHooks=nil
 for _,name in ipairs(names) do _G[name]=old[name] end
 """
 
-checks['Sidebar inventory collapses categories and preserves scale and position'] = r"""
+checks['Satchels collapse while item inspection preserves scale and position'] = r"""
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags
+FS.db.bags.storageLayout='Satchels'
 TEST.data[1]={quality=1,price=1,classID=2}; TEST.data[2]={quality=1,price=1,classID=7}
 AddItem(1,1,1); AddItem(2,2,20); B:ShowWindow(); local f=B.window
 assert(f:GetWidth()==820 and f:GetHeight()==500 and f.scale==0.85)
 assert(f.point[1]=='BOTTOMRIGHT' and not f.itemPanel:IsShown())
 assert(f.cells[1]:GetWidth()==38 and f.cells[1]:GetHeight()==38 and f.cells[1].count:GetText()=='')
-local initialHeight=f:GetHeight(); Click(f.headers[2]); assert(B.collapsed.Gear and f:GetHeight()==initialHeight)
-assert(f.cells[1].row.id==2); Click(f.headers[2]); assert(not B.collapsed.Gear and f.cells[1].row.id==1)
-Click(f.cells[1]); assert(f.itemPanel:IsShown() and f:GetHeight()==initialHeight)
+local initialHeight=f:GetHeight(); Click(f.headers[1]); assert(B.satchelCollapsed[0] and f:GetHeight()==initialHeight)
+assert(not f.cells[1]:IsShown()); Click(f.headers[1]); assert(not B.satchelCollapsed[0] and f.cells[1].row.id==1)
+Click(f.cells[1]); assert(not f.itemPanel:IsShown() and f:GetHeight()==initialHeight)
+Click(f.inspectItem); assert(f.itemPanel:IsShown())
 Click(FindButton(f,'More options')); Click(f.size); assert(FS.db.bags.scale==1 and f.scale==1)
 local originalCenter=f.GetCenter; f.GetCenter=function() return 800,600 end
 f.scripts.OnDragStop(f); local x,y=FS.db.bags.x,FS.db.bags.y; assert(x==300 and y==200); f.GetCenter=originalCenter
@@ -1086,17 +1094,18 @@ assert(#TEST.actions==0, 'Invalid equipment action reached the client')
 B:EquipBagItem(V:ReadItem(0,1)); assert(#TEST.actions==1)
 """
 
-checks['Favorites lead categories, seed Hearthstone once and persist explicit removal'] = r"""
+checks['Favorites retain their categories, seed Hearthstone once and persist explicit removal'] = r"""
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local V=FS.modules.Vendor
+FS.db.bags.storageLayout='Vault'
 TEST.data[6948]={quality=1,price=0}; TEST.data[2]={quality=1,price=10,classID=2}
 AddItem(1,6948,1); AddItem(2,2,1); B:ShowWindow(); local f=B.window
-assert(FS.db.bags.favorites[6948] and B.view.rows[1].id==6948 and f.headers[1].category=='Favorites')
-Click(f.cells[2]); Click(f.favorite); assert(FS.db.bags.favorites[2] and B:Category(V:ReadItem(0,2))=='Favorites')
+assert(FS.db.bags.favorites[6948] and f.cells[2].fsStorageFavorite:IsShown() and f.headers[1].category=='Gear')
+Click(f.cells[1]); Click(f.inspectItem); Click(f.favorite); assert(FS.db.bags.favorites[2] and B:Category(V:ReadItem(0,2))=='Favorites')
 assert(not V:Settings().alwaysKeep[2] and not V:Settings().rules[2])
 Click(f.favorite); assert(FS.db.bags.favorites[2]==false)
 B.selected=V:ReadItem(0,1); B:ToggleFavorite(); assert(FS.db.bags.favorites[6948]==false)
 FS:InitializeDatabase(); assert(FS.db.bags.favorites[6948]==false)
-B:Refresh(); assert(f.headers[1].category=='Favorites' and f.headers[1]:GetText():find('(0)',1,true))
+B:SelectView('categories','Favorites'); assert(#B.view.rows==0 and f.noResults:IsShown())
 B.selected=V:ReadItem(0,2); B:ToggleFavorite(); FS.db.bags.category='Favorites'; B:Refresh()
 assert(#B.view.rows==1 and B.view.rows[1].id==2)
 FS.db.bags.favorites.bad=true; FS.db.bags.favorites[3]='bad'; B:NormalizeSettings()

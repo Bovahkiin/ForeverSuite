@@ -226,6 +226,7 @@ function C:Attach(host,spec)
             state.button:ClearAllPoints()
             if spec.place then spec.place(state.button,host) else state.button:SetPoint('TOPRIGHT',state.visual,'TOPRIGHT',spec.x or -48,spec.y or -4) end
             H:SetHelp(state.button,'Tools for this screen. Your selection is kept when opening a tool.')
+            state.button:HookScript('OnHide',function() if state.menu then state.menu:Hide() end end)
             if host.fsToolName then host.fsContextLauncher=state.button end
         end
         local visual=spec.visual and spec.visual(host) or host
@@ -239,8 +240,10 @@ function C:Attach(host,spec)
             if T:Number(scale) then state.button:SetScale(scale/UIParent:GetEffectiveScale()) end
             state.button:SetFrameStrata('DIALOG')
         end
-        if spec.place then state.button:ClearAllPoints(); spec.place(state.button,host) end
-        state.button:SetShown(shown(host) and (not spec.owner or FS:IsModuleEnabled(spec.owner)) and not host.fsContextHost and (not spec.visible or spec.visible(host)))
+        local placed
+        if spec.place then state.button:ClearAllPoints(); placed=spec.place(state.button,host) end
+        state.button:SetShown(placed~=false and shown(host) and (not spec.owner or FS:IsModuleEnabled(spec.owner))
+            and not host.fsContextHost and (not spec.visible or spec.visible(host)))
     end
     state.update=update
     if spec.detached then host:HookScript('OnSizeChanged',update); hooksecurefunc(host,'SetScale',update) end

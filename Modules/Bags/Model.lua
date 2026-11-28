@@ -1,7 +1,7 @@
 local _, FS = ...
 local B, V = FS.modules.Bags, FS.modules.Vendor
-function B:Category(item)
-    if FS.db.bags.favorites[item.id] then return "Favorites" end
+function B:Category(item, ignoreFavorite)
+    if not ignoreFavorite and FS.db.bags.favorites[item.id] then return "Favorites" end
     if item.quest then return "Quest Items" end
     if (item.sellCount or 0) > 0 then return "Junk" end
     local override = FS.db.bags.categoryOverrides[item.id]
@@ -20,15 +20,16 @@ function B:Category(item)
 end
 function B:Matches(item)
     local category = FS.db.bags.category
-    if category ~= "All" and category ~= self:Category(item) then return false end
+    if category ~= "All" and category ~= self:Category(item,category~="Favorites") then return false end
     local text = string.lower(item.name .. " " .. item.id .. " " .. (item.itemType or "") .. " " .. (item.subType or ""))
     return string.find(text, string.lower(self.search or ""), 1, true) ~= nil
 end
 function B:BuildView(sharedPlan)
     local plan = sharedPlan or V:BuildPlan()
-    local view = { plan = plan, rows = {}, free = 0, capacity = 0, unknown = 0 }
+    local view = { plan = plan, rows = {}, free = 0, capacity = 0, unknown = 0, bagUsage = {} }
     for bag = 0, V:BagLimit() do
         local size = C_Container.GetContainerNumSlots(bag)
+        local used = size
         view.capacity = view.capacity + size
         for slot = 1, size do
             local key = bag .. ":" .. slot
@@ -37,12 +38,14 @@ function B:BuildView(sharedPlan)
                 if raw then view.unknown = view.unknown + 1
                 else
                     view.free = view.free + 1
+                    used = used - 1
                     if FS.db.bags.showEmpty and FS.db.bags.category == "All" and self.search == "" then
                         view.rows[#view.rows + 1] = { bag = bag, slot = slot, empty = true, name = "Empty slot" }
                     end
                 end
             end
         end
+        if size>0 then view.bagUsage[bag]={used=used,capacity=size} end
     end
     if FS.db.bags.category == "Stock" then
         for id, rule in pairs(V:Settings().rules) do
@@ -61,12 +64,22 @@ function B:BuildView(sharedPlan)
         end
     end
     local sort = FS.db.bags.sort
+    local style = self:StorageLayout()
+    local grouped = style ~= "Ledger" and style ~= "Field Kit" and style ~= "Quartermaster"
+    local physical = style=="Satchels" and FS.db.bags.viewMode=="categories" and FS.db.bags.category~="Stock"
+    local order = {}; if grouped then for i, name in ipairs(self.categories) do order[name] = i end end
     table.sort(view.rows, function(a, b)
-        if a.empty ~= b.empty then return not a.empty end
-        if not a.empty and not a.stock and self:Category(a) ~= self:Category(b) then
-            local order = {}; for i, name in ipairs(self.categories) do order[name] = i end
-            return order[self:Category(a)] < order[self:Category(b)]
+        if not a.empty ~= not b.empty then return not a.empty end
+        if physical and sort=="category" then
+            if a.bag~=b.bag then return a.bag<b.bag end
+            return a.slot<b.slot
         end
+        if grouped and not a.empty and not a.stock then
+            local ca, cb = self:Category(a,true), self:Category(b,true)
+            if ca ~= cb then return (order[ca] or 999) < (order[cb] or 999) end
+        end
+        if style=="Ledger" and self.quantitySort and (a.count or 0)~=(b.count or 0) then return (a.count or 0)>(b.count or 0) end
+        if style=="Ledger" and a.name~=b.name then return string.lower(a.name)<string.lower(b.name) end
         if sort == "value" and (a.price or 0) * (a.count or 0) ~= (b.price or 0) * (b.count or 0) then
             return (a.price or 0) * (a.count or 0) > (b.price or 0) * (b.count or 0)
         end
@@ -125,7 +138,7 @@ function B:TargetBagItem(row)
     -- Match the native left-click targeting route. The client checks food type,
     -- applies Feed Pet, and reports unsuitable targets without eating the food.
     C_Container.UseContainerItem(current.bag,current.slot)
-    self.selected=nil; self.itemOptions=false; self.status=nil
+    self.selected=nil; self.itemOptions=false; self.inspectOpen=false; self.status=nil
     if self.window then self.window.itemPanel:Hide() end
     return true
 end
@@ -236,70 +249,38 @@ function B:RecentRows(view)
 end
 function B:Layout(view)
     local db = FS.db.bags
-    local width = db.width or 820
+    local width = self:StorageWidth()
     local metrics=self.textLayout or {}
     if metrics.width~=width or metrics.height~=db.height then metrics={} end
-    local columns = math.max(1, math.floor((metrics.contentWidth or (width - 224)) / 44))
-    local headerHeight=metrics.headerHeight or 26
-    local merchant = V.merchantOpen and MerchantFrame and MerchantFrame:IsShown() and V:Settings().enabled
-    local limit = math.max(headerHeight+38, (metrics.viewportHeight or db.height or 500) - (metrics.contentTop or 100) - (metrics.footerReserve or 120) - (merchant and 40 or 0))
-    local pages = { { cells = {}, headers = {}, placeholders = {}, height = 0 } }
-    local page, y = pages[1], 0
-    local groups, order = {}, {}
-    local function add(name, row)
-        if not groups[name] then groups[name] = {}; order[#order + 1] = name end
-        if row then groups[name][#groups[name] + 1] = row end
+    local style=self:StorageLayout()
+    local headerHeight=metrics.headerHeight or 27
+    local merchant=V.merchantOpen and MerchantFrame and MerchantFrame:IsShown() and V:Settings().enabled
+    local contentWidth=metrics.contentWidth or (width-(style=="Vault" and 200 or 28))
+    local limit=math.max(headerHeight+54,(metrics.viewportHeight or db.height)- (metrics.contentTop or 105)
+        -(metrics.footerReserve or 112)-(merchant and 58 or 0))
+    local spec={width=contentWidth,height=limit,headerHeight=headerHeight,
+        size=metrics.slotSize or (style=="Ledger" and 28 or 38),maxCells=132,list=style=="Ledger"}
+    local rows=view.rows
+    if db.viewMode=="recent" then
+        rows=self:RecentRows(view)
+    elseif style=="Vault" and db.category~="Stock" then
+        spec.group=function(row) return row.empty and "Free Slots" or self:Category(row,true) end
+        local order={}; for i,name in ipairs(self.categories) do order[name]=i end
+        spec.groupOrder=function(a,b) return (order[a] or 999)<(order[b] or 999) end
+        spec.groupLabel=function(name) return name=="Free Slots" and "Empty spaces" or self.categoryNames[name] or name end
+        spec.lanes=db.category=="All" and contentWidth>=450 and 2 or 1
+        spec.wideGroup="Materials"
+    elseif style=="Satchels" and db.category~="Stock" then
+        spec.group=function(row) return row.bag end
+        spec.groupOrder=function(a,b) return a<b end
+        spec.groupLabel=function(id) return self:StorageBagName(id) end
+        spec.collapsed=self.search=="" and db.category=="All" and self.satchelCollapsed
+        spec.lanes=contentWidth>=530 and 2 or 1
+        spec.cards=true
+        spec.groupCount=function(id) return view.bagUsage and view.bagUsage[id] end
+        if self.search=="" and db.category=="All" then spec.seed=view.bagUsage end
     end
-    local mode = db.category == "All" and db.viewMode or "categories"
-    local recent = self:RecentRows(view)
-    if mode == "recent" then
-        add("Recent")
-        for _, row in ipairs(recent) do add("Recent", row) end
-    else
-        if mode == "categories" and db.category == "All" and db.showRecent and #recent > 0 then
-            add("Recent")
-            for i = 1, math.min(columns, #recent) do add("Recent", recent[i]) end
-        end
-        if mode == "categories" and (db.category == "All" or db.category == "Favorites") then add("Favorites") end
-        for _, row in ipairs(view.rows) do
-            local name = row.empty and "Free Slots" or row.stock and "Stock" or self:Category(row)
-            if mode == "onebag" then name = "OneBag"
-            elseif mode == "multibag" then name = "Bag " .. tostring(row.bag or 0) end
-            add(name, row)
-        end
-    end
-    if mode == "multibag" then table.sort(order, function(a, b) return tonumber(a:match("%d+")) < tonumber(b:match("%d+")) end) end
-    local function nextPage()
-        page = { cells = {}, headers = {}, placeholders = {}, height = 0 }
-        pages[#pages + 1] = page; y = 0
-    end
-    for _, name in ipairs(order) do
-        local rows = groups[name]
-        local collapsed = self.collapsed and self.collapsed[name]
-        local title = name == "Recent" and "Recent items - quick view" or name == "OneBag" and "All items"
-            or name == "Free Slots" and "Empty spaces" or (self.categoryNames and self.categoryNames[name]) or name
-        local function header()
-            page.headers[#page.headers + 1] = { text = (collapsed and "+ " or "- ") .. title .. " (" .. #rows .. ")", category = name, y = y }
-            y = y + headerHeight; page.height = math.max(page.height, y)
-        end
-        if y + (collapsed and headerHeight or headerHeight+38) > limit then nextPage() end
-        header()
-        if not collapsed then
-            local col = 0
-            for _, row in ipairs(rows) do
-                if col == columns then y = y + 44; col = 0 end
-                if y + 38 > limit or #page.cells >= 132 then nextPage(); header(); col = 0 end
-                page.cells[#page.cells + 1] = { row = row, x = col * 44, y = y, recent = name == "Recent" }
-                col = col + 1; page.height = math.max(page.height, y + 38)
-            end
-            -- Decorative spaces complete the row; these never represent real bag slots.
-            if #rows > 0 then
-                for i = col, columns - 1 do page.placeholders[#page.placeholders + 1] = { x = i * 44, y = y } end
-                y = y + 50
-            else y = y + 8 end
-        else y = y + 8 end
-    end
-    return pages
+    return self:StoragePages(rows,spec)
 end
 
 

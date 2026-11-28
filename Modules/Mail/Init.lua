@@ -1,5 +1,5 @@
 local _,FS=...
-local T,H=FS.Tools,FS.HUD
+local T=FS.Tools
 local M=T:Module('Mail','mail','Mail','Read your inbox and collect mail at a mailbox. COD and GM mail are always left for manual handling.',
     {autoOpen=true,styleWindow=true,collectMoney=true,collectItems=true,sort='Newest',showExpiry=true},
     {'MAIL_SHOW','MAIL_CLOSED','MAIL_INBOX_UPDATE','MAIL_FAILED','PLAYER_REGEN_DISABLED'})
@@ -145,17 +145,10 @@ function M:Event(event)
     elseif event=='MAIL_INBOX_UPDATE' then self:Schedule() end
 end
 function M:Apply()
-    if not FS:IsModuleEnabled(self.name) then self:Stop(); self.atMailbox=false; if self.mailButton then self.mailButton:Hide() end; return end
     self.atMailbox=MailFrame and MailFrame:IsShown() or self.atMailbox
-    if MailFrame and not self.mailButton then
-        self.mailButton=H:Button(MailFrame,'Mail tools',12,-32,140,function() self:ShowWindow() end)
-        self.mailButton.fsFontModule=self.name; self.mailButton:SetFrameLevel(MailFrame:GetFrameLevel()+10)
-    end
-    if self.mailButton then self.mailButton:Show() end
 end
 function M:StopCapture()
     self:Stop(); self.atMailbox=false
-    if self.mailButton then self.mailButton:Hide() end
 end
 local render=M.Render
 function M:Render() render(self); if self.window then self.window.input:Hide() end end

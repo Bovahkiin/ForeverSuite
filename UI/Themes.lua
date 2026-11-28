@@ -1,5 +1,7 @@
 local _,FS=...
 local T={frames=setmetatable({},{__mode="k"}),fonts=setmetatable({},{__mode="k"})}; FS.Themes=T
+T.paints=setmetatable({},{__mode="k"})
+T.borders=setmetatable({},{__mode="k"})
 T.names={"Celestial Forge","Titanium Signal","Obsidian Arcana","Verdant Relic","Glacial Prism","Royal Aether","Runestone","Astral Glass","Ember Bastion","Cartographer","Azeroth Heritage"}
 FS.defaults.appearance={theme="Legacy"}
 local path="Interface\\AddOns\\ForeverSuite\\Assets\\Themes\\"
@@ -9,8 +11,27 @@ function T:Index(name)
     for i,value in ipairs(self.names) do if value==name then return i end end
 end
 function T:Current() return FS.db and FS.db.appearance and self:Index(FS.db.appearance.theme) end
-function T:Accent()
-    return unpack(accents[self:Current() or 1])
+function T:Accent(previewIndex)
+    return unpack(accents[previewIndex or self:Current() or 1])
+end
+function T:Color(r,g,b,a,strength)
+    local index=self:Current()
+    if not index then return r,g,b,a end
+    local tint=accents[index]
+    strength=strength or 1
+    return tint[1]*strength,tint[2]*strength,tint[3]*strength,a
+end
+function T:Paint(target,method,r,g,b,a,strength)
+    local state=self.paints[target]
+    if not state then state={}; self.paints[target]=state end
+    state[method]={r,g,b,a,strength}
+    if method=="SetBackdropBorderColor" then self.borders[target]=nil end
+    target[method](target,self:Color(r,g,b,a,strength))
+end
+function T:DefaultBorder(frame)
+    local r,g,b,a=self:Color(.12,.72,.86,.85,.65)
+    frame:SetBackdropBorderColor(r,g,b,a)
+    self.borders[frame]={r,g,b,a}
 end
 function T:Asset(index,kind)
     local theme=assets[index]
@@ -83,7 +104,7 @@ function T:ReleaseFont(region)
     if state then region:SetTextColor(unpack(state)); self.fonts[region]=nil end
 end
 function T:Font(region,previewIndex)
-    if not region or not region.SetTextColor then return end
+    if not region or region.fsStorageText or not region.SetTextColor then return end
     local darkText=(previewIndex or self:Current())==10
     local state=self.fonts[region]
     if not state then
@@ -98,13 +119,29 @@ end
 function T:Refresh()
     if not FS.db or InCombatLockdown() then self.pending=true; return false end
     self.pending=false; self:Normalize()
+    -- Only recolor borders that still have the default chrome color.
+    for frame,previous in pairs(self.borders) do
+        local r,g,b,a=frame:GetBackdropBorderColor()
+        if r and math.abs(r-previous[1])<.001 and math.abs(g-previous[2])<.001
+            and math.abs(b-previous[3])<.001 and math.abs(a-previous[4])<.001 then
+            self:DefaultBorder(frame)
+        else self.borders[frame]=nil end
+    end
+    for target,methods in pairs(self.paints) do
+        for method,values in pairs(methods) do target[method](target,self:Color(unpack(values))) end
+    end
     for frame,state in pairs(self.frames) do
         self:Register(frame,state.kind)
         for _,region in ipairs({frame:GetRegions()}) do if region.GetFont then self:Font(region) end end
     end
     for region in pairs(self.fonts) do self:Font(region) end
     FS:RefreshMenuIcons(self:Current())
+    local bags=FS.modules.Bags
+    if bags and bags.RefreshStorageTheme then bags:RefreshStorageTheme() end
     if FS.modules.ActionBars.ApplyAppearance then FS.modules.ActionBars:ApplyAppearance() end
+    if FS.modules.Quests.RefreshTrackerTheme then FS.modules.Quests:RefreshTrackerTheme() end
+    if FS.modules.Gear.PaintIndicator then FS.modules.Gear:PaintIndicator() end
+    if FS.WindowManager then FS.WindowManager:PaintExperience() end
     if FS.Style then FS.Style:Refresh() end
     return true
 end

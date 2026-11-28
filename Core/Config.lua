@@ -11,6 +11,9 @@ SlashCmdList.FOREVERSUITE = function(message)
     if type(message)=="string" and message:lower():match("^%s*audit%s*$") then if FS.initialized then FS.modules.Workbench:Choose('Maintenance') end; return end
     if type(message)=="string" and message:lower():match("^%s*status%s*$") then FS:PrintClientStatus(); return end
     if not FS.initialized then return end
+    local performanceLabel=type(message)=="string" and message:match("^%s*[Pp][Ee][Rr][Ff]%s+(.-)%s*$")
+    if performanceLabel and performanceLabel~="" then FS.Performance:Capture(performanceLabel); return end
+    if type(message)=="string" and message:lower():match("^%s*perf%s*$") then FS.Performance:Show(); return end
     if type(message)=='string' and message:lower():match('^%s*lootfeed%s+history%s*$') then FS.modules.LootFeed:ShowWindow();return end
     if type(message)=='string' and message:lower():match('^%s*lootfeed%s+settings%s*$') then FS.Beginner:ShowModule('LootFeed');return end
     if type(message)=='string' and message:lower():match('^%s*lootfeed%s*$') then FS.modules.LootFeed:Preview();return end

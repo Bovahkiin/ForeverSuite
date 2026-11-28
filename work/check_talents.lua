@@ -142,7 +142,17 @@ function NativeTrainerFixture()
     FS.Training:Refresh();return FS,W,ClassTrainerFrame.fsTrainAll
 end
 local FS,W,b=NativeTrainerFixture();assert(b:IsShown() and b:IsEnabled() and b:GetText()=='Train all')
-assert(b.point[2]==ClassTrainerFrame.TrainButton and b:GetWidth()<=92)
+FS.Context:Discover()
+local trainer=ClassTrainerFrame
+local state=FS.Context.hosts[trainer]; local tools=state.button
+assert(tools:IsShown() and b:GetParent()==UIParent and tools:GetParent()==UIParent)
+assert(b.point[2]==trainer and tools.point[2]==trainer and b.point[3]=='TOPRIGHT' and tools.point[3]=='TOPRIGHT')
+assert(-b.point[5]>=-tools.point[5]+tools:GetHeight()+6)
+assert(trainer.TrainButton:GetNumPoints()==0)
+trainer.GetRect=function() return 4,100,UIParent:GetWidth()-8,430 end
+state.update()
+assert(tools.point[1]=='BOTTOMLEFT' and b.point[1]=='BOTTOMLEFT' and b.point[4]>=tools.point[4]+tools:GetWidth()+6)
+trainer.GetRect=nil; state.update()
 b:Click();assert(FS.Extensions.form:IsShown() and #TEST.actions==0 and FS.Extensions.form.heading:GetText():find('2 skills',1,true))
 FS.Extensions.form.save:Click();Drain()
 assert(#TEST.actions==2 and TEST.money==250 and not W.training)

@@ -119,7 +119,7 @@ FS.defaults = {
     window = { x = 0, y = 0, pinnedTools = {bags=true, map=true, gear=true, mail=true} },
     modules = {},
     profiles = { current = "Default", saved = {} },
-    bags = { enabled = true, replaceNative = true, scale = 0.85, width = 820, height = 500, viewMode = "categories", showRecent = true, customCategories = {}, sort = "category", category = "All", showEmpty = false, showCooldowns = true, showNewLoot = true, uiVersion = 1, openAtMerchant = true, x = 0, y = 0, categoryOverrides = {}, favorites = { [6948] = true } },
+    bags = { enabled = true, replaceNative = true, scale = 0.85, width = 820, height = 500, storageLayout = "Satchels", viewMode = "categories", showRecent = true, customCategories = {}, sort = "category", category = "All", showEmpty = false, showCooldowns = true, showNewLoot = true, uiVersion = 1, openAtMerchant = true, x = 0, y = 0, categoryOverrides = {}, favorites = { [6948] = true } },
     gear = { enabled = true, showButton = true, warn = true, warningPercent = 25, x = 0, y = 0 },
     unitFrames = { enabled = true, scale = 1, x = 0, y = 200, player = { x = -430, y = 224 }, target = { x = 430, y = 224 }, focus = { x = 430, y = 330 }, pet = { x = -430, y = 150 }, showPet = true, party = { x = -660, y = 540 }, raid = { x = -500, y = 570 }, showFocus = true, showParty = true, showRaid = true },
     actionBars = { enabled = true, menu = true, style = "Minimal", scale = 1, x = 0, y = 200, mouseover = false, fade = 100 },

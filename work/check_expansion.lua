@@ -182,9 +182,143 @@ ResetTest(); local FS=ForeverSuite; local K=FS.modules.Bank; local prior=Enum
 Enum={BankType={Character=1,Account=2}}; C_Bank={FetchPurchasedBankTabData=function(kind) return {{ID=kind==1 and 8 or 9}} end}
 TEST.data={[1]={classID=6,quality=1}}; TEST.bagSizes={[8]=2,[9]=1}; TEST.bags[8]={[1]=AddItem(1,1,200)}; TEST.bags[0]={}
 K.open=true; K:Build(); assert(#K.rows==2 and K.rows[1].category=='Ammo'); K:ShowWindow(); local b=K.window.grid[1]; assert(b.row.bag==8)
-TEST.bags[8][1].itemID=2; b:Click(); assert(not TEST.cursor)
-TEST.bags[8][1].itemID=1; K:Refresh(); b:Click(); assert(TEST.cursor and TEST.cursor.itemID==1)
+TEST.bags[8][1].itemID=2; b:Click('RightButton'); assert(not TEST.cursor)
+TEST.bags[8][1].itemID=1; K:Refresh(); b:Click(); assert(K.selected and not TEST.cursor)
+b:Click('RightButton'); assert(TEST.cursor and TEST.cursor.itemID==1)
 ClearCursor(); K.window:Hide(); Enum=prior; C_Bank=nil
+
+-- TEST: Storage layouts share live slots, theme colors and the profile setting
+ResetTest(); local FS=ForeverSuite; local K,B=FS.modules.Bank,FS.modules.Bags
+TEST.data[1]={classID=7,quality=1,name="Wool"}
+TEST.bagSizes={[0]=16,[1]=8,[-1]=8,[5]=8}; TEST.bags[1]={}; TEST.bags[5]={}
+AddItem(1,1,3); TEST.bags[1][1]=AddItem(2,1,7); TEST.bags[0][2]=nil
+TEST.bags[-1]={[1]=AddItem(2,1,4)}; TEST.bags[0][2]=nil
+TEST.bags[5][1]=AddItem(2,1,2); TEST.bags[0][2]=nil
+K.open=true; K:ShowWindow()
+local bags,bank=B:CreateWindow(),K.window
+for _,name in ipairs(B.storageLayouts) do
+    if not bank:IsShown() then bags.storageHeader.bank:Click() end
+    bank.layoutChoice:Click()
+    local choice
+    for _,button in ipairs(bank.storageMenu.rows) do if button:GetText()==name then choice=button end end
+    assert(choice and bank.storageMenu:IsShown())
+    choice:Click()
+    assert(FS.db.profiles.saved[FS.db.profiles.current].bags.storageLayout==name)
+    assert(bank:IsShown() and ((not not bags:IsShown())==(name=="Quartermaster")))
+    assert(bank.grid[1].row.id==1 and bank.grid[1].fsStorageList==(name=="Ledger"))
+    local y = bank.grid[1].point[3]
+    bank:LayoutText()
+    assert(bank.grid[1].point[3] == y, name.." text reflow")
+    bank.storageHeader.bags:Click()
+    assert(K.open and bags:IsShown() and ((not not bank:IsShown())==(name=="Quartermaster")))
+    assert((not not bags.sidebar:IsShown())==(name=="Vault"),name.." sidebar")
+    assert(bags.cells[1].row.id==1 and bags.cells[1].fsStorageList==(name=="Ledger"),name.." slots")
+    if name=="Field Kit" then
+        assert(bags:GetWidth()==560 and bank:GetWidth()==560 and bags.filter:IsShown())
+    elseif name=="Satchels" then
+        assert(bags.headers[1].category==0 and bags.headers[2].category==1)
+        assert(bags.storageSections[1]:IsShown() and bags.headers[1]:GetText():find('1 / 16',1,true))
+        bags.headers[1]:Click(); assert(bags.cells[1].row.bag==1); bags.headers[1]:Click()
+        bags.storageHeader.bank:Click()
+        assert(bank.storageHeaders[1].category==-1 and bank.storageHeaders[2].category==5)
+        bank.storageHeaders[1]:Click(); assert(bank.grid[1].row.bag==5); bank.storageHeaders[1]:Click()
+    end
+end
+local liveColor=bags.backdropColor and bags.backdropColor[1]
+local originalTheme=FS.db.appearance.theme
+FS.db.appearance.theme='Ember Bastion'; B:RefreshStorageTheme()
+assert(bags.backdropColor[1]~=liveColor and bank.backdropColor[1]==bags.backdropColor[1])
+FS.db.appearance.theme='Cartographer'; B:RefreshStorageTheme()
+FS.Themes:Font(bags.title); FS.Themes:Font(bank.heading)
+assert(not FS.Themes.fonts[bags.title] and not FS.Themes.fonts[bank.heading])
+FS.db.appearance.theme=originalTheme; B:RefreshStorageTheme()
+TEST.combat=true; assert(not B:SetStorageLayout('Ledger')); TEST.combat=false
+bank:Hide(); bags:Hide(); TEST.bagSizes=nil
+
+-- TEST: Quartermaster moves a whole stack to an empty slot and rejects stale or locked stacks
+ResetTest(); local FS=ForeverSuite; local K,B=FS.modules.Bank,FS.modules.Bags
+TEST.data[1]={classID=7,quality=1,name="Wool"}; TEST.bagSizes={[0]=16,[-1]=4}; TEST.bags[-1]={}
+AddItem(1,1,3)
+B:SetStorageLayout('Quartermaster'); K.open=true; K:ShowWindow()
+local b=B.window.cells[1]; b.scripts.OnClick(b,'LeftButton')
+assert(B.window.transfer:IsShown() and B.window.transfer:IsEnabled())
+TEST.bags[0][1].stackCount=2
+assert(not K:Transfer(B.selected,false) and TEST.bags[0][1].stackCount==2 and not TEST.cursor)
+B:Refresh(); b.scripts.OnClick(b,'LeftButton')
+B.window.transfer:Click()
+assert(TEST.bags[-1][1].stackCount==2 and not TEST.bags[0][1] and not TEST.cursor)
+local tile=K.window.grid[1]; tile:Click()
+assert(K.window.transfer:IsEnabled() and not TEST.cursor)
+TEST.bags[-1][1].isLocked=true
+assert(not K:Transfer(K.selected,true) and not TEST.cursor)
+TEST.bags[-1][1].isLocked=false; K:Refresh(); K.window.grid[1]:Click(); K.window.transfer:Click()
+assert(TEST.bags[0][1].stackCount==2 and not TEST.bags[-1][1] and not TEST.cursor)
+K.window:Hide(); B.window:Hide(); TEST.bagSizes=nil
+
+-- TEST: Every storage layout keeps full toolbar labels and uses icon artwork at standard and large text sizes
+ResetTest(); local FS=ForeverSuite; local B,K=FS.modules.Bags,FS.modules.Bank
+TEST.data[6948]={name="Hearthstone",classID=15,quality=1}
+TEST.data[2]={name="Wool Cloth",classID=7,quality=1}
+TEST.bagSizes={[0]=20,[1]=6,[-1]=20,[5]=8}
+TEST.bags[1]={}; TEST.bags[5]={}
+AddItem(1,6948,1); AddItem(2,2,8)
+TEST.bags[-1]={[1]=AddItem(3,6948,1)}; TEST.bags[0][3]=nil
+TEST.bags[5]={[1]=AddItem(3,2,4)}; TEST.bags[0][3]=nil
+local bags,bank=B:CreateWindow(),K:CreateWindow()
+local function toolbar(frame, controls)
+    local occupied={}
+    for _,control in ipairs(controls) do
+        if control:IsShown() then
+            local x,y=control.point[2],-control.point[3]
+            local right=x+control:GetWidth()
+            assert(x>=14 and right<=frame:GetWidth()-14+.01,control:GetText())
+            local caption=control.caption or control.fsLabel
+            local _,size=caption:GetFont()
+            assert(caption:GetWidth()*2>=#control:GetText()*(size or 14)*.65,control:GetText())
+            assert(not control:GetText():find("▾",1,true) and not control:GetText():find("★",1,true))
+            for _,prior in ipairs(occupied) do
+                if prior.y==y then assert(x>=prior.right or right<=prior.x,"toolbar overlap") end
+            end
+            occupied[#occupied+1]={x=x,y=y,right=right}
+        end
+    end
+end
+K.open=true
+for _,size in ipairs({16,27}) do
+    FS.db.typography.modules.Bags={size=size,scale=1}; FS.db.typography.modules.Bank={size=size,scale=1}
+    FS.Typography:Apply()
+    for _,name in ipairs(B.storageLayouts) do
+        assert(B:SetStorageLayout(name,"bags"))
+        assert(bags:IsShown() and bags.layoutPicker:GetText()==name)
+        toolbar(bags,{bags.filter,bags.organize,bags.layoutPicker,bags.more})
+        assert(bags.layoutPicker.fsStorageArrowDirection=="down")
+        local favorite
+        for _,button in ipairs(bags.cells) do if button.row and button.row.id==6948 then favorite=button end end
+        assert(favorite and favorite.fsStorageFavorite:IsShown())
+        if name=="Satchels" then
+            assert(bags.headers[1].fsStorageArrowDirection=="down")
+            bags.headers[1]:Click(); assert(bags.headers[1].fsStorageArrowDirection=="right"); bags.headers[1]:Click()
+            assert(bags.more.point[3]==bags.search.point[3],"Satchels search and More options fit on one row")
+        elseif name=="Ledger" then
+            bags.storageColumns[4]:Click()
+            assert(bags.storageColumns[4].fsStorageArrowDirection=="down")
+        end
+        bags.storageHeader.bank:Click()
+        assert(bank:IsShown() and bank.layoutChoice:GetText()==name)
+        toolbar(bank,{bank.categoryChoice,bank.sortChoice,bank.layoutChoice})
+        assert(bank.layoutChoice.fsStorageArrowDirection=="down")
+        if name=="Satchels" then
+            assert(bank.storageHeaders[1].fsStorageArrowDirection=="down")
+            bank.storageHeaders[1]:Click(); assert(bank.storageHeaders[1].fsStorageArrowDirection=="right"); bank.storageHeaders[1]:Click()
+        elseif name=="Ledger" then
+            bank.storageColumns[1]:Click()
+            assert(bank.storageColumns[1].fsStorageArrowDirection=="up")
+        end
+    end
+end
+bank:Hide(); bags:Hide()
+FS.db.typography.modules.Bags=nil; FS.db.typography.modules.Bank=nil; FS.Typography:Apply()
+TEST.bagSizes=nil
 
 -- TEST: Key binding capture adds modifiers, saves the current set and cancels in combat
 ResetTest(); local B=ForeverSuite.modules.Bindings; local binding,command,saved
@@ -351,6 +485,7 @@ A.open=false; C_AuctionHouse=nil
 
 -- TEST: Bank and bags coexist side by side while other suite windows still close them
 ResetTest(); local FS=ForeverSuite; local K=FS.modules.Bank; local B=FS.modules.Bags; K.open=true
+B:SetStorageLayout('Quartermaster')
 K:ShowWindow(); assert(K.window:IsShown() and B.window:IsShown())
 B:ShowWindow(); assert(K.window:IsShown()); FS:ShowConfig(); assert(not K.window:IsShown() and not B.window:IsShown() and not K.open)
 
@@ -388,35 +523,42 @@ P:Initialize(); FS.db.layout.frames['Unit:player']={x=400,y=500,scale=1}; FS.Lay
 assert(P:Load('Default')); assert(U.frames.player.point[4]==-430 and U.frames.player.point[5]==224)
 FS:ResetDatabase(); assert(FS.db.profiles.saved.Default and P:Load('Default'))
 
--- TEST: Sidebar modes, category counts and search keep unique inventory accounting
+-- TEST: Old OneBag and MultiBag settings cannot override the selected storage layout
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags
+FS.db.bags.storageLayout='Vault'
 TEST.data[1]={quality=1,price=1,classID=2,name='Sword'}; TEST.data[2]={quality=1,price=1,classID=7,name='Ore'}
-AddItem(1,1,1); AddItem(2,2,20); B:ShowWindow(); local f=B.window
-assert(f.title:GetText()=='INVENTORY   2 / 16' and tonumber(f.sidebarRows[1].count:GetText())==2, f.title:GetText())
-assert(f.sidebarRows[1].entry.title=='All Items' and f.sidebarRows[4].entry.title=='Recent Items')
-Click(f.sidebarRows[2]); assert(FS.db.bags.viewMode=='onebag' and f.headers[1].category=='OneBag' and #B.view.rows==2)
-Click(f.sidebarRows[3]); assert(FS.db.bags.viewMode=='multibag' and f.headers[1].category=='Bag 0')
+AddItem(1,1,1); AddItem(2,2,20); FS.db.bags.viewMode='onebag'; B:ShowWindow(); local f=B.window
+assert(f.title:GetText()=='Inventory' and tonumber(f.sidebarRows[1].count:GetText())==2)
+assert(FS.db.bags.viewMode=='categories' and f.headers[1].category=='Gear' and f.headers[2].category=='Materials')
+assert(f.sidebarRows[1].entry.title=='All items' and f.sidebarRows[2].entry.title=='Recent items')
+FS.db.bags.viewMode='multibag'; B:Refresh(); assert(FS.db.bags.viewMode=='categories' and f.headers[2].category=='Materials')
 B:SelectView('categories','Gear'); assert(#B.view.rows==1 and f.cells[1].row.id==1)
 f.search:SetText('ore'); f.search.scripts.OnTextChanged(f.search); assert(#B.view.rows==0)
 B:SelectView('categories'); f.search:SetText(''); f.search.scripts.OnTextChanged(f.search)
 assert(#B.view.rows==2 and not f.filter:IsShown())
+f.layoutPicker:Click(); assert(f.storageMenu:IsShown() and #f.storageMenu.rows==5)
+f.storageMenu.rows[5]:Click(); assert(B:StorageLayout()=='Satchels' and not f.sidebar:IsShown())
+assert(f.storageHeader.bank:IsEnabled()==false and f.storageSections[1]:IsShown())
+f.layoutPicker:Click(); f.storageMenu.rows[4]:Click()
+assert(B:StorageLayout()=='Ledger' and f.storageColumns[1]:IsShown())
+f.storageColumns[4]:Click(); assert(B.quantitySort and f.cells[1].row.count==20)
 
--- TEST: Recent quick view duplicates only visuals, retains reviewed loot and expires
+-- TEST: Recent items stay available without duplicating inventory slots and expire on schedule
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local V=FS.modules.Vendor
 TEST.data[1]={quality=0,price=10}; AddItem(1,1,3); TEST.newItems['0:1']=true
+B:SetStorageLayout('Vault')
 B:ScanNewItems(); B:ShowWindow(); local f=B.window
-assert(f.headers[1].category=='Recent' and #B.view.plan.items==1 and B.view.plan.units==3 and B.view.plan.value==30, tostring(f.headers[1].category)..' '..#B.view.plan.items..' '..B.view.plan.units..' '..B.view.plan.value..' '..tostring(B.view.plan.items[1].protection))
-local copies=0; local recentCell
-for _,cell in ipairs(f.cells) do if cell.row and cell.row.id==1 then copies=copies+1; recentCell=recentCell or cell end end
-assert(copies==2 and recentCell:GetAttribute('item2')==nil, 'At a merchant secure use remains disabled')
+assert(f.headers[1].category~='Recent' and #B.view.plan.items==1 and B.view.plan.units==3 and B.view.plan.value==30)
+local recentCell=f.cells[1]
+assert(not f.cells[2]:IsShown() and recentCell:GetAttribute('item2')==nil, 'At a merchant secure use remains disabled')
 recentCell.scripts.OnEnter(recentCell); B:ScanNewItems(); B:Refresh(); assert(#B:RecentRows(B.view)==1)
-Click(f.recentToggle); assert(not FS.db.bags.showRecent and f.headers[1].category=='Favorites')
-B:SelectView('recent'); assert(f.headers[1].category=='Recent' and f.cells[1].row.id==1 and not f.cells[2]:IsShown())
+Click(f.sidebarRows[2]); assert(FS.db.bags.viewMode=='recent' and f.cells[1].row.id==1 and not f.cells[2]:IsShown())
 TEST.now=TEST.now+601; f.scripts.OnUpdate(f,10); assert(not f.cells[1]:IsShown() and f.noResults:IsShown())
 TEST.newItems={}; B:SelectView('categories'); B:ScanNewItems(); AddItem(2,1,5); B:ScanNewItems(); assert(#B:RecentRows(B:BuildView())==2)
 
 -- TEST: Custom category validation, selected assignment and saved reload retain safety priorities
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local V=FS.modules.Vendor
+B:SetStorageLayout('Vault')
 TEST.data[1]={quality=1,price=10,classID=7}; AddItem(1,1,1); B:ShowWindow(); B.selected=V:ReadItem(0,1)
 assert(B:AddCategory('  Raid supplies  ')); assert(B:Category(V:ReadItem(0,1))=='Raid supplies')
 assert(not B:AddCategory('raid supplies') and not B:AddCategory('Recent') and not B:AddCategory('Bad|cff00ff00') and not B:AddCategory(''))
@@ -428,6 +570,7 @@ TEST.combat=true; assert(not B:AddCategory('Combat')); TEST.combat=false
 
 -- TEST: Resizing follows cursor immediately, persists bounds and keeps content clear of footer
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; local V=FS.modules.Vendor
+B:SetStorageLayout('Vault')
 TEST.data[1]={quality=1,price=1,classID=2}; AddItem(1,1,1); B:ShowWindow(); local f=B.window
 local originalCursor=GetCursorPosition; local x,y=100,100; GetCursorPosition=function() return x,y end
 f.resize.scripts.OnMouseDown(f.resize,'LeftButton'); x,y=240,20; f.resize.scripts.OnUpdate(f.resize)
@@ -446,7 +589,7 @@ for _,size in ipairs({{660,420},{820,500},{1100,780}}) do
   local count=0
   for _,page in ipairs(B:Layout({rows=rows})) do
    for _,entry in ipairs(page.cells) do
-    assert(entry.x+38<=size[1]-224 and 100+entry.y+38<=size[2]-(merchant and 144 or 109)); count=count+1
+    assert(entry.x+38<=size[1]-200 and 105+entry.y+38<=size[2]-(merchant and 170 or 112)); count=count+1
    end
   end
   assert(count==350)
@@ -455,13 +598,14 @@ end
 FS.modules.Vendor.merchantOpen=false
 
 -- TEST: Sidebar scrolling exposes every custom category and modal input closes with inventory
-ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; B:ShowWindow(); local f=B.window
+ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags; B:SetStorageLayout('Vault'); B:ShowWindow(); local f=B.window
 for i=1,12 do assert(B:AddCategory('Group '..i)) end
 assert(not B:AddCategory('Too many'))
 f.sidebar.scripts.OnMouseWheel(f.sidebar,-99); assert(B.sidebarOffset==B.sidebarMax)
 local found=false; for _,c in ipairs(f.sidebarRows) do if c.entry and c.entry.title=='Group 12' then found=true; Click(c) end end
 assert(found and FS.db.bags.category=='Group 12')
-Click(f.addCategory); assert(f.categoryDialog:IsShown()); f:Hide(); assert(not f.categoryDialog:IsShown())
+Click(f.more); Click(FindButton(f.options,'+ Add category'))
+assert(f.categoryDialog:IsShown()); f:Hide(); assert(not f.categoryDialog:IsShown())
 
 -- TEST: Quest cards show real completion, objective progress, distance ordering, folding and every page
 ResetTest(); local FS=ForeverSuite; local Q=FS.modules.Quests; Q.trackerPage=1; Q.focusID=nil
@@ -978,7 +1122,7 @@ assert(not FS:IsModuleEnabled('Chat') and not FS:IsModuleEnabled('Guild') and no
 assert(FS.db.chat.timestamps and FS.db.guild.onlineOnly)
 FS.db.chat.enabled=true; FS.db.chat.timestamps=false; FS.db.guild.onlineOnly=false; FS:InitializeDatabase()
 assert(FS:IsModuleEnabled('Chat') and not FS.db.chat.timestamps and not FS.db.guild.onlineOnly and not FS:IsModuleEnabled('Social'))
-FS.db.chat.fontSize=900; FS.db.chat.borderColor='bad'; FS.modules.Chat:NormalizeSettings(); assert(FS.db.chat.fontSize==14 and FS.db.chat.borderColor=='Cyan')
+FS.db.chat.fontSize=900; FS.db.chat.borderColor='bad'; FS.modules.Chat:NormalizeSettings(); assert(FS.db.chat.fontSize==14 and FS.db.chat.borderColor=='Theme')
 FS:SetModuleEnabled('Guild',true); FS:SetModuleEnabled('Social',true)
 
 -- TEST: Chat appearance settings apply independently restore native properties and defer combat changes

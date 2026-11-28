@@ -11,7 +11,8 @@ local preferenceModules={
     PvE={},
     PvP={Quests=false},
 }
-local steps={2,5,4,6}
+local steps={2,5,7,4,6}
+local Bags=FS.modules.Bags
 
 function I:SelectPreference(name)
     self.draft.preference=name
@@ -42,6 +43,7 @@ function I:Recommended()
     self.draft.style = "Minimal"
     self.draft.scale = 1
     self.draft.preset = "Standard text"
+    self.draft.storage = "Satchels"
     self:SelectPreference("Casual")
     self.step=6
     self:Refresh()
@@ -54,6 +56,7 @@ function I:Draft()
     self.draft.layout=self:NeedsSetup() and (firstWelcome or next(FS.db.layout.frames)==nil) and "Layout 1" or "Keep current"
     self.draft.nativeLayout=FS.LayoutPresets:NativeAvailable()==true
     self.draft.preference=firstWelcome and "Casual" or "Custom"
+    self.draft.storage=Bags:StorageLayout()
     if firstWelcome then self:SelectPreference("Casual") end
 end
 function I:Dismiss()
@@ -69,6 +72,7 @@ function I:Apply()
     local valid=false; for _,style in ipairs(A.styles) do if style==d.style then valid=true end end
     if not valid or type(d.scale)~="number" or d.scale<.8 or d.scale>1.2 then return false end
     if not FS.Themes:Index(d.theme) then return false end
+    if not Bags.storageDescriptions[d.storage] then return false end
     local plan,reason=FS.LayoutPresets:Prepare(d.layout or "Keep current",d.nativeLayout)
     if not plan then FS:Print(reason); return false end
     if not FS.LayoutPresets:Commit(d.layout or "Keep current",plan) then return false end
@@ -79,6 +83,7 @@ function I:Apply()
         if FS:IsModuleEnabled(name)~=d.modules[name] then FS:SetModuleEnabled(name,d.modules[name]) end
     end
     if not FS.Themes:Set(d.theme) then return false end
+    if Bags:StorageLayout()~=d.storage then Bags:SetStorageLayout(d.storage) end
     if FS.firstInstallation then FS.db.patchLog.lastSeenVersion=FS.version end
     FS.db.setup.completed=true; FS.db.setup.dismissed=false; FS.db.setup.welcomePending=false
     FS.Layout:ApplyAll(); FS.modules.Profiles:PersistCurrent()
@@ -104,13 +109,15 @@ function I:Create()
             elseif self.step==4 then
                 if self.preferences[index] then self:SelectPreference(self.preferences[index])
                 else local name=modules[index-#self.preferences]; self.draft.modules[name]=not self.draft.modules[name] end
-            elseif self.step==5 then self.draft.layout=self:LayoutChoices()[index] end
+            elseif self.step==5 then self.draft.layout=self:LayoutChoices()[index]
+            elseif self.step==7 then self.draft.storage=Bags.storageLayouts[index] end
             self:Refresh()
         end); f.choices[index]=button
     end
     f.previewTitle=H:Label(f,"Preview",24,-280,712)
     f.preview=CreateFrame("Frame",nil,f,"BackdropTemplate"); H:Skin(f.preview); f.preview:SetSize(712,220); f.preview:SetBackdropColor(.04,.07,.075,1)
     f.layoutPreview=FS.LayoutPresets:CreatePreview(f)
+    f.storagePreview=Bags:CreateStoragePreview(f)
     f.nativeLayout=H:Button(f,"",24,-260,712,function() self.draft.nativeLayout=not self.draft.nativeLayout; self:Refresh() end)
     f.layoutHelp=H:Label(f,"",24,-260,712); f.layoutHelp:SetHeight(60)
     f.design=CreateFrame("Frame",nil,f); f.design:SetSize(712,445); f.design:EnableMouse(false)
@@ -182,20 +189,21 @@ function I:Create()
 end
 function I:Refresh()
     local f=self.window; local d=self.draft; if not f or not d then return end
-    local titlesByStep={[2]="Choose your theme",[3]="Text and bar preview",[4]="Choose how you play",[5]="Choose your layout",[6]="Review your setup"}
+    local titlesByStep={[2]="Choose your theme",[3]="Text and bar preview",[4]="Choose how you play",[5]="Choose your layout",[6]="Review your setup",[7]="Choose your bags and bank"}
     local descriptions={
         [2]=self.themeOnly and "Preview frames, buttons, icons and the waypoint arrow." or "Welcome to ForeverSuite "..FS.version.."! Choose a theme to preview it. Created by DeluxiZ.",
         [3]="Preview text and action bar sizes. Text presets are saved when you finish setup.",
         [4]=d.preference=="Custom" and "Choose which modules to turn on." or "Casual keeps everyday tools handy. PvE adds combat tracking. PvP prioritizes buffs, cooldowns and nameplates.",
         [5]="Preview where your frames will be placed. Layouts fit the size of your screen.",
-        [6]="Theme: "..self:ThemeLabel(d.theme).."\nLayout: "..(FS.LayoutPresets.labels[d.layout] or d.layout).."\nProfile: "..d.preference
+        [6]="Theme: "..self:ThemeLabel(d.theme).."\nLayout: "..(FS.LayoutPresets.labels[d.layout] or d.layout).."\nBags & bank: "..d.storage.."\nProfile: "..d.preference,
+        [7]=Bags.storageDescriptions[d.storage],
     }
     f.title:SetText(titlesByStep[self.step]); f.description:SetText(descriptions[self.step])
     local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
     local y=100+H:TextHeight(f.title,712,2)+14; at(f.description,24,y); y=y+H:TextHeight(f.description,712,4)+20
     local count=self.step==2 and (self.themeOnly and #FS.Themes.names or #self.themeChoices) or self.step==3 and 6
         or self.step==4 and (#self.preferences+(d.preference=="Custom" and #modules or 0))
-        or self.step==5 and #self:LayoutChoices() or 0
+        or self.step==5 and #self:LayoutChoices() or self.step==7 and #Bags.storageLayouts or 0
     local rowHeight=36
     for index,button in ipairs(f.choices) do
         button:SetShown(index<=count)
@@ -209,6 +217,8 @@ function I:Refresh()
                 local preference=self.preferences[index]
                 if preference then caption=preference; selected=d.preference==preference
                 else local name=modules[index-#self.preferences]; caption=titles[name]..": "..(d.modules[name] and "On" or "Off"); selected=d.modules[name] end
+            elseif self.step==7 then
+                caption=Bags.storageLayouts[index]; selected=d.storage==caption
             else
                 local name=self:LayoutChoices()[index]
                 caption=FS.LayoutPresets.labels[name] or name
@@ -230,8 +240,11 @@ function I:Refresh()
     end
     at(f.previewTitle,24,y); y=y+H:TextHeight(f.previewTitle,712,1)+8; at(f.preview,24,y)
     local theme=FS.Themes:Index(d.theme) or 1
-    f.design:Hide(); f.preview:SetShown(self.step==4); f.layoutPreview:SetShown(self.step~=4)
-    if self.step~=4 then
+    f.design:Hide(); f.preview:SetShown(self.step==4); f.layoutPreview:SetShown(self.step~=4 and self.step~=7)
+    f.storagePreview:SetShown(self.step==7)
+    if self.step==7 then
+        at(f.storagePreview,24,y); Bags:PreviewStorage(f.storagePreview,d.storage,theme)
+    elseif self.step~=4 then
         at(f.layoutPreview,24,y)
         FS.LayoutPresets:Preview(f.layoutPreview,d.layout)
         FS.Themes:Register(f.layoutPreview,"Panel",theme)
@@ -275,7 +288,7 @@ function I:Refresh()
     preview.tray:SetFrameLevel(preview:GetFrameLevel()+1)
     for _,tile in ipairs(preview.tiles) do tile:SetFrameLevel(preview:GetFrameLevel()+2) end
     FS.modules.ActionBars:StyleTray(preview.tray,d.style,show("ActionBars"))
-    y=y+(self.step==4 and preview:GetHeight() or f.layoutPreview:GetHeight())+16
+    y=y+(self.step==4 and preview:GetHeight() or self.step==7 and f.storagePreview:GetHeight() or f.layoutPreview:GetHeight())+16
     f.themeSample:SetShown(self.step==2)
     if self.step==2 then
         at(f.themeSample,24,y)
@@ -300,7 +313,7 @@ function I:Refresh()
     local status=self.themeOnly and "Apply style saves this appearance to your current profile."
         or self.layoutOnly and "Layout: "..summary
         or self.step==3 and "Optional preview"
-        or "Step "..self:StepIndex().." / 4"
+        or "Step "..self:StepIndex().." / "..#steps
     f.status:SetText(status); at(f.status,24,y); y=y+H:TextHeight(f.status,712,3)+16
     f.later:SetText((self.themeOnly or self.layoutOnly) and "Cancel" or "Set up later")
     f.previous:SetEnabled((self:StepIndex()>1 or self.step==3) and not self.themeOnly and not self.layoutOnly)

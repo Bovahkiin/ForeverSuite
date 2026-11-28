@@ -87,7 +87,9 @@ c.scripts.OnClick(c,'LeftButton',false)
 assert(#TEST.actions==1 and TEST.actions[1].kind=='spell-target' and TEST.actions[1].bag==row.bag and TEST.actions[1].slot==row.slot)
 assert(TEST.bags[row.bag][row.slot].stackCount==before-1 and TEST.bags[0][1].stackCount==3)
 assert(not TEST.targeting and not B.selected and not B.window.itemPanel:IsShown() and (TEST.secureUses or 0)==uses)
-B:Refresh(); Click(B.window.cells[1]); assert(B.window.itemPanel:IsShown(), 'Ordinary left-click still opens options')
+B:Refresh(); Click(B.window.cells[1])
+assert(B.selected and not B.window.itemPanel:IsShown(), 'Ordinary left-click selects the stack without opening a second panel')
+Click(B.window.inspectItem); assert(B.window.itemPanel:IsShown())
 
 -- TEST: Invalid food stays under client validation while stale locked empty and transaction-owned slots cannot be targeted
 ResetTest(); local B=ForeverSuite.modules.Bags; local V=ForeverSuite.modules.Vendor; MerchantFrame:Hide()

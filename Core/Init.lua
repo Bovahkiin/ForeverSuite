@@ -1,6 +1,6 @@
 local addonName, FS = ...
 FS.name = addonName
-FS.version = "1.0.14"
+FS.version = "1.0.15"
 FS.icon = "Interface\\AddOns\\ForeverSuite\\Assets\\Icon-FS.tga"
 FS.logo = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-wordmark.tga"
 FS.emblem = "Interface\\AddOns\\ForeverSuite\\Assets\\Logo-transparent.tga"
@@ -55,6 +55,7 @@ end
 
 function FS:Initialize()
     if self.initialized then return end
+    local started=self.Performance:Now()
     self:RefreshClient()
     self:InitializeDatabase()
     if self.Extensions then self.Extensions:Normalize() end
@@ -72,4 +73,5 @@ function FS:Initialize()
     if self.Typography then self.Typography:Apply() end
     if self.Compatibility then self.Compatibility:Initialize() end
     if self.db.welcome then self:Print(string.format(self.L.LOADED, self.version)) end
+    self.Performance:FinishStartup(started)
 end

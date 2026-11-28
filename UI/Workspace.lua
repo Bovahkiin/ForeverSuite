@@ -70,6 +70,17 @@ function W:Build(frame)
     self.profiles = H:Button(host, "Manage profiles", 24, 0, 223, function()
         FS.modules.Workbench:Choose("Profiles")
     end)
+    self.resumeHeading = FS.Widgets:Label(host, "ForeverSuiteFontLarge")
+    self.resumeHeading:SetJustifyH("LEFT")
+    self.resumeHeading:SetText("Continue playing")
+    self.resume = {}
+    for i=1,3 do
+        local button=H:Button(host,"",24,0,286,function(clicked)
+            if clicked.resumeAction and not InCombatLockdown() then clicked.resumeAction() end
+        end)
+        button.fsLabel:SetJustifyH("LEFT")
+        self.resume[i]=button
+    end
     self.rows, self.tools = {}, {}
     local owners = {}
     local function add(id, owner, action, summary, run, icon)
@@ -134,16 +145,18 @@ function W:LayoutRow(index, tool, isHome, x, y)
     row.rail:SetColorTexture(color[1],color[2],color[3],canOpen(tool) and .95 or .3)
     row.iconWell:SetColorTexture(color[1],color[2],color[3],.09)
     row.summary:SetTextColor(paper and .25 or .63,paper and .22 or .71,paper and .18 or .79,1)
-    row.open:SetBackdropBorderColor(color[1],color[2],color[3],.85)
+    FS.Themes:Paint(row.open,"SetBackdropBorderColor",color[1],color[2],color[3],.85,.65)
     FS:SetMenuIcon(row.icon, tool.icon or "Category")
     row.title:SetText(tool.title)
     row.summary:SetText(tool.description)
+    row.summary:SetShown(not isHome)
+    H:SetHelp(row.open,isHome and tool.description or nil)
     local width = isHome and 430 or 882
     local copyWidth = isHome and 355 or 407
     local titleHeight = H:TextHeight(row.title,copyWidth,2)
     at(row.summary,56,15+titleHeight)
-    local summaryHeight = H:TextHeight(row.summary,copyWidth,3)
-    local buttonY = isHome and 21+titleHeight+summaryHeight or 12
+    local summaryHeight = isHome and 0 or H:TextHeight(row.summary,copyWidth,2)
+    local buttonY = isHome and math.max(49,17+titleHeight) or 12
     row.open:SetText(canOpen(tool) and tool.action or "Module disabled")
     row.open:SetEnabled(canOpen(tool))
     row.pin:SetText(FS.db.window.pinnedTools[tool.id] and "Unpin" or "Pin")
@@ -164,6 +177,59 @@ function W:LayoutRow(index, tool, isHome, x, y)
     return height
 end
 
+function W:ResumeEntries()
+    local entries={}
+    local tools,extras=FS.Tools,FS.Extensions:Data()
+    local function add(label,detail,action)
+        entries[#entries+1]={label=label,detail=detail,action=action}
+    end
+    local workbenchEnabled=FS:IsModuleEnabled("Workbench")
+    if workbenchEnabled and FS:IsModuleEnabled("Map") and #extras.waypointQueue>0 then
+        local stop=extras.waypointQueue[1]
+        local title=FS.Extensions.queueActive and "Active route" or "Waypoint queue"
+        local count=#extras.waypointQueue
+        add(title,("%s · %d %s left"):format(stop.name,count,count==1 and "stop" or "stops"),
+            function() FS.modules.Workbench:Choose("Waypoint queue") end)
+    end
+    local talents=FS.modules.TalentAdvisor
+    if FS:IsModuleEnabled("TalentAdvisor") and not talents.draft then
+        local data=talents:Data()
+        if data.selected~="" or data.activeBundle~="" then
+            local plan=talents:Selected()
+            local name=plan and tools:Text(plan.name) or ""
+            if name~="" then add("Talent build",name,function() talents:ShowWindow() end) end
+        end
+    end
+    if workbenchEnabled and FS:IsModuleEnabled("AuctionHouse") and next(FS.modules.AuctionHouse:Data().shopping) then
+        add("Shopping goals","Review the items on your list.",
+            function() FS.modules.Workbench:Choose("Next steps",nil,"[Shopping]") end)
+    end
+    return entries
+end
+
+function W:LayoutResume(isHome,y)
+    local entries=isHome and self:ResumeEntries() or {}
+    for i,button in ipairs(self.resume) do
+        local entry=entries[i]
+        button.resumeAction=entry and entry.action
+        button:SetShown(entry~=nil)
+    end
+    self.resumeHeading:SetShown(#entries>0)
+    if #entries==0 then return y end
+    at(self.resumeHeading,24,y)
+    y=y+H:TextHeight(self.resumeHeading,600,1)+8
+    local height=0
+    for i,entry in ipairs(entries) do
+        local button=self.resume[i]
+        button:SetText(entry.label.."\n"..entry.detail)
+        H:SetHelp(button,entry.label..": "..entry.detail)
+        at(button,24+(i-1)*298,y)
+        height=math.max(height,H:FitButton(button,3))
+    end
+    for i=1,#entries do self.resume[i]:SetHeight(height) end
+    return y+height+14
+end
+
 function W:Layout(frame, page)
     local isHome = page=="home"
     local isProfiles = page=="profiles"
@@ -178,15 +244,21 @@ function W:Layout(frame, page)
     if page=="allTools" then
         y=y+H:FitButton(self.back,2)+14
     end
+    y=self:LayoutResume(isHome,y)
     at(self.heading,24,y)
-    y=y+H:TextHeight(self.heading,650,2)+8
+    local headingHeight=H:TextHeight(self.heading,isHome and 620 or 650,2)
+    if isHome then
+        at(self.browse,693,y)
+        headingHeight=math.max(headingHeight,H:FitButton(self.browse,2))
+    end
+    y=y+headingHeight+8
     local query=frame.moduleQuery
-    self.note:SetText(isHome and "Pin your most-used tools from All Tools." or isProfiles
+    self.note:SetShown(not isHome)
+    self.note:SetText(isProfiles
         and "Save or switch your layout, theme and module settings."
         or query~="" and "Search results" or "Find a tool, see what it does and pin it to Home.")
     at(self.note,24,y)
-    y=y+H:TextHeight(self.note,650,2)+16
-    if isHome then y=math.max(y,16+H:FitButton(self.browse,2)+12) end
+    if not isHome then y=y+H:TextHeight(self.note,650,2)+16 end
     if isProfiles then
         for _,row in ipairs(self.rows) do row:Hide() end
         FS.modules.Profiles:LayoutBar(y)
@@ -207,8 +279,10 @@ function W:Layout(frame, page)
     end
     for i=shown+1,#self.rows do self.rows[i]:Hide() end
     if shown==0 then
+        self.note:Show()
+        at(self.note,24,y)
         self.note:SetText(isHome and "No pinned tools yet. Browse All Tools to get started." or "No tools match. Press Enter to search individual settings.")
-        H:TextHeight(self.note,650,2)
+        y=y+H:TextHeight(self.note,650,2)
     end
     return y+rowHeight+12
 end

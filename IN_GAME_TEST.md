@@ -1262,3 +1262,15 @@ Compare Clock against Windows local time, wait for a minute change and repeat du
 5. Test a large loot burst: visible rows stay within the selected limit; queued entries expire normally. Entries exceeding the queue capacity remain in chat. No animation update runs after the feed empties.
 6. If installed, test Auctionator, TSM and Masque independently. Values must name the source; missing prices must not become invented AH values. Toggle Masque off and verify only item icons change. Verify coexistence with ElvUI without changing its frames.
 7. Visit a vendor. The complete ForeverSuite button should sit below the merchant window and remain readable when scaling or moving that window. Open its tools, close the merchant, and verify both launcher and menu disappear. Repeat after reload and with Vendor disabled.
+
+## 1.0.15 Control Center and performance
+
+1. Restart WoW and open `/fs`. Test with and without pinned tools. Hover an Open button to read the description, search for a tool, and check that Settings and Modules still use the same search.
+2. Queue a map stop, choose a Talent Advisor build and add an Auction House shopping goal. Reopen Control Center and click each Continue playing shortcut. Disable the relevant modules and check that their shortcuts disappear. Check large text and a small viewport.
+3. Use the same character, location, UI scale, theme and addons for before/after comparisons. After loading, use `/fs perf Login`, then repeat with `/fs perf Busy city` and `/fs perf Dungeon` after comparable gameplay. Review the samples with `/fs perf`. CPU peak covers the session and FPS covers the whole game.
+4. Open and close Guild and the vendor several times, switch Guild tabs and change minimap style. Take a named sample after each scenario and check for visible delays, overlap or missing minimap terrain. Compare the recent CPU and memory values under the same conditions.
+5. Open a mailbox with large text enabled. The Inbox should have one Mail tools button below its title and both tabs should be readable. Open the menu and switch to Send Mail. Check that the menu closes and the recipient fields stay clear, then return to Inbox.
+6. Preview all five storage layouts in Guided Setup, then switch among them from the Bags and Bank toolbar. Check search, category filtering, item tooltips, dragging, resizing and persisted choice after reload. A fresh profile without a saved layout should use Satchels.
+7. Switch between contrasting themes with Control Center open. Verify its controls, chat, quest tracker, gear indicator, clock and damage meter. Check both minimap shapes and confirm terrain, Tracking, Calendar and Addon Compartment continue to work.
+8. On a character below the level cap, gain XP and check that the brief gain highlight starts at the previous fill. Check the rested tint and the level-up pulse. With no XP gains, check that the bar stays still.
+9. Open vendors and trainers at different window scales and positions. Verify that the ForeverSuite launcher remains fully visible and does not cover native tabs, buyback or training controls.

@@ -14,25 +14,19 @@ function U:Refresh()
     local button=frame.fsTrainAll
     if not self:Allowed(frame) then if button then button:Hide() end;return end
     if not button then
-        button=H:Button(frame,'Train all',0,0,92,function()
+        button=H:Button(UIParent,'Train all',0,0,128,function()
             local W=FS.modules.Workbench
             if W.training and W.training.owner==frame then W:StopTraining('Stopped by player.') else W:ConfirmTraining(frame) end
             U:Refresh()
         end)
         frame.fsTrainAll=button;button:SetFrameLevel(frame:GetFrameLevel()+8)
         frame:HookScript('OnHide',function()
+            button:Hide()
             local W=FS.modules.Workbench
             if W.training and W.training.owner==frame then W:StopTraining('Trainer closed.') end
         end)
         H:SetHelp(button,'Review the total cost, then train the approved lessons. New lessons unlocked during the batch require a new approval.')
     end
-    local native=frame.TrainButton or ClassTrainerTrainButton
-    button:ClearAllPoints()
-    if native then button:SetPoint('RIGHT',native,'LEFT',-6,0)
-    else button:SetPoint('BOTTOMRIGHT',frame,'BOTTOMRIGHT',-108,4) end
-    local width=T:Call(frame.GetWidth,frame);local nativeWidth=native and T:Call(native.GetWidth,native)
-    local available=T:Number(width) and T:Number(nativeWidth) and width-nativeWidth-166 or 92
-    button:SetWidth(math.max(56,math.min(92,available)));H:FitButton(button,2,26)
     local W=FS.modules.Workbench
     if W.training and W.training.owner==frame then
         button:SetText('Stop training');button:SetEnabled(true)
@@ -44,7 +38,10 @@ function U:Refresh()
         button:SetEnabled(count>0 and T:Number(balance) and balance>=total and type(BuyTrainerService)=='function')
         H:SetHelp(button,why or count..' lessons | '..FS.modules.Vendor:Money(total)..'. Click to review; no training is purchased until you confirm.')
     end
-    button:Show()
+    local context=FS.Context and FS.Context.hosts[frame]
+    local tools=context and context.button
+    button:SetShown(H:DockServiceAction(frame,button,2,2,tools))
+    if tools and context.update then context.update() end
 end
 local events=CreateFrame('Frame');U.events=events
 for _,event in ipairs({'TRAINER_SHOW','TRAINER_UPDATE','TRAINER_CLOSED','PLAYER_MONEY','PLAYER_REGEN_ENABLED','PLAYER_REGEN_DISABLED','ADDON_LOADED'}) do FS:RegisterClientEvent(events,event) end

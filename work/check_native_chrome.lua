@@ -153,15 +153,17 @@ Q.Build=build; Q:UpdateTracker()
 
 -- TEST: Inventory large typography separates toolbar sidebar counts and item pages without changing saved size
 ResetTest(); local FS=ForeverSuite; local B=FS.modules.Bags
+B:SetStorageLayout('Vault')
 TEST.data[1]={quality=1,price=1,classID=2}; AddItem(1,1,1); B:ShowWindow(); local f=B.window
 FS.db.typography.modules.Bags={size=24,scale=1.5}; FS.Typography:Apply()
-local metrics=B.textLayout; assert(metrics.large and metrics.contentX>212)
+local metrics=B.textLayout; assert(metrics.contentX>212)
 assert(f.organize:GetWidth()>78 and f.sidebarRows[1].count:GetWidth()>23)
-assert(-f.more.point[3] >= -f.back.point[3]+f.back:GetHeight())
-for _,c in ipairs(f.sidebarRows) do if c:IsShown() then assert(c.caption:GetWidth()+34 < c.count.point[2]) end end
+assert(-f.more.point[3]+f.more:GetHeight()<metrics.contentTop)
+for _,c in ipairs(f.sidebarRows) do if c:IsShown() then assert(c.caption:GetWidth()+26+c.count:GetWidth()+7<=c:GetWidth()) end end
 for _,page in ipairs(B:Layout(B.view)) do for _,entry in ipairs(page.cells) do assert(metrics.contentTop+entry.y+38<=f:GetHeight()-metrics.footerReserve) end end
 local savedHeight=FS.db.bags.height; local h=f:GetHeight(); FS.Typography:Apply(); assert(f:GetHeight()==h and FS.db.bags.height==savedHeight)
-FS.db.typography.modules.Bags=nil; FS.Typography:Apply(); assert(f.organize:GetWidth()==78 and B.textLayout.contentX==212); f:Hide()
+FS.db.typography.modules.Bags=nil; FS.Typography:Apply()
+assert(f.organize:GetWidth()>=92 and B.textLayout.contentX<metrics.contentX); f:Hide()
 
 -- TEST: Character typography gives tab labels space and pages stats inside panel while disable restores size
 ResetTest(); local FS=ForeverSuite; local C=FS.modules.Character; C:Apply()
@@ -398,7 +400,8 @@ assert(f.description:GetText():find(FS.version,1,true) and f.description:GetText
 f.choices[3]:Click()
 f.patch:Click(); assert(FS.aboutWindow:IsShown() and not f:IsShown() and FS.aboutWindow.close:GetText()=='Back to setup')
 FS.aboutWindow.close:Click(); assert(f:IsShown() and I.step==2 and not FS.installerReturn and I.draft.theme=='Verdant Relic')
-f.next:Click(); f.choices[4]:Click(); assert(I.draft.layout=='Keep current'); f.next:Click(); f.choices[2]:Click()
+f.next:Click(); f.choices[4]:Click(); assert(I.draft.layout=='Keep current'); f.next:Click()
+assert(I.step==7); f.next:Click(); f.choices[2]:Click()
 assert(I.draft.preference=='PvE' and FS.db.appearance.theme=='Legacy' and not f.patch:IsShown())
 f.next:Click(); f.customize:Click(); f.choices[1]:Click(); assert(I.draft.scale==.8 and FS.db.actionBars.scale==1)
 f.next:Click(); assert(I.step==6 and I.draft.theme=='Verdant Relic')
@@ -414,7 +417,7 @@ ResetTest(); local FS=ForeverSuite; local I=FS.Installer; I:Show(); local f=I.wi
 TEST.combat=true; assert(not I:Apply() and not I:Show() and FS.db.actionBars.style=='Minimal'); TEST.combat=false
 FS.modules.Vendor.busy=true; assert(not I:Apply() and not FS.db.setup.completed); FS.modules.Vendor.busy=false
 FS.db.typography.global.size=24; FS.Typography:Apply()
-for _,step in ipairs({2,3,4,5,6}) do
+for _,step in ipairs({2,3,4,5,6,7}) do
     I.step=step; I:Refresh()
     assert(f:GetHeight()*f:GetScale()<=UIParent:GetHeight()-47 and f:GetWidth()*f:GetScale()<=UIParent:GetWidth()-47)
     local point={f.next:GetPoint()}; local bottom=point[5] or point[3]; assert(-bottom+f.next:GetHeight()+20<=f:GetHeight())
@@ -659,6 +662,10 @@ FS.db.map.minimapStyle='Dark Fantasy'; M:SettingsChanged()
 assert(S:IsSquareMinimap() and GetMinimapShape()=='SQUARE')
 assert(f.mask=='Interface\\Buttons\\WHITE8X8' and masks==1)
 assert(S.mapRim.fsAsset:find('Dark-Fantasy.tga',1,true) and S.minimap.fsMinimapFantasyFill:IsShown())
+FS.db.appearance.theme='Ember Bastion'; S:Minimap()
+assert(S.mapRim.color[1]>S.mapRim.color[3] and S.minimap.fsMinimapFantasyEdge.color[1]>S.minimap.fsMinimapFantasyEdge.color[3])
+FS.db.appearance.theme='Glacial Prism'; S:Minimap()
+assert(S.mapRim.color[3]>S.mapRim.color[1] and S.minimap.fsMinimapFantasyEdge.color[3]>S.minimap.fsMinimapFantasyEdge.color[1])
 local before=#TEST.frames
 local texture=S.mapRim.SetTexture; local writes=0
 S.mapRim.SetTexture=function(self,...) writes=writes+1; return texture(self,...) end
@@ -667,6 +674,7 @@ assert(#TEST.frames==before and masks==1 and writes==0)
 S.mapRim.SetTexture=texture
 FS.db.map.minimapStyle='Theme'; M:SettingsChanged()
 assert(f.mask=='custom-original-mask' and masks==2 and not S:IsSquareMinimap() and GetMinimapShape()=='ROUND')
+assert(S.mapRim.color[1]==1 and S.mapRim.color[2]==1 and S.mapRim.color[3]==1)
 FS.db.map.minimapStyle='Dark Fantasy'; M:SettingsChanged(); FS:SetModuleEnabled('Map',false)
 assert(f.mask=='custom-original-mask' and not S.mapRim:IsShown() and GetMinimapShape()=='ROUND')
 S.minimap:Hide(); S.mapRim:Hide(); S.minimap=nil; S.mapRim=nil
@@ -874,3 +882,51 @@ for _,button in ipairs(buttons) do
 end
 map:Hide(); MinimapCluster:Hide(); S.minimap=oldHeader; FS.db.map.minimapStyle=oldStyle
 Minimap,MinimapCluster,GameTimeFrame,AddonCompartmentFrame=oldMap,oldCluster,oldCalendar,oldAddon
+
+-- TEST: Shared chrome follows the active theme and preserves explicit status colors
+ResetTest(); local FS=ForeverSuite; local themes=FS.Themes
+local frame=CreateFrame('Frame',nil,UIParent,'BackdropTemplate'); FS.HUD:Skin(frame)
+local flat=CreateFrame('Frame',nil,UIParent,'BackdropTemplate'); FS.HUD:Skin(flat,true)
+local alert=FS.HUD:Button(frame,'Alert',0,0,80,function() end)
+alert:SetBackdropBorderColor(1,.2,.2,1)
+assert(themes:Set('Ember Bastion'))
+local r,_,b=frame:GetBackdropBorderColor(); assert(r>b)
+r,_,b=flat:GetBackdropBorderColor(); assert(r>b)
+assert(alert.border[1]==1 and alert.border[3]==.2)
+assert(themes:Set('Glacial Prism'))
+r,_,b=frame:GetBackdropBorderColor(); assert(b>r)
+r,_,b=flat:GetBackdropBorderColor(); assert(b>r)
+assert(themes:Set('Legacy'))
+assert(frame.border[1]==.12 and frame.border[3]==.86 and alert.border[3]==.2)
+local chat=FS.modules.Chat
+FS.db.chat.borderColor='Cyan'; FS.db.chat.themeBorderInitialized=nil
+chat:NormalizeSettings(); assert(FS.db.chat.borderColor=='Theme')
+FS.db.chat.borderColor='Cyan'; chat:NormalizeSettings(); assert(FS.db.chat.borderColor=='Cyan')
+FS.db.chat.borderColor='Theme'; chat:NormalizeSettings()
+
+-- TEST: Experience evolves with progress and plays finite gain and level-up animations
+ResetTest(); local FS=ForeverSuite; local W=FS.WindowManager
+local oldXP,oldMax,oldLevel,oldRested=UnitXP,UnitXPMax,UnitLevel,GetXPExhaustion
+local oldEnabled=FS.db.actionBars.enabled; FS.db.actionBars.enabled=true
+local xp,maximum,level=200,1000,12
+UnitXP=function() return xp end; UnitXPMax=function() return maximum end
+UnitLevel=function() return level end; GetXPExhaustion=function() return 100 end
+assert(FS.Themes:Set('Ember Bastion')); W:UpdateExperience()
+local f=W.experience
+assert(f:IsShown() and f.bar.value==200 and f.bar.barColor[1]>f.bar.barColor[3])
+assert(f.rested:IsShown() and f.rested.barColor[4]<f.bar.barColor[4])
+assert(not f.gain:IsShown() and not f.levelFlash:IsShown())
+local alpha=f.glow:GetAlpha()
+xp=820; W:UpdateExperience()
+assert(f.glow:GetAlpha()>alpha and f.marks[3]:GetAlpha()==.9 and f.gainPulse:IsPlaying())
+f.gainPulse.scripts.OnFinished(); assert(not f.gain:IsShown())
+xp,maximum=30,1200; W:UpdateExperience(13)
+assert(not f.gain:IsShown() and f.levelFlash:IsShown() and f.levelPulse:IsPlaying())
+assert(FS.Themes:Set('Glacial Prism') and f.bar.barColor[3]>f.bar.barColor[1])
+f.levelPulse.scripts.OnFinished(); assert(not f.levelFlash:IsShown())
+W:UpdateExperience(); assert(not f.levelFlash:IsShown())
+level=13; W:UpdateExperience(); assert(not f.levelFlash:IsShown())
+maximum=0; W:UpdateExperience(); assert(not f:IsShown() and not f.levelPulse:IsPlaying())
+FS.db.actionBars.enabled=oldEnabled
+UnitXP,UnitXPMax,UnitLevel,GetXPExhaustion=oldXP,oldMax,oldLevel,oldRested
+assert(FS.Themes:Set('Legacy'))

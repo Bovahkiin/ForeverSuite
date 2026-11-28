@@ -8,30 +8,26 @@ local categoryIcons = {
 }
 local function text(parent, value, x, y, width)
     local f = FS.Widgets:Label(parent, "ForeverSuiteFontSmall")
+    B:StorageText(f)
     f:SetText(value)
     f:SetPoint("TOPLEFT", x, y); f:SetWidth(width); f:SetJustifyH("LEFT")
     return f
-end
-local function fill(parent, r, g, b, a)
-    local t = parent:CreateTexture(nil, "BACKGROUND")
-    t:SetTexture("Interface\\Buttons\\WHITE8X8"); t:SetVertexColor(r, g, b, a or 1)
-    return t
 end
 local function control(parent, caption, x, y, width, action)
     local f = CreateFrame("Button", nil, parent, "BackdropTemplate")
     f:SetSize(width, 28); f:SetPoint("TOPLEFT", x, y)
     f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    f:SetBackdropColor(.045, .065, .085, 1); f:SetBackdropBorderColor(.12, .22, .28, 1)
     f.caption = text(f, caption, 8, -7, width - 16)
+    B:StorageSkin(f, "button")
     f:SetScript("OnClick", action)
-    f:SetScript("OnEnter", function() f:SetBackdropBorderColor(.15, .8, .95, 1) end)
-    f:SetScript("OnLeave", function() f:SetBackdropBorderColor(.12, .22, .28, 1) end)
+    f:SetScript("OnEnter", function() B:StorageHighlight(f, f.fsStorageSelected, true) end)
+    f:SetScript("OnLeave", function() B:StorageHighlight(f, f.fsStorageSelected) end)
     return f
 end
 function B:SelectView(mode, category)
     FS.db.bags.viewMode = mode or "categories"
     FS.db.bags.category = category or "All"
-    self.page, self.selected, self.itemOptions = 1, nil, false
+    self.page, self.selected, self.itemOptions, self.inspectOpen = 1, nil, false, false
     self:Refresh()
 end
 function B:AddCategory(name)
@@ -55,9 +51,7 @@ end
 function B:CreateSidebar(f)
     f.sidebar = CreateFrame("Frame", nil, f, "BackdropTemplate")
     f.sidebar:SetPoint("TOPLEFT", 1, -62); f.sidebar:SetSize(194, 390)
-    local bg = fill(f.sidebar, .025, .035, .05); bg:SetAllPoints()
-    local border = fill(f.sidebar, .12, .25, .3); border:SetWidth(1)
-    border:SetPoint("TOPRIGHT"); border:SetPoint("BOTTOMRIGHT")
+    self:StorageSkin(f.sidebar, "slot")
     f.sidebarTitle=text(f.sidebar, "CATEGORIES", 12, -12, 170); f.sidebarTitle:SetTextColor(.5, .7, .8)
     f.sidebar:EnableMouseWheel(true)
     f.sidebar:SetScript("OnMouseWheel", function(_, delta)
@@ -74,10 +68,6 @@ function B:CreateSidebar(f)
         c.count = text(c, "", 151, -7, 23); c.count:SetJustifyH("RIGHT")
         f.sidebarRows[i] = c
     end
-    f.addCategory = control(f.sidebar, "+ Add category", 7, -330, 180, function()
-        f.categoryDialog:SetShown(not f.categoryDialog:IsShown())
-        if f.categoryDialog:IsShown() then f.categoryName:SetFocus() end
-    end)
     f.sidebarHint = text(f.sidebar, "Scroll for more categories", 12, -363, 174)
     f.sidebarHint:SetTextColor(.48, .6, .68)
     f.categoryDialog = CreateFrame("Frame", nil, f, "BackdropTemplate")
@@ -102,14 +92,6 @@ function B:CreateSidebar(f)
     input:SetScript("OnEnterPressed", save)
     input:SetScript("OnEscapePressed", function() input:ClearFocus(); panel:Hide() end)
     panel:Hide()
-    f.placeholders = {}
-    for i = 1, 132 do
-        local t = fill(f, .06, .085, .1); t:SetSize(38, 38); t:Hide(); f.placeholders[i] = t
-    end
-    f.recentToggle = control(f, "", 212, -69, 160, function()
-        FS.db.bags.showRecent = not FS.db.bags.showRecent; self.page = 1; self:Refresh()
-    end)
-    f.recentToggle.caption:SetText("Hide recent items")
     f.resize = CreateFrame("Button", nil, f)
     f.resize:SetSize(16, 16); f.resize:SetPoint("BOTTOMRIGHT", -2, 2)
     f.resize.texture = f.resize:CreateTexture(nil, "ARTWORK")
@@ -117,7 +99,7 @@ function B:CreateSidebar(f)
     f.resize:SetScript("OnMouseDown", function(_, mouse)
         if mouse ~= "LeftButton" or InCombatLockdown() then return end
         local x, y = GetCursorPosition()
-        self.resizeStart = { x = x, y = y, width = f:GetWidth(), height = f:GetHeight(), scale = f:GetEffectiveScale() }
+        self.resizeStart = { x = x, y = y, width = FS.db.bags.width, height = FS.db.bags.height, scale = f:GetEffectiveScale() }
         local fx, fy = f:GetCenter(); local ux, uy = UIParent:GetCenter()
         local ratio = f:GetEffectiveScale() / UIParent:GetEffectiveScale()
         if fx and fy and ux and uy then
@@ -153,97 +135,94 @@ function B:CreateSidebar(f)
 end
 function B:RefreshSidebar(view)
     local f, db = self.window, FS.db.bags
-    local width, height = db.width, db.height
-    f.title:SetText("INVENTORY   " .. (view.capacity - view.free) .. " / " .. view.capacity)
-    local H=FS.HUD
-    local _,fontSize=f.title:GetFont(); fontSize=fontSize or 14
-    local large=fontSize>14
-    local sidebarWidth=large and math.min(math.floor(width*.42),math.max(194,math.ceil(fontSize*12+36))) or 194
-    local contentX=sidebarWidth+18; local contentWidth=width-contentX-12
+    local style=self:StorageLayout()
+    local width, height = self:StorageWidth(), db.height
+    local sidebar=style=="Vault"
+    local fontSize=select(2,f.title:GetFont()) or 14
+    local sidebarWidth=math.max(142,math.min(232,fontSize*7+42))
+    local contentX=sidebar and sidebarWidth+29 or 14
+    local contentWidth=width-contentX-14
     local function at(frame,x,y) frame:ClearAllPoints(); frame:SetPoint("TOPLEFT",x,-y) end
-    local function fit(b,w,lines)
-        b:SetWidth(w); b.caption:SetWidth(w-16)
-        local h=H:TextHeight(b.caption,w-16,lines or 2); b:SetHeight(math.max(28,h+12))
-        return b:GetHeight()
-    end
-    local top=62
-    if large then
-        H:TextHeight(f.title,width-60,2)
-        top=math.max(62,18+f.title:GetHeight()+14)
-        at(f.search,contentX,top); f.search:SetWidth(contentWidth)
-        local _,searchSize=f.search:GetFont(); f.search:SetHeight(math.max(24,(searchSize or 14)+12))
-        top=top+f.search:GetHeight()+12
-    else at(f.search,width-312,12); f.search:SetWidth(268); f.search:SetHeight(24) end
-    f.sidebar:SetWidth(sidebarWidth); f.sidebar:SetHeight(height-113)
-    local titleWidth=sidebarWidth-(f.fsContextLauncher and 116 or 24)
-    f.sidebarTitle:SetText(f.fsContextLauncher and 'BAGS' or 'CATEGORIES')
-    f.sidebarTitle:SetWidth(titleWidth); H:TextHeight(f.sidebarTitle,titleWidth,1)
-    local toolbarBottom
-    if large then
-        local controlWidth=math.floor((contentWidth-8)/2); local rowHeight=0
-        for _,b in ipairs({f.back,f.organize,f.more,f.recentToggle}) do rowHeight=math.max(rowHeight,fit(b,controlWidth,2)) end
-        for i,b in ipairs({f.back,f.organize,f.more,f.recentToggle}) do at(b,contentX+(i-1)%2*(controlWidth+8),top+math.floor((i-1)/2)*(rowHeight+8)) end
-        toolbarBottom=top+2*(rowHeight+8)+4
-    else
-        at(f.back,212,62); f.back:SetWidth(122); f.back:SetHeight(26)
-        at(f.organize,342,62); f.organize:SetWidth(78); f.organize:SetHeight(26)
-        at(f.more,428,62); f.more:SetWidth(102); f.more:SetHeight(26)
-        at(f.recentToggle,538,62); f.recentToggle:SetWidth(width-550); f.recentToggle:SetHeight(28); f.recentToggle.caption:SetWidth(width-566)
-        toolbarBottom=100
-        for _,b in ipairs({f.back,f.organize,f.more}) do b.caption:SetWidth(b:GetWidth()-16); H:TextHeight(b.caption,b:GetWidth()-16,1) end
-    end
-    f.back:SetText("Control Center")
-    f.filter:Hide(); f.filterMenu:Hide(); f.categoryHint:Hide()
-    f.recentToggle.caption:SetText(db.showRecent and "Hide recent items" or "Show recent items")
-    local footerReserve=large and math.max(120,fontSize*5+30) or 120
-    local viewportHeight=large and math.max(height,toolbarBottom+footerReserve+fontSize+56) or height
-    self.textLayout={width=width,height=height,viewportHeight=viewportHeight,contentX=contentX,contentWidth=contentWidth,contentTop=toolbarBottom,
-        headerHeight=large and fontSize+12 or 26,footerReserve=footerReserve,large=large,fontSize=fontSize}
-    height=viewportHeight; f.sidebar:SetHeight(height-113)
-    local counts, total = {}, 0
+    local list=style=="Ledger"
+    local top=self:LayoutStorageHeader(f,width,"Inventory",false)
+    f.layoutPicker:SetText(style)
+    self:StorageArrow(f.layoutPicker,"down","RIGHT")
+    self:StorageArrow(f.filter,not sidebar and "down" or nil,"RIGHT")
+    f.organize:SetShown(not list and style~="Satchels")
+    f.filter:SetShown(not sidebar)
+    f.sidebar:SetShown(sidebar)
+    local controls={}
+    if not sidebar then controls[#controls+1]={f.filter,102} end
+    if f.organize:IsShown() then controls[#controls+1]={f.organize,92} end
+    controls[#controls+1]={f.layoutPicker,126}
+    controls[#controls+1]={f.more,100}
+    self:StorageHighlight(f.organize,db.sort=="name")
+    local bodyTop=self:LayoutStorageToolbar(f,width,top,controls)
+    local slotSize=style=="Field Kit" and 34 or list and math.max(28,fontSize+9) or 38
+    local contentTop=self:LayoutStorageColumns(f,list,contentX,bodyTop,contentWidth,slotSize,self.quantitySort)
+    local footerReserve=math.max(112,fontSize*3+62)
+    local merchant=V.merchantOpen and MerchantFrame and MerchantFrame:IsShown() and V:Settings().enabled
+    local minContent=math.max(90,fontSize+64)+(merchant and 58 or 0)
+    local viewportHeight=math.max(style=="Field Kit" and math.min(height,408) or height,contentTop+footerReserve+minContent)
+    self.textLayout={width=width,height=height,viewportHeight=viewportHeight,contentX=contentX,contentWidth=contentWidth,contentTop=contentTop,
+        headerHeight=math.max(27,fontSize+10),footerReserve=footerReserve,slotSize=slotSize,fontSize=fontSize}
+    self:PlaceStorageTools(f)
+    if not sidebar then return end
+
+    local H=FS.HUD
+    local sidebarHeight=viewportHeight-bodyTop-math.max(58,fontSize*2+24)
+    f.sidebar:SetSize(sidebarWidth,sidebarHeight); at(f.sidebar,14,bodyTop)
+    f.sidebarTitle:SetWidth(sidebarWidth-24); H:TextHeight(f.sidebarTitle,sidebarWidth-24,1)
+    local counts={}
     for _, row in ipairs(view.plan.items) do
-        local name = self:Category(row); counts[name] = (counts[name] or 0) + 1; total = total + 1
+        local name = self:Category(row,true)
+        counts[name] = (counts[name] or 0) + 1
+        if db.favorites[row.id] then counts.Favorites=(counts.Favorites or 0)+1 end
     end
-    local entries = {
-        { title = "All Items", mode = "categories", category = "All", icon = "Menu", count = total },
-        { title = "OneBag", mode = "onebag", category = "All", icon = "Bags", count = total },
-        { title = "MultiBag", mode = "multibag", category = "All", icon = "Grid", count = total },
-        { title = "Recent Items", mode = "recent", category = "All", icon = "Cooldowns", count = #self:RecentRows({ rows = view.plan.items }) },
+    local entries={
+        {title="All items",category="All",icon="Menu",count=#view.plan.items},
+        {title="Recent items",category="All",mode="recent",icon="Cooldowns",count=#self:RecentRows({rows=view.plan.items})},
     }
     for _, name in ipairs(self.categories) do
-        local custom = false; for _, value in ipairs(db.customCategories) do if value == name then custom = true end end
-        if name ~= "All" and (name == "Favorites" or (counts[name] or 0) > 0 or custom or name == db.category) then
-            entries[#entries + 1] = { title = self.categoryNames[name] or name, mode = "categories", category = name, icon = categoryIcons[name] or "Category", count = counts[name] or 0 }
+        local custom
+        for _,value in ipairs(db.customCategories) do if value==name then custom=true; break end end
+        if name~="All" and (name=="Favorites" or counts[name] or custom or name==db.category) then
+            entries[#entries+1]={title=self.categoryNames[name] or name,category=name,icon=categoryIcons[name] or "Category",count=counts[name] or 0}
         end
     end
-    local sidebarTop=large and 18+f.sidebarTitle:GetHeight() or 34
-    local rowHeight=large and math.max(32,2*(fontSize+3)+12) or 32
-    local addHeight=large and fit(f.addCategory,sidebarWidth-14,2) or 28
-    f.addCategory:SetWidth(sidebarWidth-14)
-    f.sidebarHint:SetWidth(sidebarWidth-24); local hintHeight=H:TextHeight(f.sidebarHint,sidebarWidth-24,2)
-    local sidebarBottom=height-113-addHeight-hintHeight-24
-    local visible = math.max(1, math.min(18, math.floor((sidebarBottom-sidebarTop) / rowHeight)))
-    self.sidebarMax = math.max(0, #entries - visible)
-    self.sidebarOffset = math.max(0, math.min(self.sidebarOffset or 0, self.sidebarMax))
-    for i, c in ipairs(f.sidebarRows) do
-        local entry = i <= visible and entries[i + self.sidebarOffset] or nil
-        c.entry = entry; c:SetShown(entry ~= nil)
+    local sidebarTop=18+f.sidebarTitle:GetHeight()
+    local rowHeight=math.max(29,fontSize+13)
+    local visible=math.max(1,math.min(#f.sidebarRows,math.floor((sidebarHeight-sidebarTop-32)/rowHeight)))
+    self.sidebarMax=math.max(0,#entries-visible)
+    self.sidebarOffset=math.min(self.sidebarOffset or 0,self.sidebarMax)
+    for i,c in ipairs(f.sidebarRows) do
+        local entry=i<=visible and entries[i+self.sidebarOffset] or nil
+        c.entry=entry; c:SetShown(entry~=nil)
         if entry then
-            c:SetWidth(sidebarWidth-14); c:SetHeight(large and rowHeight-4 or 28); at(c,7,sidebarTop+(i-1)*rowHeight)
-            c.caption:SetText(entry.title); c.count:SetText(entry.count); FS:SetMenuIcon(c.icon, entry.icon)
-            local countWidth=large and math.max(32,fontSize*2.5) or 23
-            c.caption:SetWidth(sidebarWidth-60-countWidth); if c.caption.SetNonSpaceWrap then c.caption:SetNonSpaceWrap(true) end; H:TextHeight(c.caption,sidebarWidth-60-countWidth,2)
-            at(c.count,sidebarWidth-22-countWidth,large and (c:GetHeight()-fontSize-3)/2 or 7)
+            c:SetSize(sidebarWidth-12,rowHeight-4); at(c,6,sidebarTop+(i-1)*rowHeight)
+            c.caption:SetText(entry.title); c.count:SetText(entry.count)
+            FS:SetMenuIcon(c.icon,entry.icon)
+            c.icon:SetSize(16,16); c.caption:ClearAllPoints(); c.caption:SetPoint("LEFT",26,0)
+            local countWidth=math.max(24,fontSize*1.7)
+            H:TextHeight(c.caption,sidebarWidth-countWidth-47,1)
+            c.count:ClearAllPoints(); c.count:SetPoint("RIGHT",-7,0)
             H:TextHeight(c.count,countWidth,1)
-            local active = db.category == entry.category and (db.category ~= "All" or db.viewMode == entry.mode)
-            c:SetBackdropColor(active and .065 or .025, active and .16 or .045, active and .2 or .065, 1)
-            c.caption:SetTextColor(active and .3 or .8, active and .9 or .85, active and 1 or .88)
+            self:StorageHighlight(c,db.category==entry.category and (entry.mode or "categories")==db.viewMode)
         end
     end
-    if large then
-        at(f.addCategory,7,height-113-hintHeight-addHeight-18); at(f.sidebarHint,12,height-113-hintHeight-8)
-    else
-        at(f.addCategory,7,height-178); at(f.sidebarHint,12,height-141)
+    at(f.sidebarHint,12,sidebarHeight-23)
+    H:TextHeight(f.sidebarHint,sidebarWidth-24,1)
+    f.sidebarHint:SetShown(self.sidebarMax>0)
+end
+
+function B:PlaceStorageTools(f)
+    local button=f.fsContextLauncher
+    if not button then return end
+    if button:GetParent()~=f then button:SetParent(f) end
+    button:SetText("Bag tools"); button:SetWidth(102)
+    FS.HUD:FitButton(button,1,25)
+    button:ClearAllPoints(); button:SetPoint("BOTTOM",f,"BOTTOM",0,6)
+    if not button.fsStorageControl then
+        self:StorageSkin(button,"button"); button.fsStorageControl=true
     end
-    f.sidebarHint:SetShown(self.sidebarMax > 0)
 end

@@ -1,17 +1,29 @@
 local _,FS=...
 local T=FS.Tools
 local C=T:Module("Chat","chat","Chat","Customize chat panels, buttons, tabs, input, font, timestamps, fading and history. Changes apply to all normal chat windows.",
-    {styleWindow=true,styleTabs=true,styleInput=true,styleButtons=true,fontSize=14,outline=false,backgroundOpacity=.85,borderColor="Cyan",timestamps=false,timestampFormat="24h",fade=false,fadeDelay=120,historyLines=512},
+    {styleWindow=true,styleTabs=true,styleInput=true,styleButtons=true,fontSize=14,outline=false,backgroundOpacity=.85,borderColor="Theme",timestamps=false,timestampFormat="24h",fade=false,fadeDelay=120,historyLines=512},
     {"UPDATE_CHAT_WINDOWS","UPDATE_FLOATING_CHAT_WINDOWS","PLAYER_ENTERING_WORLD"})
 C.options={{key="styleWindow",label="Style chat panels"},{key="styleTabs",label="Style chat tabs"},{key="styleInput",label="Style message input"},
     {key="styleButtons",label="Style chat buttons"},
     {key="fontSize",label="Text size",values={12,13,14,16,18}}, {key="outline",label="Outlined text"},
     {key="backgroundOpacity",label="Background opacity",values={.55,.7,.85,.95,1},format=function(v) return math.floor(v*100+.5).."%" end},
-    {key="borderColor",label="Border color",values={"Cyan","Gold","Violet","Blue","Green","None"}},
+    {key="borderColor",label="Border color",values={"Theme","Cyan","Gold","Violet","Blue","Green","None"}},
     {key="timestamps",label="Chat timestamps"},{key="timestampFormat",label="Timestamp format",values={"24h","24h + seconds","12h"}},
     {key="fade",label="Fade older messages"},{key="fadeDelay",label="Fade delay",values={30,60,120,300},format=function(v) return v.."s" end},
     {key="historyLines",label="Message history",values={128,256,512,1024}}}
 C.colors={Cyan={.12,.72,.86},Gold={.95,.68,.24},Violet={.65,.45,.95},Blue={.22,.52,1},Green={.2,.8,.65},None={0,0,0}}
+local normalize=C.NormalizeSettings
+function C:NormalizeSettings()
+    local data=self:Data()
+    if not data.themeBorderInitialized then
+        if data.borderColor=="Cyan" then data.borderColor="Theme" end
+        data.themeBorderInitialized=true
+    end
+    normalize(self)
+end
+function C:ThemeColor()
+    return {FS.Themes:Color(.12,.72,.86,nil,.85)}
+end
 C.original={}
 function C:FrameOptions(frame,enabled)
     local state=self.original[frame]

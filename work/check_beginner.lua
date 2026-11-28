@@ -104,7 +104,49 @@ f.tabs.modules:Click(); FS:SetModuleEnabled('Bags',false)
 assert(f.cards.Bags.toggle:IsShown() and f.cards.Bags.toggle:GetText()=='Disabled')
 f.tabs.home:Click(); assert(find('bags') and not find('bags').open:IsEnabled())
 
--- TEST: The four-step wizard stages theme layout and play style until the review is applied
+-- TEST: Continue playing opens real plans and compact pins keep their help without extra text
+ResetTest(); local FS=ForeverSuite; local W=FS.Workspace; local tools=FS.modules.Workbench
+local A=FS.modules.TalentAdvisor
+FS:ShowWorkspacePage('home'); assert(not W.resumeHeading:IsShown())
+assert(not W.rows[1].summary:IsShown() and W.rows[1].open.fsHelp==W.rows[1].tool.description)
+FS.db.extras.waypointQueue={{map=12,x=.5,y=.5,name='Camp'}}
+FS.db.auctionHouse.shopping[123]=2
+local selected=A.Selected
+A.Selected=function() return {name='My leveling build'} end
+FS.db.talentAdvisor.selected='test-plan'
+FS:RefreshConfig()
+assert(W.resumeHeading:IsShown() and W.resume[1]:GetText():find('Camp',1,true))
+assert(W.resume[2]:GetText():find('My leveling build',1,true) and W.resume[3]:IsShown())
+W.resume[1]:Click(); assert(tools:Data().view=='Waypoint queue' and tools.window:IsShown())
+FS:ShowWorkspacePage('home'); W.resume[3]:Click()
+assert(tools:Data().view=='Next steps' and tools.window.search:GetText()=='[Shopping]')
+tools:Choose('Next steps'); assert(tools.window.search:GetText()=='')
+FS.db.map.enabled=false; FS.db.talentAdvisor.enabled=false; FS:ShowWorkspacePage('home')
+assert(W.resume[1]:GetText():find('Shopping goals',1,true) and not W.resume[2]:IsShown())
+A.Selected=selected
+
+-- TEST: Performance captures report real available metrics and discard old session samples
+ResetTest(); local FS=ForeverSuite; local P=FS.Performance
+local profiler,oldEnum=C_AddOnProfiler,Enum
+local refresh,memory,fps=UpdateAddOnMemoryUsage,GetAddOnMemoryUsage,GetFramerate
+local reads=0; P.samples={}
+Enum={AddOnProfilerMetric={RecentAverageTime=1,PeakTime=2}}
+C_AddOnProfiler={GetAddOnMetric=function(name,metric) assert(name=='ForeverSuite'); return metric/2 end}
+UpdateAddOnMemoryUsage=function() reads=reads+1 end
+GetAddOnMemoryUsage=function(name) assert(name=='ForeverSuite'); return 4096 end
+GetFramerate=function() return 75 end
+SlashCmdList.FOREVERSUITE('perf Login')
+assert(P.samples[1].average==.5 and P.samples[1].peak==1 and P.samples[1].memory==4 and P.samples[1].fps==75)
+for i=1,6 do SlashCmdList.FOREVERSUITE('perf Dungeon '..i) end
+assert(#P.samples==6 and P.samples[6].label=='Dungeon 1' and reads==7)
+SlashCmdList.FOREVERSUITE('perf'); assert(reads==7)
+C_AddOnProfiler=nil; UpdateAddOnMemoryUsage=function() error('unavailable') end; GetFramerate=nil
+SlashCmdList.FOREVERSUITE('perf Fallback')
+assert(P:Describe(P.samples[1]):find('unavailable',1,true) and P.samples[1].memory==nil)
+P.samples={}; C_AddOnProfiler=profiler; Enum=oldEnum
+UpdateAddOnMemoryUsage,GetAddOnMemoryUsage,GetFramerate=refresh,memory,fps
+
+-- TEST: The wizard stages theme, frame layout, storage layout and play style
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer
 FS.db.layout.frames.Clock={x=40,y=350,scale=1.2}; FS.db.appearance.theme='Royal Aether'
 I:Show(); local f=I.window
@@ -112,15 +154,21 @@ assert(I.step==2 and I:StepIndex()==1)
 f.choices[2]:Click(); f.next:Click()
 assert(I.step==5 and I:StepIndex()==2)
 f.choices[2]:Click(); f.next:Click()
-assert(I.step==4 and I:StepIndex()==3)
+assert(I.step==7 and I:StepIndex()==3 and f.storagePreview:IsShown())
+f.choices[4]:Click(); assert(I.draft.storage=='Ledger' and FS.db.bags.storageLayout=='Satchels')
+f.next:Click()
+assert(I.step==4 and I:StepIndex()==4)
 f.choices[3]:Click(); f.next:Click()
-assert(I.step==6 and I:StepIndex()==4 and f.next:GetText()=='Apply & finish')
+assert(I.step==6 and I:StepIndex()==5 and f.next:GetText()=='Apply & finish')
 local summary=f.description:GetText()
-assert(summary:find('Theme: Dark',1,true) and summary:find('Layout: Standard',1,true) and summary:find('Profile: PvP',1,true))
+assert(summary:find('Theme: Dark',1,true) and summary:find('Layout: Standard',1,true)
+    and summary:find('Bags & bank: Ledger',1,true) and summary:find('Profile: PvP',1,true))
 assert(FS.db.appearance.theme=='Royal Aether' and FS.db.layout.frames.Clock.x==40 and FS:IsModuleEnabled('Quests'))
-f.previous:Click(); assert(I.step==4); f.previous:Click(); assert(I.step==5); f.previous:Click(); assert(I.step==2)
+f.previous:Click(); assert(I.step==4); f.previous:Click(); assert(I.step==7)
+f.previous:Click(); assert(I.step==5); f.previous:Click(); assert(I.step==2)
 f.recommended:Click(); assert(I.step==6 and I.draft.layout=='Layout 1' and I.draft.preference=='Casual')
 I:Dismiss(); assert(not FS.db.setup.completed and FS.db.appearance.theme=='Royal Aether')
+assert(FS.db.bags.storageLayout=='Satchels')
 
 -- TEST: Finishing recommended setup applies profile and text then opens a dismissible three tip tour
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer
@@ -287,6 +335,7 @@ C.window.later:Click(); assert(not C.window:IsShown() and FS.window:IsShown())
 -- TEST: Onboarding PvP and custom selections apply only staged modules and standalone layouts keep the active theme
 ResetTest(); local FS=ForeverSuite; local I=FS.Installer
 I:Show(); local f=I.window; f.next:Click(); f.choices[3]:Click(); f.next:Click()
+assert(I.step==7); f.choices[2]:Click(); f.next:Click()
 f.choices[3]:Click()
 assert(I.draft.preference=='PvP' and I.draft.modules.Buffs and I.draft.modules.Cooldowns and I.draft.modules.Nameplates and not I.draft.modules.Quests)
 assert(FS:IsModuleEnabled('Quests'))
@@ -294,9 +343,11 @@ f.choices[4]:Click(); f.choices[7]:Click()
 assert(I.draft.preference=='Custom' and I.draft.modules.Quests)
 f.choices[3]:Click(); f.next:Click(); I.draft.nativeLayout=false; f.next:Click()
 assert(FS.db.setup.completed and FS.db.layout.preset=='Advanced' and not FS:IsModuleEnabled('Quests'))
+assert(FS.db.bags.storageLayout=='Field Kit' and FS.db.profiles.saved[FS.db.profiles.current].bags.storageLayout=='Field Kit')
 local theme=FS.db.appearance.theme
 I:ShowLayouts(); assert(I.layoutOnly and f.next:GetText()=='Apply layout')
 f.choices[5]:Click(); f.next:Click(); assert(FS.db.layout.preset=='Questing' and FS.db.appearance.theme==theme and not FS:IsModuleEnabled('Quests'))
+assert(FS.db.bags.storageLayout=='Field Kit')
 
 -- TEST: Module directory describes all paged modules and dashboard toggles the actual saved state
 ResetTest(); local FS=ForeverSuite; local B=FS.Beginner

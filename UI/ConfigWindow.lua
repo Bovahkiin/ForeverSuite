@@ -26,13 +26,13 @@ local function button(parent, value, width, action)
     f:SetSize(width, 28)
     FS.Themes:Register(f,"Button")
     f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-    f:SetBackdropColor(0.08, 0.11, 0.15, 1); f:SetBackdropBorderColor(0.16, 0.22, 0.29, 1)
+    f:SetBackdropColor(0.08, 0.11, 0.15, 1); FS.Themes:Paint(f,"SetBackdropBorderColor",.16,.22,.29,1,.5)
     local label = f:CreateFontString(nil, "OVERLAY", "ForeverSuiteFontSmall")
     f.fsLabel=label
     label:SetPoint("CENTER"); f:SetFontString(label); f:SetText(value)
     f:SetScript("OnClick", function(...) return FS:SettingAction(action,...) end)
-    f:SetScript("OnEnter", function(b) b:SetBackdropBorderColor(0.2, 0.75, 0.9, 1) end)
-    f:SetScript("OnLeave", function(b) b:SetBackdropBorderColor(0.16, 0.22, 0.29, 1) end)
+    f:SetScript("OnEnter", function(b) FS.Themes:Paint(b,"SetBackdropBorderColor",.2,.75,.9,1) end)
+    f:SetScript("OnLeave", function(b) FS.Themes:Paint(b,"SetBackdropBorderColor",.16,.22,.29,1,.5) end)
     return f
 end
 function FS:DisableAllModules()
@@ -90,7 +90,8 @@ function FS:PaintModuleCard(name)
     local c=self.moduleCardColors[name]; local enabled=self:IsModuleEnabled(name); local factor=self.Themes:Current()==10 and .23 or 1
     if self.NativeWindows then self.NativeWindows:Surface(card.card,true) end
     card.heading:SetTextColor(c[1]*factor,c[2]*factor,c[3]*factor)
-    card.card:SetBackdropBorderColor(c[1]*(card.hovered and 1 or .45),c[2]*(card.hovered and 1 or .45),c[3]*(card.hovered and 1 or .45),1)
+    local edge=card.hovered and 1 or .45
+    card.card:SetBackdropBorderColor(self.Themes:Color(c[1]*edge,c[2]*edge,c[3]*edge,1,edge))
     card.hover:SetColorTexture(c[1],c[2],c[3],.08); card.hover:SetShown(card.hovered==true)
     card.rail:SetColorTexture(c[1],c[2],c[3],enabled and 1 or .35)
     card.icon:SetDesaturated(not enabled)
@@ -135,7 +136,7 @@ function FS:CreateConfigWindow()
     frame.headerFill=header; header:SetColorTexture(0.055, 0.075, 0.105, 1); header:SetSize(938, 84); header:SetPoint("TOPLEFT", 1, -1)
     local watermark = frame:CreateTexture(nil, "ARTWORK"); frame.brandWatermark=watermark; watermark:SetTexture(self.emblem)
     watermark:SetSize(330, 330); watermark:SetPoint("BOTTOMRIGHT", -46, 65); watermark:SetAlpha(0.075)
-    local accent = frame:CreateTexture(nil, "ARTWORK"); accent:SetColorTexture(0.12, 0.72, 0.86, 1)
+    local accent = frame:CreateTexture(nil, "ARTWORK"); FS.Themes:Paint(accent,"SetColorTexture",.12,.72,.86,1)
     accent:SetHeight(2); accent:SetPoint("TOPLEFT", 1, -1); accent:SetPoint("TOPRIGHT", -1, -1)
     frame:SetScript("OnDragStart", function(f) f:StartMoving() end)
     frame:SetScript("OnDragStop", function(f)
@@ -155,7 +156,7 @@ function FS:CreateConfigWindow()
         local page=entry[1]
         local tab=button(frame,entry[2],128,function() self:ShowWorkspacePage(page) end)
         tab.indicator=tab:CreateTexture(nil,"OVERLAY")
-        tab.indicator:SetColorTexture(.24,.80,.90,1)
+        FS.Themes:Paint(tab.indicator,"SetColorTexture",.24,.80,.90,1)
         tab.indicator:SetHeight(2)
         tab.indicator:SetPoint("BOTTOMLEFT",1,0)
         tab.indicator:SetPoint("BOTTOMRIGHT",-1,0)
@@ -252,11 +253,11 @@ function FS:CreateConfigWindow()
         end)
         frame.cards[name] = { toggle = toggle, card = card, rail=rail, icon=icon,hover=hover, animation = animation, flash = flash, page=math.floor((i-1)/8)+1,position=position,heading=heading,detail=detail,hint=hint,searchText=(data.name.." "..data.title.." "..data.detail):lower() }
         toggle:SetScript("OnEnter",function(b)
-            local c=self.moduleCardColors[name]; b:SetBackdropBorderColor(c[1],c[2],c[3],1)
+            local c=self.moduleCardColors[name]; FS.Themes:Paint(b,"SetBackdropBorderColor",c[1],c[2],c[3],1)
             GameTooltip:SetOwner(b,"ANCHOR_RIGHT"); GameTooltip:AddLine((self:IsModuleEnabled(name) and "Disable " or "Enable ")..data.title)
             GameTooltip:AddLine("Your module settings are kept. Click the card to customize them.",.8,.9,1,true); GameTooltip:Show()
         end)
-        toggle:SetScript("OnLeave",function(b) b:SetBackdropBorderColor(.16,.22,.29,1); GameTooltip:Hide() end)
+        toggle:SetScript("OnLeave",function(b) FS.Themes:Paint(b,"SetBackdropBorderColor",.16,.22,.29,1,.5); GameTooltip:Hide() end)
         local module=self.modules[name]
         local terms={data.name,data.title,data.detail,type(module.description)=="string" and module.description or ""}
         for _,option in ipairs(module.options or {}) do if type(option.label)=="string" then terms[#terms+1]=option.label end end

@@ -3,6 +3,21 @@ local Q,T,H=FS.modules.Quests,FS.Tools,FS.HUD
 local function distanceText(row)
     return row.distance and (row.distance>=1000 and string.format("%.1fk",row.distance/1000) or math.floor(row.distance).."y") or ""
 end
+local function paintProgress(card,complete)
+    if complete then
+        card.stripe:SetColorTexture(.3,.85,.5,1)
+        card.progress:SetStatusBarColor(.3,.8,.5)
+    else
+        card.stripe:SetColorTexture(FS.Themes:Color(.15,.75,.9,1))
+        card.progress:SetStatusBarColor(FS.Themes:Color(.15,.8,.95,1))
+    end
+end
+function Q:RefreshTrackerTheme()
+    if not self.tracker then return end
+    for _,card in ipairs(self.tracker.cards) do
+        if card.row then paintProgress(card,card.row.complete) end
+    end
+end
 function Q:Track(row)
     if not row or not row.id or InCombatLockdown() then return end
     T:Call(C_QuestLog and C_QuestLog.AddQuestWatch,row.id)
@@ -29,7 +44,7 @@ function Q:CreateTracker()
     f:SetSize(300,200); f:SetFrameStrata("MEDIUM"); f:SetClampedToScreen(true); f:EnableMouse(true)
     if Minimap then f:SetPoint("TOPRIGHT",Minimap,"BOTTOMRIGHT",0,-42) else f:SetPoint("TOPRIGHT",-26,-260) end
     f:SetBackdrop({bgFile=H.texture}); f:SetBackdropColor(.025,.035,.05,.7)
-    f.accent=f:CreateTexture(nil,"ARTWORK"); f.accent:SetColorTexture(.95,.68,.24,.8); f.accent:SetSize(30,2); f.accent:SetPoint("TOPLEFT",8,-2)
+    f.accent=f:CreateTexture(nil,"ARTWORK"); FS.Themes:Paint(f.accent,"SetColorTexture",.95,.68,.24,.8); f.accent:SetSize(30,2); f.accent:SetPoint("TOPLEFT",8,-2)
     f.title=H:Label(f,"QUEST OBJECTIVES",38,-12,220); FS:ApplyFont(f.title,14)
     f.icon=f:CreateTexture(nil,"ARTWORK"); f.icon:SetSize(25,25); f.icon:SetPoint("TOPLEFT",8,-7); FS:SetMenuIcon(f.icon,"Quests")
     f.log=H:Button(f,"Log",249,-6,44,function() self:ShowWindow() end); f.log:SetHeight(26)
@@ -37,7 +52,7 @@ function Q:CreateTracker()
     for i=1,3 do
         local c=CreateFrame("Frame",nil,f,"BackdropTemplate"); f.cards[i]=c
         c:SetSize(284,100); c:SetPoint("TOPLEFT",8,-44); c:SetBackdrop({bgFile=H.texture}); c:SetBackdropColor(.055,.075,.09,.85)
-        c.stripe=c:CreateTexture(nil,"ARTWORK"); c.stripe:SetColorTexture(.15,.75,.9,1); c.stripe:SetWidth(2); c.stripe:SetPoint("TOPLEFT"); c.stripe:SetPoint("BOTTOMLEFT")
+        c.stripe=c:CreateTexture(nil,"ARTWORK"); c.stripe:SetWidth(2); c.stripe:SetPoint("TOPLEFT"); c.stripe:SetPoint("BOTTOMLEFT")
         c.heading=H:Button(c,"",27,-3,204,function(b) if b.row then self:Track(b.row) end end)
         c.heading:SetBackdropColor(0,0,0,0); c.heading:SetBackdropBorderColor(0,0,0,0)
         local font=c.heading.GetFontString and c.heading:GetFontString(); if font then font:SetJustifyH("LEFT"); FS:ApplyFont(font,13) end
@@ -121,7 +136,6 @@ function Q:UpdateTracker(useRows)
             c.progress:SetShown(not folded); c.distance:SetShown(not folded)
             c.distance:SetText(distanceText(row))
             FS:SetMenuIcon(c.icon,row.complete and "Reputation" or "Quests")
-            c.stripe:SetColorTexture(row.complete and .3 or .15,row.complete and .85 or .75,row.complete and .5 or .9,1)
             local progress=0
             for j,line in ipairs(c.lines) do
                 local detail=row.details[j]; line:SetShown(not folded and j<=count)
@@ -142,7 +156,7 @@ function Q:UpdateTracker(useRows)
             c:SetHeight(height); y=y+height+6
             for _,o in ipairs(row.details) do progress=progress+(o.done and 1 or o.have and o.need and o.need>0 and math.min(1,o.have/o.need) or 0) end
             c.progress:SetValue(row.complete and 1 or #row.details>0 and progress/#row.details or 0)
-            c.progress:SetStatusBarColor(row.complete and .3 or .15,.8,row.complete and .5 or .95)
+            paintProgress(c,row.complete)
         end
     end
     f.empty:SetWidth(width-28); at(f.empty,14,y+8); local emptyHeight=H:TextHeight(f.empty,width-28,3)

@@ -6,6 +6,7 @@ local B = { key = "bags", page = 1, search = "",
 FS:RegisterModule("Bags", B)
 function B:NormalizeSettings()
     local db = FS.db.bags
+    db.storageLayout = self:StorageLayout()
     if not self.baseCategories then
         self.baseCategories, self.baseAssignable = {}, {}
         for i, name in ipairs(self.categories) do self.baseCategories[i] = name end
@@ -31,7 +32,7 @@ function B:NormalizeSettings()
         end
     end
     db.customCategories = custom
-    if db.viewMode ~= "categories" and db.viewMode ~= "onebag" and db.viewMode ~= "multibag" and db.viewMode ~= "recent" then db.viewMode = "categories" end
+    if db.viewMode ~= "recent" then db.viewMode = "categories" end
     if type(db.showRecent) ~= "boolean" then db.showRecent = true end
     if not FS.modules.Vendor:ValidNumber(db.width, 660, 1100) then db.width = 820 end
     if not FS.modules.Vendor:ValidNumber(db.height, 420, 780) then db.height = 500 end
@@ -87,6 +88,10 @@ end
 function B:ShowWindow()
     if InCombatLockdown() then return end
     if not FS:IsModuleEnabled("Bags") then return end
+    local bank=FS.modules.Bank
+    if bank.open and not bank.switchingPane and bank.window and bank.window:IsShown() and self:StorageLayout()~="Quartermaster" then
+        return bank:SelectStoragePane("bags")
+    end
     FS:CloseSettingsScreens()
     if FS.window then FS.window:Hide() end
     if FS.modules.Vendor.window then FS.modules.Vendor.window:Hide() end
@@ -111,6 +116,8 @@ function B:QueueNativeAction(action)
         local intent = self.nativeIntent; self.nativeIntent = nil
         if not FS.db.bags.replaceNative or not FS:IsModuleEnabled("Bags") or InCombatLockdown() then return end
         if ContainerFrame_AllowedToOpenBags and not ContainerFrame_AllowedToOpenBags() then return end
+        local bank=FS.modules.Bank
+        if intent=="open" and bank.open and bank.window and bank.window:IsShown() then return end
         local shown = self.window and self.window:IsShown()
         if intent == "close" or intent == "toggle" and shown then
             if self.window then self.window:Hide() end

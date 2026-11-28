@@ -263,7 +263,7 @@ function T:Module(name,key,title,description,defaults,events)
             b:SetEnabled(not b.row or b.row.selectable~=false)
             if b.row then f.visibleRows=f.visibleRows+1 end
             local selected=b.row and self.selected and rowKey(b.row)==selectedKey
-            b:SetBackdropBorderColor(selected and 1 or .12,selected and .75 or .72,selected and .2 or .86,1)
+            FS.Themes:Paint(b,"SetBackdropBorderColor",selected and 1 or .12,selected and .75 or .72,selected and .2 or .86,1,selected and 1 or .6)
         end
         f.pageLabel:SetText("Page "..self.page.." / "..pages.."  |  "..count.." entries")
         f.status:SetText(self.noticeUntil and GetTime()<self.noticeUntil and self.notice or self.status or (count==0 and "No entries to show yet." or "Select an entry for details."))

@@ -2,6 +2,11 @@ local _,FS=...
 local S,T=FS.Style,FS.Tools
 local root="Interface\\AddOns\\ForeverSuite\\Assets\\Minimap\\"
 local roundMask="ui-hud-minimap-frame-generic-mask"
+local function headerInk(r,g,b)
+    if not FS.Themes:Current() then return r,g,b end
+    local tr,tg,tb=FS.Themes:Accent()
+    return .55+tr*.45,.55+tg*.45,.55+tb*.45
+end
 
 local function defaultMask()
     -- Forever's Camelot minimap uses an atlas and has no GetMaskTexture API.
@@ -27,19 +32,27 @@ function S:MinimapPanel(panel,dark)
         local fill=panel:CreateTexture(nil,"BORDER")
         fill.fsSuiteStyle=true; fill.ignoreInLayout=true
         fill:SetPoint("TOPLEFT",1,-1); fill:SetPoint("BOTTOMRIGHT",-1,1)
-        fill:SetColorTexture(.035,.029,.031,.98)
         panel.fsMinimapFantasyFill=fill
         local edge=panel:CreateTexture(nil,"ARTWORK")
         edge.fsSuiteStyle=true; edge.ignoreInLayout=true
         edge:SetPoint("BOTTOMLEFT",2,1); edge:SetPoint("BOTTOMRIGHT",-2,1); edge:SetHeight(1)
-        edge:SetColorTexture(.48,.13,.15,.85); panel.fsMinimapFantasyEdge=edge
+        panel.fsMinimapFantasyEdge=edge
     end
     if panel.fsMinimapFantasyFill then
         panel.fsMinimapFantasyFill:SetShown(dark)
         panel.fsMinimapFantasyEdge:SetShown(dark)
+        if dark then
+            panel.fsMinimapFantasyFill:SetColorTexture(FS.Themes:Color(.035,.029,.031,.98,.13))
+            panel.fsMinimapFantasyEdge:SetColorTexture(FS.Themes:Color(.48,.13,.15,.85,.85))
+        end
     end
-    local r,g,b=FS.Themes:Accent()
-    panel:SetBackdropBorderColor(dark and .4 or r,dark and .32 or g,dark and .25 or b,.8)
+    if dark then panel:SetBackdropBorderColor(FS.Themes:Color(.4,.32,.25,.8,.58))
+    else panel:SetBackdropBorderColor(FS.Themes:Color(.12,.8,.94,.8,.65)) end
+    if panel.text then
+        if dark then panel.text:SetTextColor(headerInk(.91,.85,.73))
+        elseif FS.Themes:Current()==10 then panel.text:SetTextColor(.16,.12,.08,1)
+        else panel.text:SetTextColor(.9,.94,1,1) end
+    end
 end
 function S:MinimapHeaderIcon(button,kind)
     local icon=CreateFrame("Frame",nil,button); icon.fsSuiteStyle=true; icon.ignoreInLayout=true; icon:EnableMouse(false)
@@ -108,8 +121,11 @@ function S:MinimapHeaderControls(enabled)
                     FS.NativeWindows:Control(button,true)
                     local plate=FS.NativeWindows.controls[button].plate; plate:SetFrameLevel(button:GetFrameLevel()-1); self:MinimapPanel(plate,dark)
                     state.icon:SetFrameLevel(button:GetFrameLevel()+1); state.icon:Show()
-                    local r,g,b=FS.Themes:Accent(); if dark then r,g,b=.84,.73,.52 end
+                    local r,g,b=headerInk(.84,.73,.52)
+                    if not dark and FS.Themes:Current()==10 then r,g,b=.24,.15,.08
+                    elseif not dark and not FS.Themes:Current() then r,g,b=FS.Themes:Accent() end
                     for _,ink in ipairs(state.icon.ink) do ink:SetColorTexture(r,g,b,1) end
+                    if state.icon.texture then state.icon.texture:SetVertexColor(r,g,b,1) end
                     if kind=="addons" and button.Text then FS.NativeWindows:Geometry(button.Text,true,function(text)
                         text:ClearAllPoints(); text:SetPoint("RIGHT",button,"RIGHT",-3,0); text:SetSize(16,16)
                     end) end
@@ -206,12 +222,13 @@ function S:ApplyMinimapFrame(enabled)
     end
     local asset=root..(square and "Dark-Fantasy.tga" or string.format("%02d-Round.tga",FS.Themes:Current() or 0))
     if self.mapRim.fsAsset~=asset then self.mapRim:SetTexture(asset); self.mapRim.fsAsset=asset end
+    if square then self.mapRim:SetVertexColor(headerInk(1,1,1)) else self.mapRim:SetVertexColor(1,1,1,1) end
     self:PositionMinimapRim(); self.mapRim:SetShown(enabled)
     self:MinimapPanel(self.minimap,square)
     self:MinimapPanel(FS.modules.Map.coordinateFrame,square)
     self:MinimapHeaderControls(enabled)
     if self.minimap and self.minimap.zone then
-        if square then self.minimap.zone:SetTextColor(.91,.85,.73,1)
+        if square then self.minimap.zone:SetTextColor(headerInk(.91,.85,.73))
         elseif FS.Themes:Current()==10 then self.minimap.zone:SetTextColor(.16,.12,.08,1)
         else self.minimap.zone:SetTextColor(.9,.94,1,1) end
     end

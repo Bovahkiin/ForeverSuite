@@ -90,12 +90,13 @@ function L:AvoidMeterOverlap()
         local scale=f:GetEffectiveScale()/UIParent:GetEffectiveScale()
         return x*scale,y*scale,w*scale,h*scale
     end
-    local x,y,w,h=bounds(menu); if not x then return end
     local seen,meters={},{}
     local function add(f) if f and not seen[f] then seen[f]=true; meters[#meters+1]=f end end
     if DamageMeter and DamageMeter.ForEachSessionWindow and DamageMeter.windowDataList then DamageMeter:ForEachSessionWindow(add) end
     for i=1,5 do add(_G["DamageMeterSessionWindow"..i]) end
     if #meters==0 then add(DamageMeter) end
+    if #meters==0 then return end
+    local x,y,w,h=bounds(menu); if not x then return end
     local changed=false
     for _,meter in ipairs(meters) do
         local mx,my,mw,mh=bounds(meter)

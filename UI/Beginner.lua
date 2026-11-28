@@ -101,7 +101,7 @@ function B:Present(f, entries, description)
     f.fsFontModule=f.owner or "Core"
     FS:FontTree(f)
     local color=FS.moduleCardColors[f.owner] or {.12,.72,.86}
-    f:SetBackdropBorderColor(unpack(color))
+    FS.Themes:Paint(f,"SetBackdropBorderColor",color[1],color[2],color[3],1,.7)
     f.description:SetText(description)
     local y = 22 + H:TextHeight(f.title, 712, 2) + 16
     f.description:ClearAllPoints()
@@ -125,7 +125,7 @@ function B:Present(f, entries, description)
         row:SetPoint("TOPLEFT", 24, -y)
         row:Show()
         local color = FS.moduleCardColors[f.owner] or {.12, .72, .86}
-        row:SetBackdropBorderColor(unpack(color))
+        FS.Themes:Paint(row,"SetBackdropBorderColor",color[1],color[2],color[3],1,.6)
         y = y + H:FitButton(row, 3, 34) + 10
     end
     for index = #entries + 1, #f.rows do f.rows[index]:Hide() end

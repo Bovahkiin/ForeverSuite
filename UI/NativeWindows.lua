@@ -163,8 +163,10 @@ function N:Control(frame,enabled,glyph)
     if not state then
         state={plate=S:Plate(frame)}; self.controls[frame]=state
         state.plate:ClearAllPoints(); state.plate:SetAllPoints(frame); state.plate.gold:Hide(); state.plate.cyan:Hide()
-        state.hover=frame:CreateTexture(nil,"HIGHLIGHT"); state.hover.fsSuiteStyle=true; state.hover.ignoreInLayout=true; state.hover:SetAllPoints(); state.hover:SetColorTexture(.12,.72,.86,.16)
-        state.flash=frame:CreateTexture(nil,"OVERLAY"); state.flash.fsSuiteStyle=true; state.flash.ignoreInLayout=true; state.flash:SetAllPoints(); state.flash:SetColorTexture(.95,.68,.24,.2); state.flash:Hide()
+        state.hover=frame:CreateTexture(nil,"HIGHLIGHT"); state.hover.fsSuiteStyle=true; state.hover.ignoreInLayout=true; state.hover:SetAllPoints()
+        FS.Themes:Paint(state.hover,"SetColorTexture",.12,.72,.86,.16)
+        state.flash=frame:CreateTexture(nil,"OVERLAY"); state.flash.fsSuiteStyle=true; state.flash.ignoreInLayout=true; state.flash:SetAllPoints(); state.flash:Hide()
+        FS.Themes:Paint(state.flash,"SetColorTexture",.95,.68,.24,.2)
         state.animation=state.flash:CreateAnimationGroup(); local a=state.animation:CreateAnimation("Alpha"); a:SetFromAlpha(1); a:SetToAlpha(0); a:SetDuration(.18)
         state.animation:SetScript("OnFinished",function() state.flash:Hide() end)
         if not frame.HasScript or frame:HasScript("PostClick") then frame:HookScript("PostClick",function()
@@ -185,8 +187,8 @@ function N:Control(frame,enabled,glyph)
         if tab and id and H:Safe(tab) and H:Safe(id) and tab==id then active=true end
         local usable=not frame.IsEnabled or frame:IsEnabled()
         if not usable then state.plate:SetBackdropBorderColor(.22,.28,.32,.6)
-        elseif active then state.plate:SetBackdropBorderColor(.95,.68,.24,1)
-        else state.plate:SetBackdropBorderColor(.12,.55,.65,.8) end
+        elseif active then state.plate:SetBackdropBorderColor(FS.Themes:Color(.95,.68,.24,1))
+        else state.plate:SetBackdropBorderColor(FS.Themes:Color(.12,.55,.65,.8,.6)) end
     end
     for _,method in ipairs({"GetNormalTexture","GetPushedTexture","GetHighlightTexture","GetCheckedTexture","GetDisabledTexture"}) do
         local r=frame[method] and frame[method](frame)
@@ -238,7 +240,7 @@ function N:ProfessionRank(bar,enabled)
         if bar.Fill:GetObjectType()=="Texture" then
             if not state.visual then
                 state.visual=bar:CreateTexture(nil,"ARTWORK"); state.visual.fsSuiteStyle=true; state.visual.ignoreInLayout=true
-                state.visual:SetAllPoints(bar.Fill); state.visual:SetColorTexture(.12,.72,.86,1)
+                state.visual:SetAllPoints(bar.Fill); FS.Themes:Paint(state.visual,"SetColorTexture",.12,.72,.86,1)
             end
             state.visual:SetShown(enabled and bar.Fill:IsShown())
             for fill in pairs(state.fill) do if fill.GetObjectType and fill:GetObjectType()=="Texture" then self:Art(fill,enabled) end end
@@ -274,12 +276,12 @@ function N:ProfessionScrollBar(bar,enabled)
         if thumb:GetObjectType()=="Texture" then
             if not thumb.fsProfessionThumb then
                 local fill=bar:CreateTexture(nil,"OVERLAY"); fill.fsSuiteStyle=true; fill.ignoreInLayout=true; fill:SetAllPoints(thumb); thumb.fsProfessionThumb=fill
-                fill:SetColorTexture(.12,.72,.86,.9)
+                FS.Themes:Paint(fill,"SetColorTexture",.12,.72,.86,.9)
             end
             thumb.fsProfessionThumb:SetShown(enabled and thumb:IsShown())
         else
             local p=S:Plate(thumb); p:ClearAllPoints(); p:SetAllPoints(thumb); p.gold:Hide(); p.cyan:Hide(); p:SetShown(enabled)
-            p:SetBackdropColor(.12,.72,.86,.9)
+            p:SetBackdropColor(FS.Themes:Color(.12,.72,.86,.9))
         end
     end
 end
@@ -428,10 +430,12 @@ function N:Tree(frame,enabled,root,depth,deco,role)
         local p=S:Plate(frame); p:ClearAllPoints(); p:SetAllPoints(frame); p.gold:Hide(); p.cyan:Hide(); p:SetShown(enabled); self:Surface(p,enabled,"Button"); self:Font(frame,enabled)
     end
     local barTexture=kind=="StatusBar" and frame:GetStatusBarTexture()
+    local compactLabels=root==PlayerSpellsFrame or root==SpellBookFrame
+        or (root==MailFrame and (frame==MailFrameTab1 or frame==MailFrameTab2))
     for _,r in ipairs(frame.GetRegions and {frame:GetRegions()} or {}) do
         if not own(r) then
             if r.GetObjectType and r:GetObjectType()=="FontString" then
-                if root==PlayerSpellsFrame or root==SpellBookFrame then self:NativeFont(r,enabled) else self:Font(r,enabled) end
+                if compactLabels then self:NativeFont(r,enabled) else self:Font(r,enabled) end
             elseif r.GetObjectType and r:GetObjectType()=="Texture" and r~=barTexture and (glyph and glyph~="" or not self:IsIcon(frame,r)) then
                 local layer=r.GetDrawLayer and r:GetDrawLayer(); local rn=named(r)
                 local keyed=false; for _,key in ipairs(artKeys) do if frame[key]==r then keyed=true; break end end

@@ -25,15 +25,27 @@ function H:FlatSkin(f)
     end
     f.fsFlatSkin={background=bg,edges=edges}
     f.SetBackdropColor=function(_,...) bg:SetColorTexture(...) end
-    f.SetBackdropBorderColor=function(_,...) for _,edge in ipairs(edges) do edge:SetColorTexture(...) end end
+    f.SetBackdropBorderColor=function(_,r,g,b,a)
+        local flat=f.fsFlatSkin
+        flat.r,flat.g,flat.b,flat.a=r,g,b,a or 1
+        for _,edge in ipairs(edges) do edge:SetColorTexture(r,g,b,a) end
+    end
+    f.GetBackdropBorderColor=function()
+        local flat=f.fsFlatSkin
+        return flat.r,flat.g,flat.b,flat.a
+    end
 end
 function H:Skin(f,secretAnchors)
+    local needsBorder=not f.fsHUDBackdrop or (secretAnchors and not f.fsFlatSkin)
     if secretAnchors then self:FlatSkin(f) end
     if not f.fsHUDBackdrop then
         if not f.fsFlatSkin then f:SetBackdrop({ bgFile = self.texture, edgeFile = self.texture, edgeSize = 1 }) end
         f.fsHUDBackdrop=true
     end
-    f:SetBackdropColor(0.035, 0.045, 0.065, 0.95); f:SetBackdropBorderColor(0.12, 0.72, 0.86, 0.85)
+    f:SetBackdropColor(0.035, 0.045, 0.065, 0.95)
+    if needsBorder then
+        if FS.Themes then FS.Themes:DefaultBorder(f) else f:SetBackdropBorderColor(.12,.72,.86,.85) end
+    end
     if FS.Themes then FS.Themes:Register(f) end
 end
 function H:Label(f, value, x, y, width)
@@ -88,6 +100,46 @@ function H:FitButton(b,maximum,minimum)
     if not t then return b:GetHeight() end
     local height=self:TextHeight(t,b:GetWidth()-12,maximum)
     b:SetHeight(math.max(minimum or 30,height+10)); return b:GetHeight()
+end
+
+-- Vendor and trainer footers can extend past their window bounds. Keep suite
+-- actions in a side column, or above the top edge when the sides are full.
+function H:DockServiceAction(host,button,rows,row,other)
+    local T=FS.Tools
+    local scale=T:Call(host.GetEffectiveScale,host)
+    local parentScale=UIParent:GetEffectiveScale()
+    scale=T:Number(scale) and scale>0 and scale/parentScale or 1
+    button:SetScale(scale); button:SetFrameStrata("DIALOG")
+    local height=self:FitButton(button,2,26)
+    local rowHeight=math.max(36,height,other and other:GetHeight() or 0)
+    local width=128
+    local gap=12
+    local offset=10+(row-1)*(rowHeight+6)
+    local l,b,w,h=T:Call(host.GetRect,host)
+    local screenWidth,screenHeight=UIParent:GetWidth(),UIParent:GetHeight()
+    button:ClearAllPoints()
+    if not (T:Number(l) and T:Number(b) and T:Number(w) and T:Number(h)) then
+        button:SetPoint("TOPLEFT",host,"TOPRIGHT",gap,-offset)
+        return true
+    end
+    local sideWidth=(gap+width)*scale
+    local top=(b+h)*scale
+    local sideBottom=top-(10+rows*rowHeight+(rows-1)*6)*scale
+    if sideBottom>=4 then
+        if (l+w)*scale+sideWidth+4<=screenWidth then
+            button:SetPoint("TOPLEFT",host,"TOPRIGHT",gap,-offset)
+            return true
+        end
+        if l*scale-sideWidth>=4 then
+            button:SetPoint("TOPRIGHT",host,"TOPLEFT",-gap,-offset)
+            return true
+        end
+    end
+    local totalWidth=(rows*width+(rows-1)*6)*scale
+    if top+(gap+rowHeight)*scale+4>screenHeight or totalWidth+8>screenWidth then return false end
+    local x=math.max(4,math.min(l*scale,screenWidth-totalWidth-4))
+    button:SetPoint("BOTTOMLEFT",host,"TOPLEFT",x/scale-l+(row-1)*(width+6),gap)
+    return true
 end
 function H:Safe(value) return not (issecretvalue and issecretvalue(value)) end
 function H:Color(unit)
@@ -186,18 +238,19 @@ function FS:ThemeSettings(f,name)
     local H=self.HUD; local color=self.moduleCardColors[name] or {.12,.72,.86}
     f.fsSettingsName=name
     if f.fsFontModule~=name then f.fsFontModule=name; self:FontTree(f) end
-    f:SetBackdropColor(.018,.027,.038,1); f:SetBackdropBorderColor(color[1],color[2],color[3],1)
+    f:SetBackdropColor(.018,.027,.038,1)
+    self.Themes:Paint(f,"SetBackdropBorderColor",color[1],color[2],color[3],1,.7)
     local function theme(b)
         if not b.SetBackdropBorderColor then return end
-        b:SetBackdropBorderColor(color[1],color[2],color[3],1)
+        self.Themes:Paint(b,"SetBackdropBorderColor",color[1],color[2],color[3],1,.65)
         if not b.fsSettingsHover then
             b.fsSettingsHover=true
             local kind=b:GetObjectType()
             if kind=="Button" or kind=="CheckButton" then
                 b:HookScript("PostClick",function() if f:IsShown() then FS:ThemeSettings(f,f.fsSettingsName) end end)
             end
-            b:HookScript("OnEnter",function(control) local c=FS.moduleCardColors[f.fsSettingsName] or color; control:SetBackdropBorderColor(c[1],c[2],c[3],1) end)
-            b:HookScript("OnLeave",function(control) local c=FS.moduleCardColors[f.fsSettingsName] or color; control:SetBackdropBorderColor(c[1],c[2],c[3],1) end)
+            b:HookScript("OnEnter",function(control) local c=FS.moduleCardColors[f.fsSettingsName] or color; FS.Themes:Paint(control,"SetBackdropBorderColor",c[1],c[2],c[3],1) end)
+            b:HookScript("OnLeave",function(control) local c=FS.moduleCardColors[f.fsSettingsName] or color; FS.Themes:Paint(control,"SetBackdropBorderColor",c[1],c[2],c[3],1,.65) end)
         end
     end
     for _,child in ipairs({f:GetChildren()}) do theme(child) end

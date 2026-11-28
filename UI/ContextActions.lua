@@ -202,10 +202,32 @@ function C:TargetEntries(host)
         end)}
 end
 local function headerTools(button,host) button:SetPoint('TOPLEFT',host,'TOPLEFT',48,-4) end
+local function mailTools(button,host)
+    -- The inbox list begins below the header strip. Keep the launcher within it,
+    -- even when the shared control font is larger than native labels.
+    button:SetPoint('TOPLEFT',host,'TOPLEFT',16,-34)
+    button:SetHeight(22)
+    local label=button.fsLabel
+    local path,size,flags=label:GetFont()
+    if path and size>16 then label:SetFont(path,16,flags) end
+    FS:ReleaseFont(label)
+    label:SetHeight(20)
+end
 local function guildTools(button,host)
     -- Keep a separate row outside the native title, list art and dropdowns.
     button:SetPoint('TOPRIGHT',host,'BOTTOMRIGHT',-12,-8)
     button:SetClampedToScreen(true)
+end
+local function vendorTools(button,host)
+    return H:DockServiceAction(host,button,1,1)
+end
+local function trainerTools(button,host)
+    local train=host.fsTrainAll
+    local placed=H:DockServiceAction(host,button,2,1,train)
+    if train and FS.Training:Allowed(host) then
+        train:SetShown(H:DockServiceAction(host,train,2,2,button))
+    end
+    return placed
 end
 local function native(name,owner,entries,extra)
     local labels={Professions='Crafting tools',Guild='Member tools',Social='Player tools',Mail='Mail tools',Loot='Loot tools',Quests='Quest tools'}
@@ -223,9 +245,7 @@ C.nativeSpecs={
         return {tool('Review junk and item rules','Vendor'),view('Buyback','Buyback','Vendor'),
             entry('Repair gear','Vendor',function() FS.modules.Vendor:TryRepair(FS.modules.Vendor.repairConfirmation~=nil) end),
             entry('Buy planned supplies','Vendor',function() FS.modules.Vendor:StartRestock() end)}
-    end,{detached=true,place=function(button,host)
-        button:SetPoint('TOPLEFT',host,'BOTTOMLEFT',16,-6); button:SetClampedToScreen(true)
-    end}),
+    end,{detached=true,place=vendorTools}),
     native('ProfessionsFrame','Professions',function(host) return C:ProfessionEntries(host) end),
     native('TradeSkillFrame','Professions',function(host) return C:ProfessionEntries(host) end),
     native('CraftFrame','Professions',function(host) return C:ProfessionEntries(host) end),
@@ -234,7 +254,11 @@ C.nativeSpecs={
     native('AuctionFrame','AuctionHouse',function(host) return {entry('Shopping list','AuctionHouse',function() C:Shopping(host) end),tool('Recorded prices','AuctionHouse',nil,function(m) m.contextShoppingOnly=nil end)} end,{x=-184}),
     native('MailFrame','Mail',function() return {tool('Read and collect mail','Mail'),entry('Collect all','Mail',function()
         local mail=FS.modules.Mail; if mail.window then mail.window.search:SetText('') end; mail:Collect(true)
-    end),entry('Stop collection','Mail',function() FS.modules.Mail:Stop('Collection stopped.') end)} end),
+    end),entry('Stop collection','Mail',function() FS.modules.Mail:Stop('Collection stopped.') end)} end,
+    {place=mailTools,visual=function(host)
+        if InboxFrame and InboxFrame:GetParent()==host then return InboxFrame end
+        return host
+    end}),
     native('WorldMapFrame','Map',function(host) return C:MapEntries(host) end,{place=headerTools,label='Map tools'}),
     native('QuestLogFrame','Quests',function() return {tool('Quest objectives','Quests'),view('Waypoint queue','Waypoint queue','Map'),entry('Stop navigation','Map',function() FS.modules.Map:ClearNavigation() end)} end),
     native('CommunitiesFrame','Guild',function(host) return C:GuildEntries(host) end,{place=guildTools}),
@@ -252,8 +276,10 @@ C.nativeSpecs={
         {label='Report',width=70,place=function(button,host) button:SetPoint('BOTTOMRIGHT',host,'BOTTOMRIGHT',-8,6) end,
         visible=function() for i=1,3 do local frame=_G['DamageMeterSessionWindow'..i]; if frame and frame:IsShown() then return false end end; return true end}),
     native('BankFrame','Bank',function(host) return C:BagEntries(host) end,{label='Bank tools'}),
-    native('ClassTrainerFrame',nil,function() return {view('Available training','Trainer preview')} end,{label='Training tools'}),
-    native('TrainerFrame',nil,function() return {view('Available training','Trainer preview')} end,{label='Training tools'}),
+    native('ClassTrainerFrame',nil,function() return {view('Available training','Trainer preview')} end,
+        {label='Training tools',detached=true,place=trainerTools}),
+    native('TrainerFrame',nil,function() return {view('Available training','Trainer preview')} end,
+        {label='Training tools',detached=true,place=trainerTools}),
 }
 function C:OwnEntries(name,host)
     if name=='Bags' or name=='Bank' then return self:BagEntries(host) end
@@ -274,8 +300,9 @@ function C:AttachOwn(name,module,frame)
     self:Attach(frame,{owner=name,entries=function(host) return C:OwnEntries(name,host) end,
         label='More tools',width=104,place=function(button)
             if name=='Bags' and frame.sidebar then
-                button:SetParent(frame.sidebar); button:SetText('Bag tools'); button:SetWidth(100); button:SetPoint('TOPRIGHT',frame.sidebar,'TOPRIGHT',-6,-5)
-                frame.sidebarTitle:SetWidth(math.max(60,frame.sidebar:GetWidth()-116))
+                frame.fsContextLauncher=button; module:PlaceStorageTools(frame)
+            elseif name=='Bank' then
+                frame.fsContextLauncher=button; FS.modules.Bags:PlaceBankTools(frame)
             elseif name=='Gear' then button:SetPoint('TOPLEFT',280,-12)
             elseif frame.fsToolName then button:SetPoint('TOPLEFT',236,-10)
             else button:SetPoint('TOPRIGHT',frame,'TOPRIGHT',-48,-42) end

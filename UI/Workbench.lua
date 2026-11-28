@@ -37,7 +37,8 @@ local professionRecommendations={
 local function setView(self,view,notesInstance)
     if view=='Character stock' then view='Alt Tracker' end -- the view's former name
     local data=self:Data()
-    local changed=data.view~=view or self.notesInstance~=notesInstance
+    local changed=data.view~=view or self.notesInstance~=notesInstance or self.shortcutSearch
+    self.shortcutSearch=nil
     data.view=view
     self.notesInstance=view=='Run Notes' and notesInstance or nil
     -- SetText fires OnTextChanged in the client. Switch the view atomically
@@ -59,8 +60,16 @@ function W:NextView()
     end
     self:Refresh()
 end
-function W:Choose(view,notesInstance)
+function W:Choose(view,notesInstance,search)
+    if search and (InCombatLockdown() or not FS:IsModuleEnabled(self.name)) then return end
     setView(self,view,notesInstance)
+    if search then
+        local f=self:CreateWindow()
+        f.fsChangingView=true
+        f.search:SetText(search)
+        f.fsChangingView=nil
+        self.shortcutSearch=true
+    end
     self:ShowWindow()
 end
 local create=W.CreateWindow
@@ -68,6 +77,7 @@ function W:CreateWindow()
     local f=create(self); if f.section then return f end
     f.search:SetScript('OnTextChanged',function()
         if f.fsChangingView then return end
+        self.shortcutSearch=nil
         self.page=1; self.selected=nil
         if self:Data().view=='Gear Planner' and f:IsShown() then self:Refresh() else self:Render() end
     end)
@@ -160,7 +170,8 @@ function E:Form(title,fields,save,actionLabel,onReturn,owner)
         f:SetScript('OnHide',function() f.saveAction=nil;f.returnAction=nil end); UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteEditForm'
     end
     f:Hide(); f.saveAction=save;f.returnAction=onReturn;f.fsFontModule=owner or W.activeOwner or 'Workbench'; f.fieldCount=math.min(8,#fields); H:Skin(f); FS:FontTree(f)
-    f:SetBackdropBorderColor(unpack(FS.moduleCardColors[owner or W.activeOwner] or {.12,.72,.86}))
+    local color=FS.moduleCardColors[owner or W.activeOwner] or {.12,.72,.86}
+    FS.Themes:Paint(f,"SetBackdropBorderColor",color[1],color[2],color[3],1,.7)
     f.heading:SetText(title); f.save:SetText(actionLabel or FS.Text.apply); f.status:SetText('')
     local y=math.max(62,20+H:TextHeight(f.heading,672,3)+18)
     for i=1,f.fieldCount do
@@ -276,7 +287,8 @@ function E:TextDialog(title,text,readOnly,validate,apply,onReturn,reviewProfile,
         UISpecialFrames[#UISpecialFrames+1]='ForeverSuiteTextDialog'
     end
     f:Hide(); H:Skin(f); f.fsFontModule=owner or W.activeOwner or 'Workbench'; FS:FontTree(f); f.readOnly=readOnly; f.validate=validate; f.applyAction=apply; f.returnAction=onReturn; f.candidate=nil; f.reviewProfile=reviewProfile
-    f:SetBackdropBorderColor(unpack(FS.moduleCardColors[owner or W.activeOwner] or {.12,.72,.86})); f.heading:SetText(title); f.edit:SetText(text or '')
+    local color=FS.moduleCardColors[owner or W.activeOwner] or {.12,.72,.86}
+    FS.Themes:Paint(f,"SetBackdropBorderColor",color[1],color[2],color[3],1,.7); f.heading:SetText(title); f.edit:SetText(text or '')
     f.status:SetText(readOnly and 'Select all, then Ctrl+C to copy. This window does not send messages.' or 'Paste a ForeverSuite export, then Preview before applying.')
     f.preview:SetText(readOnly and 'Select all' or FS.Text.preview); f.apply:SetShown(not readOnly); f.apply:SetEnabled(false); f.cancel:SetText(readOnly and FS.Text.close or FS.Text.cancel)
     f:ResizeText(); f:UpdateReview(); f:Layout(); if f.scroll.SetVerticalScroll then f.scroll:SetVerticalScroll(0) end
@@ -908,7 +920,8 @@ function W:Build()
         for i,b in ipairs(self.window.actionButtons) do local label=labels[i] or ''; b:SetText(label); b:SetShown(label~='') end
         self.window.input:SetShown(view=='Profiles' or view=='Layout presets' or view=='Route Library' or (view=='Dungeon preparation' and not self.prepActivity) or view=='NPC rules' or view=='Important casts' or view=='Chat keywords' or view=='Guild notes')
         self.window.input:SetMaxLetters(({Profiles=32,['Layout presets']=32,['Route Library']=40,['Dungeon preparation']=32,['NPC rules']=10,['Important casts']=10,['Chat keywords']=64,['Guild notes']=256})[view] or 256)
-        local color=FS.moduleCardColors[owner] or {.12,.72,.86}; self.window:SetBackdropBorderColor(unpack(color))
+        local color=FS.moduleCardColors[owner] or {.12,.72,.86}
+        FS.Themes:Paint(self.window,"SetBackdropBorderColor",color[1],color[2],color[3],1,.7)
     end
 end
 function W:OnSelect(selected)

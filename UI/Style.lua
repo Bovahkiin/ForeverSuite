@@ -12,10 +12,14 @@ function S:Plate(owner,kind)
         f=nativeBar and bars:CreateDecoration(owner) or CreateFrame("Frame",nil,owner,"BackdropTemplate"); f.fsSuiteStyle=true; f.ignoreInLayout=true; self.plates[owner]=f
         f:ClearAllPoints(); f:SetPoint("TOPLEFT",owner,"TOPLEFT",-5,5); f:SetPoint("BOTTOMRIGHT",owner,"BOTTOMRIGHT",5,-5)
         f:SetFrameLevel(math.max(0,owner:GetFrameLevel()-1)); f:EnableMouse(false)
-        if not nativeBar then H:Skin(f,true); f:SetBackdropColor(.018,.027,.038,.9); f:SetBackdropBorderColor(.12,.45,.54,.7) end
-        f.gold=f:CreateTexture(nil,"ARTWORK"); f.gold:SetColorTexture(.95,.68,.24,.8)
+        local themes=FS.Themes
+        if not nativeBar then
+            H:Skin(f,true); f:SetBackdropColor(.018,.027,.038,.9)
+            themes:Paint(f,"SetBackdropBorderColor",.12,.45,.54,.7,.5)
+        end
+        f.gold=f:CreateTexture(nil,"ARTWORK"); themes:Paint(f.gold,"SetColorTexture",.95,.68,.24,.8)
         f.gold:SetSize(24,2); f.gold:SetPoint("TOPLEFT",3,-2)
-        f.cyan=f:CreateTexture(nil,"ARTWORK"); f.cyan:SetColorTexture(.12,.72,.86,.65)
+        f.cyan=f:CreateTexture(nil,"ARTWORK"); themes:Paint(f.cyan,"SetColorTexture",.12,.72,.86,.65,.65)
         f.cyan:SetHeight(1); f.cyan:SetPoint("BOTTOMLEFT",4,2); f.cyan:SetPoint("BOTTOMRIGHT",-4,2)
     end
     return f
@@ -27,7 +31,8 @@ function S:Feedback(button)
     if button and ((bars and bars.buttons[button]) or (button.IsProtected and button:IsProtected())) then return end
     if not button or button.fsSuiteFeedback then return end
     button.fsSuiteFeedback=true
-    local flash=button:CreateTexture(nil,"OVERLAY"); flash.fsSuiteStyle=true; flash.ignoreInLayout=true; flash:SetAllPoints(); flash:SetColorTexture(.12,.72,.86,.22); flash:Hide()
+    local flash=button:CreateTexture(nil,"OVERLAY"); flash.fsSuiteStyle=true; flash.ignoreInLayout=true; flash:SetAllPoints(); flash:Hide()
+    FS.Themes:Paint(flash,"SetColorTexture",.12,.72,.86,.22)
     local group=flash:CreateAnimationGroup(); local a=group:CreateAnimation("Alpha"); a:SetFromAlpha(.25); a:SetToAlpha(0); a:SetDuration(.2)
     group:SetScript("OnFinished",function() flash:Hide() end)
     button:HookScript("PostClick",function() if FS:IsModuleEnabled("ActionBars") then flash:Show(); group:Stop(); group:Play() end end)
@@ -53,7 +58,6 @@ function S:Bars()
         plate:ClearAllPoints(); plate:SetPoint("BOTTOMRIGHT",bag,"BOTTOMRIGHT",5,-5)
         plate:SetPoint("TOPLEFT",bag,"TOPLEFT",-5,5)
         if gear then
-            H:Skin(gear); gear:SetBackdropBorderColor(.95,.68,.24,.65)
             local text=gear.GetFontString and gear:GetFontString(); if text then text:SetTextColor(.9,.94,1,1); FS:ApplyFont(text,12) end
         end
     end
@@ -63,11 +67,12 @@ function S:Units()
         if not f.fsPortraitRim then
             local rim=CreateFrame("Frame",nil,f,"BackdropTemplate"); rim.ignoreInLayout=true; rim.fsThemeBorderOnly=true; rim.fsThemeTransparent=true; f.fsPortraitRim=rim; H:Skin(rim); rim:EnableMouse(false)
             rim:SetPoint("TOPLEFT",f.portrait,"TOPLEFT",-1,1); rim:SetPoint("BOTTOMRIGHT",f.portrait,"BOTTOMRIGHT",1,-1)
-            rim:SetFrameLevel(f:GetFrameLevel()+1); rim:SetBackdropColor(0,0,0,0); rim:SetBackdropBorderColor(.95,.68,.24,.7)
+            rim:SetFrameLevel(f:GetFrameLevel()+1); rim:SetBackdropColor(0,0,0,0)
+            FS.Themes:Paint(rim,"SetBackdropBorderColor",.95,.68,.24,.7,.85)
             f.health.sheen=f.health:CreateTexture(nil,"OVERLAY"); f.health.sheen:SetColorTexture(1,1,1,.06)
             f.health.sheen:SetPoint("TOPLEFT"); f.health.sheen:SetPoint("TOPRIGHT"); f.health.sheen:SetHeight(10)
         end
-        f:SetBackdropColor(.018,.027,.038,.96); f:SetBackdropBorderColor(.12,.55,.65,.8)
+        f:SetBackdropColor(.018,.027,.038,.96); f:SetBackdropBorderColor(FS.Themes:Color(.12,.55,.65,.8,.6))
         FS:ApplyFont(f.name,12,"OUTLINE"); FS:ApplyFont(f.value,12,"OUTLINE")
         if f.level then FS:ApplyFont(f.level,12,"OUTLINE"); FS.modules.UnitFrames:LayoutLevel(f) end
     end
@@ -124,21 +129,29 @@ function S:CoordinateDuplicates(hidden)
 end
 function S:UpdateClock()
     if not FS.initialized or not FS.db or (not self.clock and InCombatLockdown()) then return end
+    if not FS:IsModuleEnabled("Map") then
+        if self.clock and self.clock:IsShown() then self.clock:Hide() end
+        return
+    end
     local localTime=FS.Tools:Call(date,"*t"); local hour,minute
     if type(localTime)=="table" then hour,minute=localTime.hour,localTime.min end
-    self:Clock(hour,minute,FS:IsModuleEnabled("Map"))
+    self:Clock(hour,minute,true)
 end
 function S:Clock(hour,minute,enabled)
     if not self.clock then
+        self.clockRendered=false
         local f=CreateFrame("Frame","ForeverSuiteClock",UIParent,"BackdropTemplate"); self.clock=f; f.fsFontModule="QoL"
         H:Skin(f); f:SetSize(72,28); f:SetPoint("BOTTOM",UIParent,"BOTTOM",0,12)
-        f:SetBackdropColor(.018,.027,.038,.95); f:SetBackdropBorderColor(.12,.72,.86,.8); f:EnableMouse(false)
+        f:SetBackdropColor(.018,.027,.038,.95); FS.Themes:Paint(f,"SetBackdropBorderColor",.12,.72,.86,.8,.65); f:EnableMouse(false)
         f.text=FS.Widgets:Label(f); f.text:SetPoint("CENTER"); FS:ApplyFont(f.text,16,"OUTLINE"); f.text:SetTextColor(.95,.97,1,1)
-        f.accent=f:CreateTexture(nil,"ARTWORK"); f.accent:SetColorTexture(.95,.68,.24,.85); f.accent:SetSize(16,2); f.accent:SetPoint("TOP",0,-1)
+        f.accent=f:CreateTexture(nil,"ARTWORK"); FS.Themes:Paint(f.accent,"SetColorTexture",.95,.68,.24,.85); f.accent:SetSize(16,2); f.accent:SetPoint("TOP",0,-1)
         FS.Layout:Register("Clock",f,"Clock")
     end
-    self.clock.text:SetText(hour and minute and string.format("%02d:%02d",hour,minute) or "--:--")
-    self.clock:SetShown(enabled)
+    if not self.clockRendered or self.clockHour~=hour or self.clockMinute~=minute then
+        self.clock.text:SetText(hour and minute and string.format("%02d:%02d",hour,minute) or "--:--")
+        self.clockRendered,self.clockHour,self.clockMinute=true,hour,minute
+    end
+    if self.clock:IsShown()~=enabled then self.clock:SetShown(enabled) end
 end
 function S:NativeRegion(region,hidden)
     local state=self.native[region]
@@ -164,7 +177,7 @@ end
 function S:Chat()
     local C=FS.modules.Chat; local enabled=FS:IsModuleEnabled("Chat"); local data=C:Data()
     local panels=enabled and data.styleWindow; local tabs=enabled and data.styleTabs; local inputs=enabled and data.styleInput
-    local color=C.colors[data.borderColor]; local flags=data.outline and "OUTLINE" or ""
+    local color=C.colors[data.borderColor] or C:ThemeColor(); local flags=data.outline and "OUTLINE" or ""
     local function paint(plate)
         plate:SetBackdropColor(.018,.027,.038,data.backgroundOpacity)
         plate:SetBackdropBorderColor(color[1],color[2],color[3],data.borderColor=="None" and 0 or .8)
@@ -177,6 +190,8 @@ function S:Chat()
             local right=self:ChatScrollBar(f,panels,color,data.backgroundOpacity)
             plate:ClearAllPoints(); plate:SetPoint("TOPLEFT",f,"TOPLEFT",-5,5); plate:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",right,-5)
             paint(plate); plate.gold:SetShown(data.borderColor~="None"); plate.cyan:SetShown(data.borderColor~="None")
+            plate.gold:SetColorTexture(color[1],color[2],color[3],.8)
+            plate.cyan:SetColorTexture(color[1],color[2],color[3],.65)
             self:NativeFonts(f,enabled,nil,data.fontSize,flags); C:FrameOptions(f,enabled)
             for _,part in ipairs({"Background","ButtonFrame"}) do
                 local r=f[part]; if r and r.GetAlpha and part=="Background" then self:NativeRegion(r,panels) end
@@ -313,6 +328,8 @@ function S:ChatScrollBar(frame,enabled,color,opacity)
     local N=FS.NativeWindows; local name=frame:GetName() or ""
     local bar=frame.ScrollBar or frame.scrollBar or _G[name.."ScrollBar"]
     local bottom=frame.ScrollToBottomButton or _G[name.."ScrollToBottomButton"]
+    local chat=FS.modules.Chat
+    local thumbColor=color==chat.colors.None and chat:ThemeColor() or color
     local right=5
     local function include(control)
         if not enabled or not control then return end
@@ -322,7 +339,7 @@ function S:ChatScrollBar(frame,enabled,color,opacity)
     end
     local function paint(plate,thumb)
         plate.gold:Hide(); plate.cyan:Hide(); plate:SetShown(enabled)
-        local c=color; if thumb and color==FS.modules.Chat.colors.None then c=FS.modules.Chat.colors.Cyan end
+        local c=thumb and thumbColor or color
         plate:SetBackdropColor(thumb and c[1] or .018,thumb and c[2] or .027,thumb and c[3] or .038,thumb and .9 or opacity)
         plate:SetBackdropBorderColor(c[1],c[2],c[3],color==FS.modules.Chat.colors.None and not thumb and 0 or .8)
     end
@@ -352,7 +369,7 @@ function S:ChatScrollBar(frame,enabled,color,opacity)
                 if not thumb.fsChatThumb then
                     local fill=bar:CreateTexture(nil,"OVERLAY"); fill.fsSuiteStyle=true; fill.ignoreInLayout=true; thumb.fsChatThumb=fill; fill:SetAllPoints(thumb)
                 end
-                local c=color==FS.modules.Chat.colors.None and FS.modules.Chat.colors.Cyan or color
+                local c=thumbColor
                 thumb.fsChatThumb:SetColorTexture(c[1],c[2],c[3],.9); thumb.fsChatThumb:SetShown(enabled and thumb:IsShown())
             else
                 strip(thumb,0)
@@ -376,7 +393,7 @@ function S:MeterHeader(frame,enabled)
     if not frame.Header then return end
     if not frame.fsMeterHeader then
         local bg=frame:CreateTexture(nil,"BACKGROUND"); bg.ignoreInLayout=true; bg.fsSuiteStyle=true; frame.fsMeterHeader=bg
-        bg:SetAllPoints(frame.Header); bg:SetColorTexture(.025,.045,.06,.98)
+        bg:SetAllPoints(frame.Header); FS.Themes:Paint(bg,"SetColorTexture",.025,.045,.06,.98,.12)
     end
     self:NativeRegion(frame.Header,enabled); frame.fsMeterHeader:SetShown(enabled)
     for key,glyph in pairs({DamageMeterTypeDropdown="v",MinimizeButton="-",SettingsDropdown="Menu",SessionDropdown=""}) do

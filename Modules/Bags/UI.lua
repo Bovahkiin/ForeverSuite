@@ -22,37 +22,34 @@ local hints = {
     ["Buy supplies"] = "Buy missing items from this merchant using your shopping list and budget.",
     ["Save quantities"] = "Always keep reserves copies from sale. Buy up to is your desired total, not an extra amount to buy.",
 }
-local WHITE = "Interface\\Buttons\\WHITE8X8"
-local function skin(frame, r, g, b)
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-    frame:SetBackdropColor(r or 0.035, g or 0.045, b or 0.065, 0.98)
-    frame:SetBackdropBorderColor(0.16, 0.22, 0.29, 1)
-end
 local function label(parent, text, x, y, width)
     local f = W:Label(parent, "ForeverSuiteFontSmall")
+    B:StorageText(f)
     f:SetPoint("TOPLEFT", x, y); f:SetWidth(width or 250); f:SetJustifyH("LEFT"); f:SetText(text)
     return f
 end
 local function button(parent, text, x, y, width, callback, secure)
     local f = CreateFrame("Button", nil, parent, secure and "SecureActionButtonTemplate,BackdropTemplate" or "BackdropTemplate")
-    f:SetSize(width, 26); f:SetPoint("TOPLEFT", x, y); skin(f, 0.08, 0.11, 0.15)
+    f:SetSize(width, 26); f:SetPoint("TOPLEFT", x, y)
     local caption = f:CreateFontString(nil, "OVERLAY", "ForeverSuiteFontSmall")
     caption:SetPoint("CENTER"); f:SetFontString(caption); f:SetText(text); f.caption = caption
     FS:ApplyFont(caption)
+    B:StorageSkin(f, "button")
     if secure then f:RegisterForClicks("AnyUp", "AnyDown"); f:SetAttribute("useOnKeyDown", false)
     else f:SetScript("OnClick", callback) end
     f.help = hints[text]
     f:SetScript("OnEnter", function(b)
-        b:SetBackdropBorderColor(0.2, 0.75, 0.9, 1)
+        B:StorageHighlight(b, b.fsStorageSelected, true)
         if b.help then GameTooltip:SetOwner(b, "ANCHOR_RIGHT"); GameTooltip:AddLine(b:GetText()); GameTooltip:AddLine(b.help, 1, 1, 1, true); GameTooltip:Show() end
     end)
-    f:SetScript("OnLeave", function(b) b:SetBackdropBorderColor(0.16, 0.22, 0.29, 1); if b.help then GameTooltip:Hide() end end)
+    f:SetScript("OnLeave", function(b) B:StorageHighlight(b, b.fsStorageSelected); if b.help then GameTooltip:Hide() end end)
     return f
 end
 local function edit(parent, x, y, width)
     local f = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
-    skin(f, 0.025, 0.03, 0.045); f:SetFontObject("ForeverSuiteFontSmall"); f:SetTextInsets(8, 8, 0, 0)
+    B:StorageSkin(f, "slot"); f:SetFontObject("ForeverSuiteFontSmall"); f:SetTextInsets(8, 8, 0, 0)
     FS:ApplyFont(f,12)
+    B:StorageText(f)
     f:SetSize(width, 24); f:SetPoint("TOPLEFT", x, y); f:SetAutoFocus(false)
     f:SetScript("OnEscapePressed", function(box) box:ClearFocus() end)
     return f
@@ -68,9 +65,10 @@ function B:CreateWindow()
     if FS.db.bags.x ~= 0 or FS.db.bags.y ~= 0 then f:SetPoint("CENTER", UIParent, "CENTER", FS.db.bags.x, FS.db.bags.y)
     else f:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -30, 90) end
     f:SetFrameStrata("DIALOG"); f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
-    skin(f)
-    local accent = f:CreateTexture(nil, "ARTWORK"); accent:SetColorTexture(0.12, 0.72, 0.86, 1)
+    local accent = f:CreateTexture(nil, "ARTWORK"); f.fsStorageAccent=accent
     accent:SetHeight(2); accent:SetPoint("TOPLEFT", 1, -1); accent:SetPoint("TOPRIGHT", -1, -1)
+    self:StorageSkin(f, "panel")
+    self:StorageWatermark(f)
     f:SetScript("OnDragStart", function(frame) frame:StartMoving() end)
     f:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
@@ -83,54 +81,59 @@ function B:CreateWindow()
         if InCombatLockdown() then return end
         for _,cell in ipairs(frame.cells or {}) do cell.row=nil end
         frame:StopMovingOrSizing(); GameTooltip:Hide()
-        self.selected = nil; self.itemOptions = false
+        self.selected = nil; self.itemOptions = false; self.inspectOpen = false
         frame.itemPanel:Hide(); frame.filterMenu:Hide()
         if frame.options then frame.options:Hide() end
         if frame.tools then frame.tools:Hide() end
+        if frame.storageMenu then frame.storageMenu:Hide() end
+        local bank=FS.modules.Bank
+        if bank.storagePane=="bags" and not bank.switchingPane and (not bank.window or not bank.window:IsShown()) then
+            bank:CloseStorageSession()
+        end
     end)
-    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", -1, -1)
-    local logo = f:CreateTexture(nil, "ARTWORK"); logo:SetTexture(FS.icon)
-    logo:SetSize(26, 26); logo:SetPoint("TOPLEFT", 10, -8)
-    f.title = label(f, "INVENTORY", 44, -16, 300)
-    f.back = button(f, "Control Center", 360, -9, 160, function() FS:ShowConfig() end)
-    f.back.help = "Back to Control Center: change module settings or switch modules on and off."
+    f.title = label(f, "Inventory", 0, 0, 300)
+    self:CreateStorageHeader(f,f.title,false)
     f.search = edit(f, 12, -43, 270)
     f.search.placeholder = label(f.search, "Search items...", 8, -5, 250)
     f.search.placeholder:SetTextColor(0.55, 0.65, 0.72)
     f.search:SetScript("OnTextChanged", function(box)
         self.search = box:GetText(); box.placeholder:SetShown(self.search == "" and not box:HasFocus())
-        self.page = 1; self:Refresh()
+        self.page, self.selected, self.inspectOpen = 1, nil, false
+        self:Refresh()
     end)
     f.search:SetScript("OnEditFocusGained", function(box) box.placeholder:Hide() end)
     f.search:SetScript("OnEditFocusLost", function(box) box.placeholder:SetShown(box:GetText() == "") end)
     f.search.help = "Find an item by name, type or item ID."
-    f.organize = button(f, "Organize", 292, -42, 78, function() self:SortBags() end)
+    f.organize = button(f, "Sort A-Z", 292, -42, 92, function()
+        local db=FS.db.bags
+        db.sort=db.sort=="name" and "category" or "name"
+        self.page=1; self:Refresh()
+    end)
+    f.organize.help="Change the displayed order without moving items between bag slots."
+    f.layoutPicker=button(f,"",0,0,124,function(control) self:ChooseStorageLayout(f,control) end)
     f.filter = button(f, "Filter", 378, -42, 76, function()
+        self:RefreshStorageFilters(f)
+        if f.storageMenu then f.storageMenu:Hide() end
         f.filterMenu:SetShown(not f.filterMenu:IsShown()); if f.options then f.options:Hide() end
     end)
     f.filter.help = hints["Filter items"]
     f.more = button(f, "More options", 462, -42, 86, function()
         if not f.options then self:CreateOptions() end
+        if f.storageMenu then f.storageMenu:Hide() end
         f.options:SetShown(not f.options:IsShown()); f.filterMenu:Hide(); self:RefreshOptions()
     end)
     f.filterMenu = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.filterMenu:SetSize(480, 24 + math.ceil(#self.categories / 2) * 34); f.filterMenu:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", -12, 8); f.filterMenu:SetClampedToScreen(true)
-    f.filterMenu:SetFrameLevel(f:GetFrameLevel() + 30); f.filterMenu:EnableMouse(true); skin(f.filterMenu)
+    f.filterMenu:SetWidth(480); f.filterMenu:SetPoint("TOPRIGHT", f.filter, "BOTTOMRIGHT", 0, -4); f.filterMenu:SetClampedToScreen(true)
+    f.filterMenu:SetFrameLevel(f:GetFrameLevel() + 30); f.filterMenu:EnableMouse(true); self:StorageSkin(f.filterMenu, "panel")
     f.categories = {}
-    for i, category in ipairs(self.categories) do
-        local name = category
-        f.categories[i] = button(f.filterMenu, categoryNames[name], 12 + ((i - 1) % 2) * 234, -12 - math.floor((i - 1) / 2) * 34, 216, function()
-            FS.db.bags.category = name; self.page = 1; self.selected = nil; self.itemOptions = false
-            f.filterMenu:Hide(); self:Refresh()
-        end)
-    end
     f.filterMenu:Hide()
-    f.categoryHint = label(f, "", 12, -76, 536)
     f.headers = {}
     for i = 1, 48 do
         local header = button(f, "", 12, -100, 536, function(control)
-            if not control.category then return end
-            self.collapsed = self.collapsed or {}; self.collapsed[control.category] = not self.collapsed[control.category]
+            local bag=control.category
+            if type(bag)~="number" then return end
+            self.satchelCollapsed=self.satchelCollapsed or {}
+            self.satchelCollapsed[bag]=not self.satchelCollapsed[bag]
             self.selected = nil
             self.page = 1; self:Refresh()
         end)
@@ -143,7 +146,7 @@ function B:CreateWindow()
         local cell = CreateFrame("Button", nil, f, "SecureActionButtonTemplate,BackdropTemplate")
         cell:SetAttribute("useOnKeyDown", false)
         cell:SetSize(38, 38)
-        skin(cell, 0.025, 0.035, 0.05)
+        self:StorageSkin(cell, "slot")
         cell:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
         cell:RegisterForClicks("AnyUp", "AnyDown"); cell:RegisterForDrag("LeftButton")
         cell.icon = cell:CreateTexture(nil, "ARTWORK"); cell.icon:SetSize(34, 34); cell.icon:SetPoint("TOPLEFT", 2, -2)
@@ -157,7 +160,7 @@ function B:CreateWindow()
             if down or InCombatLockdown() then return end
             if not c.row then return end
             if mouse=="LeftButton" and self:TargetBagItem(c.row) then return end
-            self.selected = c.row; self.status = nil; self.itemOptions = false
+            self.selected = c.row; self.status = nil; self.itemOptions = false; self.inspectOpen = false
             local rule = c.row.id and V:Settings().rules[c.row.id]
             f.keep:SetText(tostring(rule and rule.keep or 0)); f.target:SetText(tostring(rule and rule.target or 0))
             if CursorHasItem() then self:Action("pickup", c.row)
@@ -182,7 +185,7 @@ function B:CreateWindow()
             elseif row.reason then GameTooltip:AddLine(row.reason, 1, 0.85, 0.3) end
             if row.stock then GameTooltip:AddLine("Held " .. row.count .. " | Reserved " .. row.reserve .. " | Missing " .. row.missing) end
             if not row.empty and not row.stock then
-                GameTooltip:AddLine("Left-click for item options.", 0.7, 0.85, 1)
+                GameTooltip:AddLine("Click to inspect. Use Item options for actions.", 0.7, 0.85, 1)
                 GameTooltip:AddLine(MerchantFrame and MerchantFrame:IsShown() and "Right-click to sell the allowed amount." or "Right-click to use this item.", 1, 1, 1)
             end
             GameTooltip:Show()
@@ -191,10 +194,10 @@ function B:CreateWindow()
         f.cells[i] = cell
     end
     f.itemPanel = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.itemPanel:SetSize(320, 434); f.itemPanel:SetPoint("BOTTOMRIGHT", f, "BOTTOMLEFT", -8, 0)
-    f.itemPanel:SetFrameLevel(f:GetFrameLevel() + 20); f.itemPanel:SetClampedToScreen(true); f.itemPanel:EnableMouse(true); skin(f.itemPanel)
+    f.itemPanel:SetSize(320, 434)
+    f.itemPanel:SetFrameLevel(f:GetFrameLevel() + 20); f.itemPanel:SetClampedToScreen(true); f.itemPanel:EnableMouse(true); self:StorageSkin(f.itemPanel, "panel")
     label(f.itemPanel, "ITEM OPTIONS", 12, -14, 200)
-    button(f.itemPanel, "Close", 238, -8, 70, function() self.selected = nil; self:Refresh() end)
+    button(f.itemPanel, "Close", 238, -8, 70, function() self.inspectOpen = false; self:Refresh() end)
     f.detail = label(f.itemPanel, "", 12, -44, 295); f.detail:SetHeight(95); f.detail:SetJustifyV("TOP")
     f.basic = {}
     f.basic[1] = button(f.itemPanel, "Sell as junk", 12, -150, 140, function() self:Mark("junk") end)
@@ -240,9 +243,28 @@ function B:CreateWindow()
     f.summary = label(f, "", 12, -190, 310)
     f.money = label(f, "", 330, -190, 218); f.money:SetJustifyH("RIGHT")
     f.status = label(f, "", 12, -213, 536); f.status:SetHeight(32)
+    f.transfer = button(f, "Deposit", 0, 0, 104, function() FS.modules.Bank:Transfer(self.selected, false) end)
+    f.inspectItem = button(f, "Item options", 0, 0, 124, function() self.inspectOpen=not self.inspectOpen; self:Refresh() end)
+    self:CreateStorageColumns(f,function() self.quantitySort=false; self.page=1; self:Refresh() end,
+        function() self.quantitySort=true; self.page=1; self:Refresh() end)
     UISpecialFrames[#UISpecialFrames + 1] = "ForeverSuiteBagsWindow"
     self:CreateSidebar(f)
     f:Hide(); if FS.Layout then FS.Layout:Register("Bags",f,"Inventory") end; return f
+end
+function B:RefreshStorageFilters(f)
+    for i, category in ipairs(self.categories) do
+        if not f.categories[i] then
+            f.categories[i] = button(f.filterMenu, "", 12 + ((i - 1) % 2) * 234, -12 - math.floor((i - 1) / 2) * 34, 216, function()
+                self:SelectView("categories", self.categories[i])
+                f.filterMenu:Hide()
+            end)
+        end
+        f.categories[i]:SetText(categoryNames[category] or category)
+        f.categories[i]:Show()
+        self:StorageHighlight(f.categories[i], FS.db.bags.category == category)
+    end
+    for i=#self.categories+1,#f.categories do f.categories[i]:Hide() end
+    f.filterMenu:SetHeight(24 + math.ceil(#self.categories / 2) * 34)
 end
 function B:Refresh(sharedPlan)
     if InCombatLockdown() then return end
@@ -255,43 +277,71 @@ function B:Refresh(sharedPlan)
         and "No shopping goals yet. Select an item and open More item options to add one."
         or FS.db.bags.category == "All" and "Your bags are empty." or "No items in this category.")
     local merchant = V.merchantOpen and MerchantFrame and MerchantFrame:IsShown() and V:Settings().enabled
-    f.summary:SetText(view.free .. " free bag spaces")
-    f.filter:SetText(FS.db.bags.category == "All" and "Filter" or "Filtered")
-    f.categoryHint:SetText(FS.db.bags.category == "All" and "Items are grouped automatically." or ("Showing: " .. (categoryNames[FS.db.bags.category] or FS.db.bags.category)))
-    for i, c in ipairs(self.categories) do if f.categories[i] then f.categories[i]:SetText(categoryNames[c] or c) end end
+    f.summary:SetText(view.free.." free slots  ·  "..(view.capacity-view.free).." / "..view.capacity.." used")
+    f.filter:SetText(categoryNames[FS.db.bags.category] or FS.db.bags.category)
     self:RefreshSidebar(view)
     self:RefreshOptions()
     local layouts = self:Layout(view)
     local pages = #layouts; self.page = math.max(1, math.min(self.page, pages))
     local layout = layouts[self.page]
-    local width, height = FS.db.bags.width, FS.db.bags.height
+    local width, height = self:StorageWidth(), FS.db.bags.height
     local metrics=self.textLayout or {}
     height=metrics.viewportHeight or height
     f:SetSize(width, height)
     local contentX, contentWidth = metrics.contentX or 212, metrics.contentWidth or width-224
     local contentTop=metrics.contentTop or 100
     local function place(control, x, y) control:ClearAllPoints(); control:SetPoint("TOPLEFT", x, -y) end
-    local footer = height - 42
-    place(f.previous, contentX, height - 76); place(f.pages, contentX + 108, height - 71); place(f.next, width - 112, height - 76)
-    place(f.summary, 12, footer + 7); f.summary:SetWidth(188)
-    place(f.money, width - 246, footer + 7)
+    local fontSize=metrics.fontSize or 14
+    local H=FS.HUD
+    local footer = height - math.max(35,fontSize+18)
+    local navY=footer-math.max(38,fontSize+20)
+    local inspectY=navY-math.max(34,fontSize+14)
+    local navWidth=math.max(100,fontSize*5)
+    for _,control in ipairs({f.previous,f.next}) do
+        control:SetWidth(navWidth); control:SetHeight(math.max(26,fontSize+12))
+        H:TextHeight(control.caption,navWidth-14,1)
+    end
+    place(f.previous,14,navY); place(f.pages,navWidth+23,navY+4); place(f.next,width-navWidth-14,navY)
+    place(f.summary,14,footer+8); H:TextHeight(f.summary,width*.5-74,1)
+    place(f.money,width*.5+63,footer+8); H:TextHeight(f.money,width*.5-77,1)
+    self:StorageBand(f,footer,inspectY-5)
+    f.itemPanel:ClearAllPoints(); f.itemPanel:SetPoint("TOPRIGHT",f,"TOPRIGHT",-14,-contentTop)
     if merchant then
-        local vendorY = height - 144
-        local buttonWidth = math.floor((contentWidth - 100) / 3) - 8
-        for i, control in ipairs(f.merchantButtons) do place(control, contentX + (i - 1) * (buttonWidth + 8), vendorY); control:SetWidth(buttonWidth) end
+        local vendorY = inspectY-52
+        local buttonWidth = math.floor((width-126) / 3) - 8
+        for i, control in ipairs(f.merchantButtons) do place(control,14+(i-1)*(buttonWidth+8),vendorY); control:SetWidth(buttonWidth) end
         place(f.stop, width - 100, vendorY); f.stop:SetWidth(88)
-        place(f.vendorInfo, contentX, vendorY + 31); f.vendorInfo:SetWidth(contentWidth)
+        place(f.vendorInfo,14,vendorY+29); f.vendorInfo:SetWidth(width-28)
     end
-    place(f.status, contentX, height - 109); f.status:SetWidth(contentWidth); f.status:SetShown(not merchant)
-    f:SetScale(math.max(0.5, math.min(FS.db.bags.scale, (UIParent:GetWidth() - 32) / width, (UIParent:GetHeight() - 32) / height)))
-    for i, texture in ipairs(f.placeholders) do
-        local entry = layout.placeholders[i]
-        if entry then texture:ClearAllPoints(); texture:SetPoint("TOPLEFT", contentX + entry.x, -contentTop - entry.y); texture:Show() else texture:Hide() end
-    end
+    local bank=FS.modules.Bank
+    local transfer=self:StorageLayout()=="Quartermaster" and bank.open and bank.window and bank.window:IsShown() and not merchant
+    f.transfer:SetShown(not not transfer)
+    local detailButton=math.max(124,math.ceil(fontSize*6.6))
+    f.inspectItem:SetWidth(detailButton); H:TextHeight(f.inspectItem.caption,detailButton-14,1)
+    f.inspectItem:SetHeight(math.max(26,fontSize+10))
+    f.transfer:SetHeight(f.inspectItem:GetHeight())
+    place(f.transfer,width-118,inspectY)
+    place(f.inspectItem,width-14-detailButton-(transfer and 110 or 0),inspectY)
+    place(f.status,14,inspectY+4); H:TextHeight(f.status,width-detailButton-37-(transfer and 110 or 0),1)
+    f.status:Show()
+    local paired=bank.open and bank.window and bank.window:IsShown()
+    local combined=paired and width+bank.window:GetWidth()+12 or width
+    f:SetScale(math.max(0.42, math.min(FS.db.bags.scale, (UIParent:GetWidth() - 32) / combined, (UIParent:GetHeight() - 32) / height)))
+    self:DrawStorageSections(f,layout,contentX,contentTop)
+    if #layout.headers>0 then f.noResults:Hide() end
     f.money:SetText(V:Money(GetMoney()))
     for i, header in ipairs(f.headers) do
         local entry = layout.headers[i]
-        if entry then header:ClearAllPoints(); header:SetPoint("TOPLEFT", contentX, -contentTop - entry.y); header:SetWidth(contentWidth); header:SetHeight((metrics.headerHeight or 26)-6); header.caption:SetWidth(contentWidth - 20); header.category = entry.category; header:SetText(entry.text); header:Show()
+        if entry then
+            local headerWidth=entry.width or contentWidth
+            header:ClearAllPoints(); header:SetPoint("TOPLEFT", contentX+(entry.x or 0), -contentTop - entry.y)
+            header:SetWidth(headerWidth); header:SetHeight((metrics.headerHeight or 26)-6); header.caption:SetWidth(headerWidth - 20)
+            local satchel=type(entry.category)=="number"
+            header:SetEnabled(satchel and self.search=="" and FS.db.bags.category=="All")
+            header.category = entry.category
+            header:SetText(entry.text)
+            self:StorageGroupHeader(header,satchel,entry.collapsed)
+            header:Show()
         else header:Hide() end
     end
     f.noResults:ClearAllPoints(); f.noResults:SetPoint("TOPLEFT", contentX, -contentTop-30); f.noResults:SetWidth(contentWidth)
@@ -300,27 +350,24 @@ function B:Refresh(sharedPlan)
     end
     f.pages:SetText("Page " .. self.page .. " of " .. pages)
     f.pages:SetShown(pages > 1); f.previous:SetShown(pages > 1); f.next:SetShown(pages > 1)
-    if metrics.large then
-        local H=FS.HUD; local size=metrics.fontSize; local navWidth=math.max(100,size*5+20)
-        for _,b in ipairs({f.previous,f.next}) do b:SetWidth(navWidth); H:TextHeight(b.caption,navWidth-16,1); b:SetHeight(size+16) end
-        local navY=height-size*2-38
-        place(f.previous,contentX,navY); place(f.next,width-navWidth-12,navY)
-        place(f.pages,contentX+navWidth+10,navY+4); H:TextHeight(f.pages,math.max(40,contentWidth-2*navWidth-20),2)
-        place(f.summary,12,height-size-16); H:TextHeight(f.summary,width*.5-24,1)
-        place(f.money,width*.5,height-size-16); H:TextHeight(f.money,width*.5-24,1)
-        place(f.status,contentX,navY-size-14); H:TextHeight(f.status,contentWidth,1)
-    else f.previous:SetHeight(26); f.next:SetHeight(26) end
+    f.previous:SetEnabled(self.page>1); f.next:SetEnabled(self.page<pages)
+    local list = self:StorageLayout()=="Ledger"
     for i, cell in ipairs(f.cells) do
         local entry = layout.cells[i]; local row = entry and entry.row; cell.row = row
+        self:StorageFavorite(cell,row)
         self:BindItemUse(cell, row, "2"); self:UpdateCellExtras(cell, row)
-        if entry then cell:ClearAllPoints(); cell:SetPoint("TOPLEFT", contentX + entry.x, -contentTop - entry.y) end
+        if entry then
+            cell:ClearAllPoints(); cell:SetPoint("TOPLEFT", contentX + entry.x, -contentTop - entry.y)
+            self:StorageCellGeometry(cell, row, list, contentWidth, metrics.slotSize or 38, false)
+        end
         if row then
             local selected = self.selected and ((row.stock and self.selected.stock and row.id == self.selected.id)
                 or (row.bag and row.bag == self.selected.bag and row.slot == self.selected.slot))
-            cell:SetBackdropBorderColor(selected and 0.2 or 0.35, selected and 0.8 or 0.35, selected and 1 or 0.35)
-            cell.icon:SetTexture(row.icon or (row.stock and 134400 or nil)); cell.count:SetText(row.count and row.count > 1 and row.count or "")
+            self:StorageHighlight(cell, selected)
+            cell.icon:SetTexture(row.icon or (row.stock and 134400 or nil)); cell.count:SetText(row.count and (list or row.count > 1) and row.count or "")
             local keep = row.id and V:Settings().alwaysKeep[row.id]
-            cell.marker:SetText(row.empty and "" or row.stock and ("+" .. row.missing) or keep and "K" or (row.sellCount or 0) > 0 and "$" or "")
+            cell.marker:SetText(row.empty and "" or row.stock and ("+" .. row.missing) or keep and "K"
+                or (row.sellCount or 0)>0 and "$" or "")
             V:ApplyGlow(cell, row.stock and nil or row.empty and nil or row)
             cell:Show()
         else V:ApplyGlow(cell, nil); cell:Hide() end
@@ -341,11 +388,14 @@ function B:Refresh(sharedPlan)
     local current = self:CurrentItem()
     if s and not s.empty and not s.stock and not current then self.selected = nil; s = nil end
     local selected = s and s.id ~= nil
+    f.inspectItem:SetShown(not not selected)
+    f.transfer:SetEnabled(transfer and current~=nil and not current.locked or false)
+    f.inspectItem:SetEnabled(not not selected)
     self:BindItemUse(f.use, s, "1")
     f.favorite:SetShown(selected)
     f.favorite:SetText(selected and FS.db.bags.favorites[s.id] and "Remove favorite" or "Add to Favorites")
     f.favorite:ClearAllPoints(); f.favorite:SetPoint("TOPLEFT", 12, selected and (self.itemOptions or s.stock) and -434 or -264)
-    f.itemPanel:SetShown(selected)
+    f.itemPanel:SetShown(not not (selected and self.inspectOpen))
     f.itemPanel:SetHeight(selected and (self.itemOptions or s.stock) and 470 or 302)
     for _, control in ipairs(f.basic) do control:SetShown(selected and not s.stock) end
     f.use:SetShown(selected and not s.stock and not merchant)
@@ -370,7 +420,13 @@ function B:Refresh(sharedPlan)
         end
         f.detail:SetText(s.name .. "\nYou have " .. held .. " in your bags.\n\n" .. (s.stock and ("Buy " .. math.max(0, (rule and rule.target or 0) - held) .. " more to reach your shopping goal.") or self.status or (V.busy and V.status) or state))
     else f.detail:SetText("Click an item to see what you can do.\n\nDrag items to move them.") end
-    f.status:SetText(self.status or (InCombatLockdown() and "You can browse your bags during combat. Item actions are paused." or ""))
+    local caption="Select an item to see its details"
+    if selected then
+        local kind=s.stock and "Shopping list" or self:Category(s)
+        local location=s.bag and self:StorageBagName(s.bag) or "Inventory"
+        caption=string.format("%s  ×%d  ·  %s  ·  %s",s.name,s.count or 1,categoryNames[kind] or kind,location)
+    end
+    f.status:SetText(self.status or caption)
 
 end
 
@@ -391,7 +447,7 @@ function B:CreateSettings(host)
     local f = CreateFrame("Frame", nil, host, "BackdropTemplate")
     host.settings = f; f.module = "Bags"; f.advanced = false
     f:SetSize(892, 420); f:SetPoint("TOPLEFT", 24, FS.settingsTop); f:SetFrameLevel(host:GetFrameLevel() + 30)
-    f:EnableMouse(true); skin(f)
+    f:EnableMouse(true); self:StorageSkin(f,"panel")
     f.title = label(f, "", 260, -20, 490)
     f.back = button(f, host == FS.window and "Back to Control Center" or "Back to bags", 20, -12, 220, function() f:Hide() end)
     f.description = label(f, "", 20, -55, 850)
@@ -536,7 +592,7 @@ function B:ShowTools()
         f = CreateFrame("Frame", nil, self.window, "BackdropTemplate")
         self.window.tools = f
         f:SetSize(536, 420); f:SetPoint("BOTTOMLEFT", self.window, "BOTTOMLEFT", 12, 34); f:SetClampedToScreen(true); f:SetFrameLevel(self.window:GetFrameLevel() + 30)
-        f:EnableMouse(true); skin(f); f.tab = "Buyback"; f.page = 1
+        f:EnableMouse(true); self:StorageSkin(f,"panel"); f.tab = "Buyback"; f.page = 1
         label(f, "INVENTORY TOOLS", 12, -20, 320)
         button(f, "Back to bags", 374, -12, 150, function() f:Hide() end)
         button(f, "Buyback", 20, -50, 150, function() f.tab = "Buyback"; f.page = 1; self:RefreshTools() end)
@@ -583,8 +639,8 @@ function B:CreateOptions()
     local f = self.window
     local panel = CreateFrame("Frame", nil, f, "BackdropTemplate")
     f.options = panel
-    panel:SetSize(380, 334); panel:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", -12, 8); panel:SetClampedToScreen(true)
-    panel:SetFrameLevel(f:GetFrameLevel() + 30); panel:EnableMouse(true); skin(panel)
+    panel:SetSize(380, 486); panel:SetPoint("TOPRIGHT", f.more, "BOTTOMRIGHT", 0, -4); panel:SetClampedToScreen(true)
+    panel:SetFrameLevel(f:GetFrameLevel() + 30); panel:EnableMouse(true); self:StorageSkin(panel, "panel")
     label(panel, "More bag options", 20, -18, 340)
     f.sort = button(panel, "", 20, -50, 340, function()
         for i, value in ipairs(self.sorts) do if value == FS.db.bags.sort then FS.db.bags.sort = self.sorts[i % #self.sorts + 1]; break end end
@@ -612,6 +668,14 @@ function B:CreateOptions()
         FS.db.bags.x, FS.db.bags.y = 0, 0
         f:ClearAllPoints(); f:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -30, 90)
     end).help = "Return your inventory to the bottom-right corner. Drag its title bar to move it."
+    f.layoutChoice = button(panel, "", 20, -316, 340, function() self:ChooseStorageLayout(f,f.layoutPicker) end)
+    button(panel, "+ Add category", 20, -354, 340, function()
+        panel:Hide(); f.categoryDialog:Show(); f.categoryName:SetFocus()
+    end)
+    f.recentOption = button(panel, "Recent items", 20, -392, 340, function()
+        panel:Hide(); self:SelectView(FS.db.bags.viewMode=="recent" and "categories" or "recent","All")
+    end)
+    button(panel, "Control Center", 20, -430, 340, function() FS:ShowConfig() end)
     panel:Hide(); self:RefreshOptions()
 end
 function B:RefreshOptions()
@@ -621,4 +685,7 @@ function B:RefreshOptions()
     f.sort:SetText("Item order: " .. names[FS.db.bags.sort])
     f.size:SetText("Inventory size: " .. math.floor(FS.db.bags.scale * 100 + 0.5) .. "%")
     f.empty:SetText(FS.db.bags.showEmpty and "Hide empty spaces" or "Show empty spaces")
+    f.layoutChoice:SetText("Bags & bank layout: " .. self:StorageLayout())
+    f.layoutChoice.help=self.storageDescriptions[self:StorageLayout()]
+    f.recentOption:SetText(FS.db.bags.viewMode=="recent" and "Back to inventory" or "Recent items")
 end

@@ -3,7 +3,8 @@ local G, V = FS.modules.Gear, FS.modules.Vendor
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local function skin(f)
     f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-    f:SetBackdropColor(0.035, 0.045, 0.065, 0.98); f:SetBackdropBorderColor(0.45, 0.32, 0.7, 1)
+    f:SetBackdropColor(0.035, 0.045, 0.065, 0.98)
+    FS.Themes:Paint(f,"SetBackdropBorderColor",.45,.32,.7,1,.65)
 end
 local function label(parent, text, x, y, width)
     local f = FS.Widgets:Label(parent, "ForeverSuiteFontSmall")
@@ -15,22 +16,32 @@ local function button(parent, text, x, y, width, callback)
     local caption = f:CreateFontString(nil, "OVERLAY", "ForeverSuiteFontSmall"); caption:SetPoint("CENTER"); f:SetFontString(caption); f:SetText(text)
     FS:ApplyFont(caption)
     f:SetScript("OnClick", callback)
-    f:SetScript("OnEnter", function(b) b:SetBackdropBorderColor(0.75, 0.6, 1, 1) end)
-    f:SetScript("OnLeave", function(b) b:SetBackdropBorderColor(0.45, 0.32, 0.7, 1) end)
+    f:SetScript("OnEnter", function(b) FS.Themes:Paint(b,"SetBackdropBorderColor",.75,.6,1,1) end)
+    f:SetScript("OnLeave", function(b) FS.Themes:Paint(b,"SetBackdropBorderColor",.45,.32,.7,1,.65) end)
     return f
+end
+function G:PaintIndicator()
+    local f=self.indicator
+    if not f then return end
+    if self.data and self.data.broken>0 then f:SetBackdropBorderColor(1,.2,.2,1)
+    elseif f.hovered then f:SetBackdropBorderColor(FS.Themes:Color(.75,.6,1,1))
+    else f:SetBackdropBorderColor(FS.Themes:Color(.55,.4,.9,1,.65)) end
 end
 function G:CreateIndicator()
     if self.indicator then return end
     local f = button(UIParent, "Gear: --", 0, 0, 150, function() self:ToggleWindow() end)
+    FS.Themes.paints[f]=nil
+    FS.Themes:Register(f,"Button")
     f:ClearAllPoints()
     local bar=BagsBar or MainMenuBarBagButtons
     if bar then f:SetPoint("RIGHT",bar,"LEFT",-10,0)
     else f:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-310,16) end
-    f:HookScript("OnEnter", function(b)
+    f:SetScript("OnEnter", function(b)
+        b.hovered=true; self:PaintIndicator()
         GameTooltip:SetOwner(b, "ANCHOR_LEFT"); GameTooltip:AddLine("Gear & Durability")
         GameTooltip:AddLine("Click to inspect your equipment and repair status.", 1, 1, 1, true); GameTooltip:Show()
     end)
-    f:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    f:SetScript("OnLeave", function(b) b.hovered=false; self:PaintIndicator(); GameTooltip:Hide() end)
     self.indicator = f
     if FS.Layout then FS.Layout:Register("GearButton",f,"Gear Button") end
 end
@@ -48,7 +59,7 @@ function G:CreateWindow()
         if x and y and ux and uy then FS.db.gear.x, FS.db.gear.y = x - ux / ratio, y - uy / ratio end
     end)
     f:SetScript("OnHide", function(frame) frame:StopMovingOrSizing(); GameTooltip:Hide() end)
-    local accent = f:CreateTexture(nil, "ARTWORK"); accent:SetColorTexture(0.65, 0.45, 0.95, 1)
+    local accent = f:CreateTexture(nil, "ARTWORK"); FS.Themes:Paint(accent,"SetColorTexture",.65,.45,.95,1)
     accent:SetHeight(2); accent:SetPoint("TOPLEFT", 1, -1); accent:SetPoint("TOPRIGHT", -1, -1)
     local close = CreateFrame("Button", nil, f, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", -2, -2)
     label(f, "FOREVERSUITE / GEAR", 16, -19, 260)

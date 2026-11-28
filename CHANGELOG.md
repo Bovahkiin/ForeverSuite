@@ -1,3 +1,17 @@
+# 1.0.15 - 2026-11-28
+
+- Adds five layouts for Bags and Bank: Vault groups items by category, Field Kit uses a compact grid, Quartermaster groups key supplies, Ledger shows a list and Satchels displays separate collapsible bags or bank tabs. Preview a layout in Guided Setup or switch from the inventory toolbar. Satchels is the default when no layout is selected.
+- Gives Bags and Bank a shared toolbar and theme colors. Use search and filters to find items, then inspect the selected item from the same window.
+- Matches shared borders, buttons and accents to the active theme across Control Center, chat, the quest tracker, clock, gear indicator, unit frames and damage meter. Chat defaults to Theme and still offers fixed border colors.
+- Applies theme colors to both the round and Dark Fantasy square minimap, including its title, coordinates and native header controls.
+- Gives the XP bar a glow that builds toward the next level, a short highlight for XP gains and a pulse on level-up. Rested XP remains visible as a separate tint.
+- Moves the ForeverSuite launcher clear of the original vendor and trainer controls. It docks to the side where space allows and above the window when needed.
+- Makes pinned tools more compact in Control Center. Hover an Open button for its description, or browse All Tools for the full list.
+- Adds Continue playing for queued waypoints, the selected Talent Advisor build and Auction House shopping goals. The shortcuts appear when there is something to open and respect disabled modules.
+- Adds performance snapshots on demand. Use `/fs perf Busy city` to capture recent addon CPU time per frame, the session CPU peak, addon memory and FPS where the client exposes them. Use `/fs perf` to review up to six snapshots and the duration of ForeverSuite's initialization callback.
+- Skips redundant updates to the clock text and avoids reading menu geometry when there is no native damage meter to avoid.
+- Shows one Mail tools menu in the Inbox header strip and keeps the Inbox and Send Mail tab labels within their native buttons.
+
 # 1.0.14 - 2026-11-25
 
 - Adds Loot Feed: compact, themed notifications for your items, looted money, currencies, reputation gains and profession skill-ups. Repeated gains combine briefly; hover for details and pause fading, click an item link, or right-click to dismiss.

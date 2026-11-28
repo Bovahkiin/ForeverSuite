@@ -36,16 +36,28 @@ The two data addons load when their tools need them.
 ## Make it yours
 
 1. On first login, choose **Start ForeverSuite Tour** or **Skip ForeverSuite Tour**.
-   Guided Setup lets you choose your theme, layout and play style before applying them.
+   Guided Setup lets you choose your theme, frame layout, play style and Bags and Bank layout.
 2. Type **`/fs`** to open the Control Center. **Tools** is your home for pinned shortcuts.
 3. Open **Browse all tools** to see what each tool does, open it or change its
    settings. Use **Pin** to keep it on your home screen.
 4. Use **Settings** for customization, **Modules** to enable or disable features,
    and **Profiles** to save or switch your setup.
 
+**Continue playing** takes you to queued waypoints, your selected talent build
+or your shopping goals when available. Hover a pinned tool's Open button for a
+short description.
+
 Search tools and settings from the top bar. **Move Frames** lets you reposition
 supported elements; native action-bar placement uses the game's Edit Mode.
 Right-click the minimap button for quick access to profiles, themes and layouts.
+
+**Bags and Bank** offer **Vault**, **Field Kit**, **Quartermaster**, **Ledger** and
+**Satchels**. Preview them in Guided Setup or switch from the inventory toolbar.
+Satchels is used when you skip setup and have no saved storage layout.
+
+The round and square minimap use your theme's colors. The XP bar grows brighter
+toward the next level, highlights new XP and pulses on level-up. You can choose a
+fixed chat border color under **Chat → Border color**.
 
 Nameplates distinguish hostile NPCs (red) from neutral NPCs you can attack
 (yellow). Friendly units are green by default. Change these under

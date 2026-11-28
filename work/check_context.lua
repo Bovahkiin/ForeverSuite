@@ -65,9 +65,10 @@ host:Hide(); Drain(); FS.WindowManager.native[host]=nil
 
 -- TEST: Context bag launcher has a visible name and preserves category controls
 local FS,C,host=ContextFixture(); local B=FS.modules.Bags
+B:SetStorageLayout('Vault')
 B:ShowWindow(); C:Discover(); B:Refresh()
-assert(B.window.fsContextLauncher:GetText()=='Bag tools' and B.window.sidebarTitle:GetText()=='BAGS')
-assert(B.window.sidebarTitle:GetWidth()+B.window.fsContextLauncher:GetWidth()<B.window.sidebar:GetWidth())
+assert(B.window.fsContextLauncher:GetText()=='Bag tools' and B.window.sidebarTitle:GetText()=='CATEGORIES')
+assert(B.window.fsContextLauncher:GetParent()==B.window and B.window.fsContextLauncher.point[1]=='BOTTOM')
 B.window.fsContextLauncher:Click(); assert(C.hosts[B.window].menu:IsShown())
 B.window:Hide(); host:Hide(); Drain(); FS.WindowManager.native[host]=nil
 

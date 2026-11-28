@@ -188,15 +188,22 @@ assert(F.entries[1].row.icon.texture==134400)
 FS.db.lootFeed.masque=false; F:SkinIcons(); assert(remove>0)
 F:Clear(); FS.db.appearance.theme='Legacy'; LibStub=oldLib; F.masqueGroup=nil
 
--- TEST: Vendor ForeverSuite launcher has its own visible row outside clipped native content and follows scaling
+-- TEST: Vendor launcher avoids the native footer on both sides and falls back above when necessary
 ResetTest(); local FS=ForeverSuite; local C=FS.Context
 C:Discover(); local state=C.hosts[MerchantFrame]; assert(state and state.button)
 local b=state.button; assert(b:GetParent()==UIParent and b:IsShown())
-assert(b.point[1]=='TOPLEFT' and b.point[2]==MerchantFrame and b.point[3]=='BOTTOMLEFT' and b.point[4]==16)
-local oldScale=MerchantFrame.GetEffectiveScale; MerchantFrame.GetEffectiveScale=function() return .75 end
+local oldScale,oldRect=MerchantFrame.GetEffectiveScale,MerchantFrame.GetRect
+MerchantFrame.GetEffectiveScale=function() return .75 end
+MerchantFrame.GetRect=function() return 30,100,338,400 end
 state.update(); assert(b:GetScale()==.75 and b:GetFrameStrata()=='DIALOG')
+assert(b.point[1]=='TOPLEFT' and b.point[2]==MerchantFrame and b.point[3]=='TOPRIGHT' and b.point[4]>0)
+MerchantFrame.GetRect=function() return UIParent:GetWidth()/.75-360,100,338,400 end
+state.update(); assert(b.point[1]=='TOPRIGHT' and b.point[3]=='TOPLEFT' and b.point[4]<0)
+MerchantFrame.GetRect=function() return 4,100,(UIParent:GetWidth()-8)/.75,400 end
+state.update(); assert(b.point[1]=='BOTTOMLEFT' and b.point[3]=='TOPLEFT' and b.point[5]>0)
 b:Click(); assert(state.menu:IsShown()); MerchantFrame:Hide(); assert(not b:IsShown() and not state.menu:IsShown())
-MerchantFrame:Show(); assert(b:IsShown()); MerchantFrame.GetEffectiveScale=oldScale; state.update()
+MerchantFrame:Show(); assert(b:IsShown())
+MerchantFrame.GetEffectiveScale,MerchantFrame.GetRect=oldScale,oldRect; state.update()
 
 -- TEST: Loot feed resumes after UI visibility changes and stops immediately on disabled combat state
 local FS,F=LootFeedFixture(); F:Event('CHAT_MSG_LOOT',FeedItem(950,1))

@@ -55,6 +55,42 @@ local M,rows,actions=MailFixture(); rows[1]={money=10,items={'item:1','item:2'}}
 M:Collect(true); M:Stop(); M:Collect(true); Drain(); assert(#actions==3 and not M.collecting and #rows[1].items==0)
 M.atMailbox=false; GetInboxNumItems=nil; GetInboxHeaderInfo=nil; GetInboxItemLink=nil; GetInboxText=nil; C_Mail=nil
 
+-- TEST: Mailbox has one Inbox menu outside the title and native tab text fits large-text profiles
+ResetTest(); local FS=ForeverSuite; local C,N,M=FS.Context,FS.NativeWindows,FS.modules.Mail
+local oldMail,oldInbox,oldTab1,oldTab2=MailFrame,InboxFrame,MailFrameTab1,MailFrameTab2
+local host=CreateFrame('Frame','MailFrame',UIParent)
+host:SetSize(348,440)
+InboxFrame=CreateFrame('Frame','InboxFrame',host)
+MailFrameTab1=CreateFrame('Button','MailFrameTab1',host)
+MailFrameTab2=CreateFrame('Button','MailFrameTab2',host)
+local tabLabel=MailFrameTab2:CreateFontString()
+tabLabel:SetText('Send Mail'); tabLabel:SetFont('Fonts\\FRIZQT__.TTF',12,'')
+local clicks=0
+MailFrameTab2:SetScript('OnClick',function() clicks=clicks+1; InboxFrame:Hide() end)
+FS.db.mail.autoOpen=false
+FS.db.typography.global.size=30
+M:Event('MAIL_SHOW'); C:Discover(); FS.Typography:Apply()
+M:Event('MAIL_SHOW'); C:Discover()
+local state=assert(C.hosts[host]); local button=state.button
+local count=0
+for _,f in ipairs(TEST.frames) do
+    if f.kind=='Button' and f:GetText()=='Mail tools' and (f:GetParent()==host or f:GetParent()==InboxFrame) then count=count+1 end
+end
+assert(count==1 and button:IsShown() and button:GetParent()==InboxFrame)
+assert(button.point[1]=='TOPLEFT' and button.point[2]==host and button.point[5]==-34 and button:GetHeight()==22)
+assert(select(2,button.fsLabel:GetFont())<=16 and select(2,tabLabel:GetFont())==12)
+button:Click(); assert(state.menu:IsShown() and #state.menu.buttons==3)
+MailFrameTab2:Click(); assert(clicks==1 and not button:IsShown())
+-- WoW fires a child's OnHide when its parent is hidden; the fixture dispatches it manually.
+button:GetScript('OnHide')(button); assert(not state.menu:IsShown())
+InboxFrame:Show(); assert(button:IsShown())
+FS.db.mail.styleWindow=false; N:Refresh(host)
+assert(tabLabel:GetText()=='Send Mail' and select(2,tabLabel:GetFont())==12)
+M:Event('MAIL_CLOSED'); host:Hide(); Drain()
+assert(not button:IsShown() and not state.menu:IsShown())
+MailFrame,InboxFrame,MailFrameTab1,MailFrameTab2=oldMail,oldInbox,oldTab1,oldTab2
+FS.db.typography.global.size=0; FS.Typography:Apply()
+
 -- TEST: Minimap collection preserves original clicks tooltips and complete geometry on exclusion
 ResetTest(); local FS=ForeverSuite; local M=FS.modules.MinimapButtons
 local b=CreateFrame('Button','LibDBIcon10_ServiceTest',Minimap); b:SetSize(27,29); b:SetScale(.8); b:SetPoint('TOPLEFT',Minimap,'TOPLEFT',-5,6)
